@@ -256,12 +256,12 @@ solana program deploy target/deploy/doppler.so
 
 ## Benchmarks
 
-| Operation | Compute Units | Time (ms) |
-|-----------|--------------|-----------|
-| Oracle Update | 21 | ~0.001 |
-| Sequence Check | 5 | ~0.0002 |
-| Payload Write | 10 | ~0.0004 |
-| Admin Verification | 6 | ~0.0003 |
+| Operation | Compute Units |
+|-----------|--------------|
+| Oracle Update | 21 |
+| Sequence Check | 5 |
+| Payload Write | 10 |
+| Admin Verification | 6 |
 
 ## Example Payloads
 
