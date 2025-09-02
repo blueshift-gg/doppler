@@ -6,7 +6,7 @@ Doppler is an ultra-optimized oracle program for Solana, achieving unparalleled 
 
 - **21 CU Oracle Updates**: The most efficient oracle implementation on Solana
 - **Generic Payload Support**: Flexible data structure supporting any payload type
-- **Sequence-Based Updates**: Built-in replay protection and ordering guarantees
+- **Sequence-Based Updates**: Built-in replay protection and ordering guarante∂ƒes
 - **Zero Dependencies**: Pure no_std Rust implementation for minimal overhead
 - **Direct Memory Operations**: Optimized assembly-level exits for maximum efficiency
 
@@ -230,9 +230,6 @@ Run the test suite:
 ```bash
 # Run all tests
 cargo test
-
-# Run with increased stack size if needed
-RUST_MIN_STACK=8388608 cargo test
 ```
 
 ## Building
@@ -288,7 +285,6 @@ pub struct PropAMM {
 pub struct MarketData {
     pub price: u64,
     pub volume: u64,
-    pub timestamp: i64,
     pub confidence: u32,
 }
 ```
@@ -302,15 +298,15 @@ A: Doppler uses direct memory operations, inline assembly optimizations, and zer
 A: Yes! Doppler is generic over any `Copy` type. Define your structure and use it with the SDK.
 
 **Q: How do I handle oracle account creation?**
-A: Use Solana's `create_account_with_seed` instruction with the admin as the base key.
+A: Howver you like, but if you use Solana's `create_account_with_seed` instruction with the admin as the base key it's cheaper!
 
 **Q: What's the maximum update frequency?**
-A: Limited only by Solana's throughput. With 21 CUs, you can update thousands of times per second.
+A: Limited only by Solana's throughput. With 21 CUs, you can update as fast as you land.
 
 ## Support
 
 For issues, questions, or contributions:
-- GitHub: [@blueshift_gg](https://github.com/blueshift_gg)
+- GitHub: [@blueshift_gg](https://github.com/blueshift-gg)
 - Twitter: [@blueshift_gg](https://twitter.com/blueshift_gg)
 
 ## License
