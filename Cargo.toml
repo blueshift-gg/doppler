@@ -9,6 +9,7 @@ members = [
 serde = { version = "1.0.219" }
 solana-program = { version = "2.3.0" }
 solana-instruction = { version = "2.3.0" }
+solana-compute-budget-interface = { version = "2.2.2" }
 solana-pubkey = { version = "2.3.0" }
 solana-account = { version = "2.2.1" }
 mollusk-svm = { version = "0.5.1" }
