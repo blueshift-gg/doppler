@@ -1,0 +1,106 @@
+use doppler::PriceFeed;
+use doppler_sdk::{Oracle, UpdateInstruction};
+use mollusk_svm::result::Check;
+use mollusk_svm::{program::keyed_account_for_system_program, Mollusk};
+use solana_account::Account;
+use solana_instruction::Instruction;
+use solana_pubkey::Pubkey;
+
+pub fn keyed_account_for_admin(key: Pubkey) -> (Pubkey, Account) {
+    (
+        key,
+        Account::new(10_000_000_000, 0, &solana_program::system_program::ID),
+    )
+}
+
+pub fn keyed_account_for_oracle(
+    mollusk: &mut Mollusk,
+    admin: Pubkey,
+    seed: &str,
+) -> (Pubkey, Account) {
+    let oracle_account = Oracle {
+        sequence: 0,
+        payload: PriceFeed { price: 1_000_00 },
+    };
+
+    let key = Pubkey::create_with_seed(&admin, seed, &doppler_sdk::ID).unwrap();
+
+    let lamports = mollusk
+        .sysvars
+        .rent
+        .minimum_balance(core::mem::size_of::<Oracle<PriceFeed>>());
+
+    let data = oracle_account.to_bytes();
+
+    let account =
+        Account::new_data(lamports, &data, &doppler_sdk::ID).expect("Invalid account data");
+
+    (key, account)
+}
+
+#[test]
+fn test_oracle_update() {
+    // Create Mollusk instance
+    let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler");
+
+    // Accounts
+    let (admin, admin_account) = keyed_account_for_admin(doppler::ADMIN.into());
+    let (oracle, oracle_account) =
+        keyed_account_for_oracle(&mut mollusk, doppler::ADMIN.into(), "SOL/USDC");
+    let (system, system_account) = keyed_account_for_system_program();
+
+    // Create oracle account
+    let create_instruction = solana_program::system_instruction::create_account_with_seed(
+        &admin,
+        &oracle,
+        &admin,
+        "SOL/USDC",
+        oracle_account.lamports,
+        oracle_account.data.len() as u64,
+        &doppler_sdk::ID,
+    );
+
+    // Update oracle with new values
+    let oracle_update = Oracle::<PriceFeed> {
+        sequence: 1, // Increment sequence from 0 to 1
+        payload: PriceFeed { price: 1_100_000 },
+    };
+
+    let update_instruction: Instruction = UpdateInstruction {
+        admin,
+        oracle_pubkey: oracle,
+        oracle: oracle_update,
+    }
+    .into();
+
+    // Execute instruction
+    let result = mollusk.process_and_validate_instruction_chain(
+        &[
+            (&create_instruction, &[Check::success()]),
+            (&update_instruction, &[Check::success()]),
+        ],
+        &vec![
+            (admin, admin_account),
+            (oracle, Account::default()),
+            (system, system_account),
+        ],
+    );
+
+    // Get updated oracle account
+    let updated_oracle = &result
+        .get_account(&oracle)
+        .expect("Missing oracle account")
+        .data;
+
+    // Verify the oracle was updated
+    assert_eq!(
+        &updated_oracle[..8],
+        &1u64.to_le_bytes(),
+        "Sequence should be updated"
+    );
+    assert_eq!(
+        &updated_oracle[8..16],
+        &1_100_000u64.to_le_bytes(),
+        "Price should be updated"
+    );
+}

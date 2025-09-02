@@ -1,0 +1,12 @@
+# Rust build artifacts
+/target
+/sdk/target
+/program/target
+/deploy
+
+# Configuration files
+.DS_Store
+admin.json
+
+# Lock file (optional - you may want to commit this for reproducible builds)
+Cargo.lock

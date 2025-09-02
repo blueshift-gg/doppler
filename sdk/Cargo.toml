@@ -1,0 +1,11 @@
+[package]
+name = "doppler-sdk"
+authors = ["Blueshift <@blueshift_gg>"]
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+doppler = { path = "../program" }
+solana-instruction = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-account = { workspace = true }
