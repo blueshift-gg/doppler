@@ -1,4 +1,4 @@
-# Doppler - The Fastest Oracle on Solana
+# Doppler - A 21 CU Solana Oracle Program
 
 Doppler is an ultra-optimized oracle program for Solana, achieving unparalleled performance at just **21 Compute Units (CUs)** per update. Built with low-level optimizations and minimal overhead, Doppler sets the standard for high-frequency, low-latency price feeds on Solana.
 
