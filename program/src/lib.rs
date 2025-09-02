@@ -16,6 +16,21 @@ pub struct PriceFeed {
     pub price: u64,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PropAMM {
+    pub bid: u64,
+    pub ask: u64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MarketData {
+    pub price: u64,
+    pub volume: u64,
+    pub confidence: u32,
+}
+
 #[no_mangle]
 /// # Safety
 ///
