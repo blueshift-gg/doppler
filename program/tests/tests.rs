@@ -13,14 +13,15 @@ pub fn keyed_account_for_admin(key: Pubkey) -> (Pubkey, Account) {
     )
 }
 
-pub fn keyed_account_for_oracle(
+pub fn keyed_account_for_oracle<T: Sized + Copy>(
     mollusk: &mut Mollusk,
     admin: Pubkey,
     seed: &str,
+    payload: T,
 ) -> (Pubkey, Account) {
     let oracle_account = Oracle {
         sequence: 0,
-        payload: PriceFeed { price: 1_000_00 },
+        payload,
     };
 
     let key = Pubkey::create_with_seed(&admin, seed, &doppler_sdk::ID).unwrap();
@@ -28,7 +29,7 @@ pub fn keyed_account_for_oracle(
     let lamports = mollusk
         .sysvars
         .rent
-        .minimum_balance(core::mem::size_of::<Oracle<PriceFeed>>());
+        .minimum_balance(core::mem::size_of::<Oracle<T>>());
 
     let data = oracle_account.to_bytes();
 
@@ -42,23 +43,27 @@ pub fn keyed_account_for_oracle(
 fn test_oracle_update() {
     // Create Mollusk instance
     let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler");
-
     // Accounts
     let (admin, admin_account) = keyed_account_for_admin(doppler::ADMIN.into());
-    let (oracle, oracle_account) =
-        keyed_account_for_oracle(&mut mollusk, doppler::ADMIN.into(), "SOL/USDC");
+    let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeed>(
+        &mut mollusk,
+        doppler::ADMIN.into(),
+        "SOL/USDC",
+        PriceFeed { price: 100_000 },
+    );
     let (system, system_account) = keyed_account_for_system_program();
 
     // Create oracle account
-    let create_instruction = solana_program::system_instruction::create_account_with_seed(
-        &admin,
-        &oracle,
-        &admin,
-        "SOL/USDC",
-        oracle_account.lamports,
-        oracle_account.data.len() as u64,
-        &doppler_sdk::ID,
-    );
+    let create_price_feed_instruction =
+        solana_program::system_instruction::create_account_with_seed(
+            &admin,
+            &oracle,
+            &admin,
+            "SOL/USDC",
+            oracle_account.lamports,
+            oracle_account.data.len() as u64,
+            &doppler_sdk::ID,
+        );
 
     // Update oracle with new values
     let oracle_update = Oracle::<PriceFeed> {
@@ -66,7 +71,7 @@ fn test_oracle_update() {
         payload: PriceFeed { price: 1_100_000 },
     };
 
-    let update_instruction: Instruction = UpdateInstruction {
+    let price_feed_update_instruction: Instruction = UpdateInstruction {
         admin,
         oracle_pubkey: oracle,
         oracle: oracle_update,
@@ -76,8 +81,8 @@ fn test_oracle_update() {
     // Execute instruction
     let result = mollusk.process_and_validate_instruction_chain(
         &[
-            (&create_instruction, &[Check::success()]),
-            (&update_instruction, &[Check::success()]),
+            (&create_price_feed_instruction, &[Check::success()]),
+            (&price_feed_update_instruction, &[Check::success()]),
         ],
         &vec![
             (admin, admin_account),
@@ -91,7 +96,6 @@ fn test_oracle_update() {
         .get_account(&oracle)
         .expect("Missing oracle account")
         .data;
-
     // Verify the oracle was updated
     assert_eq!(
         &updated_oracle[..8],
