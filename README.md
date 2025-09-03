@@ -19,9 +19,10 @@ Add Doppler SDK and required Solana crates to your `Cargo.toml`:
 doppler-sdk = "0.1.0"
 solana-instruction = "2.3.0"
 solana-pubkey = "2.3.0"
-solana-compute-budget = "2.3.0"
+solana-compute-budget-interface = "2.2.2"
 solana-transaction = "2.3.0"
 solana-keypair = "2.3.0"
+solana-signer = "2.2.1"
 # Add other Solana crates as needed
 ```
 
@@ -55,7 +56,7 @@ pub struct Oracle<T> {
 To achieve the 21 CU performance, configure your transaction with appropriate compute budget:
 
 ```rust
-use solana_compute_budget::ComputeBudgetInstruction;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_instruction::Instruction;
 use solana_transaction::Transaction;
 
@@ -128,9 +129,10 @@ instructions.push(update_ix);
 ```rust
 use doppler_sdk::{Oracle, UpdateInstruction};
 use solana_client::rpc_client::RpcClient;
-use solana_compute_budget::ComputeBudgetInstruction;
+use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_instruction::Instruction;
-use solana_keypair::{Keypair, Signer};
+use solana_keypair::Keypair;
+use solana_signer::Signer;
 use solana_transaction::Transaction;
 
 async fn update_oracle(
@@ -146,7 +148,7 @@ async fn update_oracle(
         ComputeBudgetInstruction::set_compute_unit_limit(200_000),
         
         // 2. Set priority fee (1000 micro-lamports per CU)
-        ComputeBudgetInstruction::set_compute_unit_price(1000),
+        ComputeBudgetInstruction::set_compute_unit_price(1_000),
         
         // 3. Set loaded accounts data size limit
         ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(32_768),
@@ -203,7 +205,7 @@ for oracle in oracles {
 // DO: Single transaction with multiple updates
 let mut instructions = vec![
     ComputeBudgetInstruction::set_compute_unit_limit(200_000),
-    ComputeBudgetInstruction::set_compute_unit_price(1000),
+    ComputeBudgetInstruction::set_compute_unit_price(1_000),
     ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(65_536),
 ];
 
@@ -306,16 +308,16 @@ let's assume we are going to update a single oracle:
 - Requested compute-budget-limit to 21 (with compute-budget instructions 321 and 471 respectively) CUs
 - Paying priority fee: 1.00 lamports per CU
 
-| Metric                         | Without Instruction          | With 127 byte Limit           |
-| ------------------------------ | ---------------------------- | ----------------------------- |
-| Loaded Account Data Size Limit | 64M                          | 127 bytes                     |
-| Data Size Cost Calculation     | 64M * (4/32K)                | 127 bytes * (4/32K)           |
-| Data Size Cost (CUs)           | 16,000                       | 0.03175                       |
-| Reward to Leader Calculation   | (1 * 5000 + 1 * 321)/2       | (1 * 5000 + 1 * 471)/2        |
-| Reward to Leader (lamports)    | 2,660.5                      | 2,735.5                       |
-| Transaction Cost Formula       | 1*720 + 0*300 + 321 + 16,000 | 1*720 + 0*300 + 471 + 0.03175 |
-| Transaction Cost (CUs)         | 17,041                       | 1,141.03175                   |
-| Priority Score                 | 0.156                        | 2.397                         |
+| Metric                         | Without Instruction              | With 127 byte Limit               |
+| ------------------------------ | -------------------------------- | --------------------------------- |
+| Loaded Account Data Size Limit | 64M                              | 127 bytes                         |
+| Data Size Cost Calculation     | 64M * (4/32K)                    | 127 bytes * (4/32K)               |
+| Data Size Cost (CUs)           | 16,000                           | 0.03175                           |
+| Reward to Leader Calculation   | (1 * 5000 + 1 * 321)/2           | (1 * 5000 + 1 * 471)/2            |
+| Reward to Leader (lamports)    | 2,660.5                          | 2,735.5                           |
+| Transaction Cost Formula       | 1 * 720 + 0 * 300 + 321 + 16,000 | 1 * 720 + 0 * 300 + 471 + 0.03175 |
+| Transaction Cost (CUs)         | 17,041                           | 1,141.03175                       |
+| Priority Score                 | 0.156                            | 2.397                             |
 
 ## Building
 
@@ -397,4 +399,3 @@ For issues, questions, or contributions:
 ## License
 
 MIT License - See LICENSE file for details
-
