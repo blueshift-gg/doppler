@@ -294,6 +294,29 @@ Finalized
 
 > Fully fledged tx requires: `471 CU` + `127 bytes`
 
+
+### Expected Priority Score
+
+based on the [Anza's blog post](https://www.anza.xyz/blog/cu-optimization-with-setloadedaccountsdatasizelimit) and the code from [example](https://github.com/blueshift-gg/doppler/blob/master/example/src/main.rs)
+
+let's assume we are going to update a single oracle:
+
+- 1 signature
+- 0 write locks
+- Requested compute-budget-limit to 21 (with compute-budget instructions 321 and 471 respectively) CUs
+- Paying priority fee: 1.00 lamports per CU
+
+| Metric                         | Without Instruction          | With 127 byte Limit           |
+| ------------------------------ | ---------------------------- | ----------------------------- |
+| Loaded Account Data Size Limit | 64M                          | 127 bytes                     |
+| Data Size Cost Calculation     | 64M * (4/32K)                | 127 bytes * (4/32K)           |
+| Data Size Cost (CUs)           | 16,000                       | 0.03175                       |
+| Reward to Leader Calculation   | (1 * 5000 + 1 * 321)/2       | (1 * 5000 + 1 * 471)/2        |
+| Reward to Leader (lamports)    | 2,660.5                      | 2,735.5                       |
+| Transaction Cost Formula       | 1*720 + 0*300 + 321 + 16,000 | 1*720 + 0*300 + 471 + 0.03175 |
+| Transaction Cost (CUs)         | 17,041                       | 1,141.03175                   |
+| Priority Score                 | 0.156                        | 2.397                         |
+
 ## Building
 
 Build the on-chain program:
@@ -315,12 +338,12 @@ solana program deploy target/deploy/doppler.so
 
 ## Benchmarks
 
-| Operation | Compute Units |
-|-----------|--------------|
-| Oracle Update | 21 |
-| Sequence Check | 5 |
-| Payload Write | 10 |
-| Admin Verification | 6 |
+| Operation          | Compute Units |
+| ------------------ | ------------- |
+| Oracle Update      | 21            |
+| Sequence Check     | 5             |
+| Payload Write      | 10            |
+| Admin Verification | 6             |
 
 ## Example Payloads
 
@@ -374,3 +397,4 @@ For issues, questions, or contributions:
 ## License
 
 MIT License - See LICENSE file for details
+
