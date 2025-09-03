@@ -58,7 +58,7 @@ impl<T: Sized + Copy> From<UpdateInstruction<T>> for Instruction {
         Instruction {
             program_id: ID,
             accounts: vec![
-                AccountMeta::new(update.admin, true),
+                AccountMeta::new_readonly(update.admin, true),
                 AccountMeta::new(update.oracle_pubkey, false),
             ],
             data,
