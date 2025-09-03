@@ -1,4 +1,7 @@
-// ADMIN
+// ADMIN - Solana account layout offsets
+// These offsets are based on Solana's account data structure
+// 0x0008: Account header/metadata (8 bytes from start)
+// 0x0010: Admin public key (16 bytes from start)
 const ADMIN_HEADER: usize = 0x0008;
 const ADMIN_KEY: usize = 0x0010;
 
@@ -20,11 +23,11 @@ impl Admin {
     /// - Checks Admin is a non-duplicate mutable signer (2 CUs)
     /// - Checks Admin address matches ADMIN (12 CUs)
     pub unsafe fn check(ptr: *mut u8) {
-        if crate::read::<u32>(ptr, ADMIN_HEADER) != NO_DUP_MUT_SIGNER
-            || crate::read::<u64>(ptr, ADMIN_KEY) != *(ADMIN.as_ptr() as *const u64)
-            || crate::read::<u64>(ptr, ADMIN_KEY + 0x08) != *(ADMIN.as_ptr().add(8) as *const u64)
-            || crate::read::<u64>(ptr, ADMIN_KEY + 0x10) != *(ADMIN.as_ptr().add(16) as *const u64)
-            || crate::read::<u64>(ptr, ADMIN_KEY + 0x18) != *(ADMIN.as_ptr().add(24) as *const u64)
+        if crate::read::<u32>(ptr, ADMIN_HEADER, 0x10000) != NO_DUP_MUT_SIGNER
+            || crate::read::<u64>(ptr, ADMIN_KEY, 0x10000) != *(ADMIN.as_ptr() as *const u64)
+            || crate::read::<u64>(ptr, ADMIN_KEY + 0x08, 0x10000) != *(ADMIN.as_ptr().add(8) as *const u64)
+            || crate::read::<u64>(ptr, ADMIN_KEY + 0x10, 0x10000) != *(ADMIN.as_ptr().add(16) as *const u64)
+            || crate::read::<u64>(ptr, ADMIN_KEY + 0x18, 0x10000) != *(ADMIN.as_ptr().add(24) as *const u64)
         {
             #[cfg(target_os = "solana")]
             unsafe {

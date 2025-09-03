@@ -1,18 +1,65 @@
-/// Helper to read a value at offset and cast it
+/// Helper to read a value at offset with bounds checking
+/// 
+/// # Safety
+/// 
+/// Caller must ensure:
+/// - `ptr` is valid and points to allocated memory
+/// - `total_size` represents the total allocated memory size
+/// 
+/// This function will safely exit the program if bounds are exceeded
 #[inline(always)]
-pub unsafe fn read<T>(ptr: *const u8, offset: usize) -> T
+pub unsafe fn read<T>(ptr: *const u8, offset: usize, total_size: usize) -> T
 where
     T: core::marker::Copy,
 {
+    let type_size = core::mem::size_of::<T>();
+    
+    // Bounds checking: ensure we don't read beyond allocated memory
+    if offset + type_size > total_size {
+        #[cfg(target_os = "solana")]
+        unsafe {
+            core::arch::asm!("lddw r0, 3\nexit"); // Exit code 3: Memory bounds exceeded
+        }
+        #[cfg(not(target_os = "solana"))]
+        {
+            core::arch::asm!("ud2", options(noreturn)); // Panic in non-Solana environments
+        }
+    }
+    
+    // Safe to read: bounds have been validated
     *(ptr.add(offset) as *const T)
 }
 
-/// Helper to write a value at offset
+/// Helper to write a value at offset with bounds checking
+/// 
+/// # Safety
+/// 
+/// Caller must ensure:
+/// - `ptr` is valid and points to allocated memory
+/// - `total_size` represents the total allocated memory size
+/// - Memory at `offset` is writable
+/// 
+/// This function will safely exit the program if bounds are exceeded
 #[inline(always)]
-pub unsafe fn write<T>(ptr: *mut u8, offset: usize, value: T)
+pub unsafe fn write<T>(ptr: *mut u8, offset: usize, value: T, total_size: usize)
 where
     T: core::marker::Copy,
 {
+    let type_size = core::mem::size_of::<T>();
+    
+    // Bounds checking: ensure we don't write beyond allocated memory
+    if offset + type_size > total_size {
+        #[cfg(target_os = "solana")]
+        unsafe {
+            core::arch::asm!("lddw r0, 4\nexit"); // Exit code 4: Memory bounds exceeded on write
+        }
+        #[cfg(not(target_os = "solana"))]
+        {
+            core::arch::asm!("ud2", options(noreturn)); // Panic in non-Solana environments
+        }
+    }
+    
+    // Safe to write: bounds have been validated
     *(ptr.add(offset) as *mut T) = value;
 }
 
