@@ -35,17 +35,16 @@ fn main() {
         },
     };
 
-    let data_size = update_instruction.loaded_accounts_data_size_limit() * 2 // loaded state + update state ix data (same size)
-        + DATA_SIZE_OVERHEAD;
-
-    println!("Data Size Limit: {}", data_size);
     // Create transaction with compute budget instructions
     let instructions = [
         ComputeBudgetInstruction::set_compute_unit_price(1_000),
         ComputeBudgetInstruction::set_compute_unit_limit(
             update_instruction.compute_unit_limit() + COMPUTE_BUDGET_IXS_CU_OVERHEAD,
         ),
-        ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(data_size + 18),
+        ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(
+            update_instruction.loaded_accounts_data_size_limit() * 2 // loaded state + update state ix data (same size)
+        + DATA_SIZE_OVERHEAD,
+        ),
         update_instruction.into(),
     ];
 
@@ -54,7 +53,6 @@ fn main() {
         .get_latest_blockhash()
         .expect("Failed to get recent blockhash");
 
-    println!("Recent Blockhash: {:?}", recent_blockhash);
     // Create and sign the transaction
     let transaction = Transaction::new_signed_with_payer(
         &instructions,
