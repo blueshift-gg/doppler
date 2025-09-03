@@ -32,6 +32,40 @@ impl<T: Sized + Copy> Oracle<T> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct ComputeOptimizer {
+    pub base_cu: u32,
+    pub network_congestion_factor: u32,
+}
+
+impl ComputeOptimizer {
+    pub fn new() -> Self {
+        Self {
+            base_cu: 21,
+            network_congestion_factor: 1,
+        }
+    }
+    
+    pub fn calculate_optimal_cu<T: Sized + Copy>(&self, _payload: &T) -> u32 {
+        let payload_size = core::mem::size_of::<T>();
+        let size_factor = (payload_size / 8) as u32;
+        
+        self.base_cu + size_factor + self.network_congestion_factor
+    }
+    
+    pub fn adjust_for_congestion(&mut self, recent_fees: &[u64]) -> u32 {
+        if let Some(avg_fee) = recent_fees.iter().sum::<u64>().checked_div(recent_fees.len() as u64) {
+            self.network_congestion_factor = match avg_fee {
+                0..=100 => 0,
+                101..=500 => 1,
+                501..=1000 => 2,
+                _ => 3,
+            };
+        }
+        self.network_congestion_factor
+    }
+}
+
 pub struct UpdateInstruction<T: Sized + Copy> {
     pub admin: Pubkey,
     pub oracle_pubkey: Pubkey,
@@ -190,4 +224,40 @@ mod tests {
 
         assert_eq!(compute_instruction, 25);
     }
+
+    // ComputeOptimizer tests
+    #[test]
+    fn test_compute_optimizer_new() {
+        let optimizer = ComputeOptimizer::new();
+        assert_eq!(optimizer.base_cu, 21);
+        assert_eq!(optimizer.network_congestion_factor, 1);
+    }
+
+    #[test]
+    fn test_compute_optimizer_calculate_optimal_cu() {
+        let optimizer = ComputeOptimizer::new();
+        
+        let payload = 123u64;
+        let optimal_cu = optimizer.calculate_optimal_cu(&payload);
+        assert_eq!(optimal_cu, 23);
+        
+        let amm_payload = PropAMM { bid: 1000, ask: 1100 };
+        let optimal_cu = optimizer.calculate_optimal_cu(&amm_payload);
+        assert_eq!(optimal_cu, 24);
+    }
+
+    #[test]
+    fn test_compute_optimizer_adjust_for_congestion() {
+        let mut optimizer = ComputeOptimizer::new();
+        
+        let low_fees = vec![50, 75, 100];
+        let factor = optimizer.adjust_for_congestion(&low_fees);
+        assert_eq!(factor, 0);
+        
+        let high_fees = vec![600, 700, 800];
+        let factor = optimizer.adjust_for_congestion(&high_fees);
+        assert_eq!(factor, 2);
+    }
+
+
 }
