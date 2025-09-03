@@ -43,7 +43,7 @@ Doppler uses a simple yet powerful architecture:
 
 ```rust
 pub struct Oracle<T> {
-    pub sequence: u64,  // Timestamp, block number, or auto-increment
+    pub sequence: u64,  // Timestamp, slot height, or auto-increment
     pub payload: T,     // Your custom data structure
 }
 ```
