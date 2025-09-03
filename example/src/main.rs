@@ -18,7 +18,6 @@ fn main() {
     // Load admin keypair (ensure this path is correct)
     let admin = Keypair::read_from_file("./admin.json").expect("Failed to read keypair");
 
-    println!("Admin Pubkey: {}", admin.pubkey());
     // Define oracle account public key (replace with actual oracle account)
     let oracle_pubkey = Pubkey::from_str_const("QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW");
 
