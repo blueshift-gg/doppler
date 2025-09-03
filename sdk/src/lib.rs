@@ -259,5 +259,4 @@ mod tests {
         assert_eq!(factor, 2);
     }
 
-
 }
