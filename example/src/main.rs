@@ -20,7 +20,7 @@ fn main() {
 
     println!("Admin Pubkey: {}", admin.pubkey());
     // Define oracle account public key (replace with actual oracle account)
-    let oracle_pubkey = Pubkey::from_str_const("6rNnuuoYYDhZoHa8ZtDReEAiWBxg5DWq9odZJDm5dEZM");
+    let oracle_pubkey = Pubkey::from_str_const("QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW");
 
     // Create the new price feed data
     let new_price_feed = PriceFeed { price: 123_456 };
