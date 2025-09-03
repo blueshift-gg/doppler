@@ -225,12 +225,74 @@ let priority_ix = ComputeBudgetInstruction::set_compute_unit_price(optimal_fee);
 
 ## Testing
 
+### Unit
+
 Run the test suite:
 
 ```bash
 # Run all tests
 cargo test
 ```
+
+### E2E
+
+```bash
+solana-test-validator \
+    --bpf-program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm ./target/deploy/doppler.so \
+    --account QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW ./oracle.json -r
+solana -u l airdrop 10 admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE # admin.json keypair
+
+cargo run -p doppler-example
+```
+
+example of response
+
+```
+Transaction executed in slot 131:
+  Block Time: 2025-09-03T04:23:08+03:00
+  Version: legacy
+  Recent Blockhash: 89ZvpNezGugkfm9LnN99rhb6aTNaW1cLKkS2DDbr7NPA
+  Signature 0: m14zQFvt1jU9YYM2QAmVSnMZUa5P2eKdtP21Shu9w9kEhxKLAfJoUyqZwiTt43hGwewhsahQJi5eLJ71NptUWDu
+  Account 0: srw- FpzKvXSEnR2LsG3ttPfnxUadmnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhECoGByxDJJzFnhrWqqGY1CA (fee payer)
+  Account 1: -rw- QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW
+  Account 2: -r-x ComputeBudget111111111111111111111111111111
+  Account 3: -r-x fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
+  Instruction 0
+    Program:   ComputeBudget111111111111111111111111111111 (2)
+    Data: [3, 232, 3, 0, 0, 0, 0, 0, 0]
+  Instruction 1
+    Program:   ComputeBudget111111111111111111111111111111 (2)
+    Data: [2, 215, 1, 0, 0]
+  Instruction 2
+    Program:   ComputeBudget111111111111111111111111111111 (2)
+    Data: [4, 127, 0, 0, 0]
+  Instruction 3
+    Program:   fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm (3)
+    Account 0: admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (0)
+    Account 1: QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW (1)
+    Data: [159, 136, 1, 0, 0, 0, 0, 0, 64, 226, 1, 0, 0, 0, 0, 0, 160, 213, 119, 107, 1, 0, 0, 0]
+  Status: Ok
+    Fee: ◎0.000005001
+    Account 0 balance: ◎9.999969996 -> ◎9.999964995
+    Account 1 balance: ◎0.00100224
+    Account 2 balance: ◎0.000000001
+    Account 3 balance: ◎0.00114144
+  Compute Units Consumed: 471
+  Log Messages:
+    Program ComputeBudget111111111111111111111111111111 invoke [1]
+    Program ComputeBudget111111111111111111111111111111 success
+    Program ComputeBudget111111111111111111111111111111 invoke [1]
+    Program ComputeBudget111111111111111111111111111111 success
+    Program ComputeBudget111111111111111111111111111111 invoke [1]
+    Program ComputeBudget111111111111111111111111111111 success
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm invoke [1]
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm consumed 21 of 21 compute units
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm success
+
+Finalized
+```
+
+> Fully fledged tx requires: `471 CU` + `127 bytes`
 
 ## Building
 

@@ -43,7 +43,6 @@ pub fn keyed_account_for_oracle<T: Sized + Copy>(
 fn test_oracle_update() {
     // Create Mollusk instance
     let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler");
-
     // Accounts
     let (admin, admin_account) = keyed_account_for_admin(doppler::ADMIN.into());
     let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeed>(

@@ -1,4 +1,3 @@
-use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_instruction::{AccountMeta, Instruction};
 use solana_pubkey::Pubkey;
 
@@ -40,13 +39,15 @@ pub struct UpdateInstruction<T: Sized + Copy> {
 }
 
 impl<T: Sized + Copy> UpdateInstruction<T> {
-    pub fn compute_unit_limit(&self) -> Instruction {
-        ComputeBudgetInstruction::set_compute_unit_limit(
-            SEQUENCE_CHECK_CU
-                + ADMIN_VERIFICATION_CU
-                + PAYLOAD_WRITE_CU
-                + (core::mem::size_of::<Oracle<T>>() / 4) as u32,
-        )
+    pub const fn compute_unit_limit(&self) -> u32 {
+        SEQUENCE_CHECK_CU
+            + ADMIN_VERIFICATION_CU
+            + PAYLOAD_WRITE_CU
+            + (core::mem::size_of::<Oracle<T>>() / 4) as u32
+    }
+
+    pub const fn loaded_accounts_data_size_limit(&self) -> u32 {
+        core::mem::size_of::<Oracle<T>>() as u32
     }
 }
 
@@ -117,10 +118,7 @@ mod tests {
 
         let compute_instruction = update_instruction.compute_unit_limit();
 
-        assert_eq!(
-            compute_instruction,
-            ComputeBudgetInstruction::set_compute_unit_limit(21)
-        );
+        assert_eq!(compute_instruction, 21);
     }
 
     #[test]
@@ -141,10 +139,7 @@ mod tests {
 
         let compute_instruction = update_instruction.compute_unit_limit();
 
-        assert_eq!(
-            compute_instruction,
-            ComputeBudgetInstruction::set_compute_unit_limit(21)
-        );
+        assert_eq!(compute_instruction, 21);
     }
 
     #[test]
@@ -168,10 +163,7 @@ mod tests {
 
         let compute_instruction = update_instruction.compute_unit_limit();
 
-        assert_eq!(
-            compute_instruction,
-            ComputeBudgetInstruction::set_compute_unit_limit(23)
-        );
+        assert_eq!(compute_instruction, 23);
     }
 
     #[test]
@@ -196,9 +188,6 @@ mod tests {
 
         let compute_instruction = update_instruction.compute_unit_limit();
 
-        assert_eq!(
-            compute_instruction,
-            ComputeBudgetInstruction::set_compute_unit_limit(25)
-        );
+        assert_eq!(compute_instruction, 25);
     }
 }
