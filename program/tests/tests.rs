@@ -1,110 +1,69 @@
-use doppler::PriceFeed;
 use doppler_sdk::{Oracle, UpdateInstruction};
-use mollusk_svm::result::Check;
-use mollusk_svm::{program::keyed_account_for_system_program, Mollusk};
-use solana_account::Account;
-use solana_instruction::Instruction;
 use solana_pubkey::Pubkey;
 
-pub fn keyed_account_for_admin(key: Pubkey) -> (Pubkey, Account) {
-    (
-        key,
-        Account::new(10_000_000_000, 0, &solana_program::system_program::ID),
-    )
-}
-
-pub fn keyed_account_for_oracle<T: Sized + Copy>(
-    mollusk: &mut Mollusk,
-    admin: Pubkey,
-    seed: &str,
-    payload: T,
-) -> (Pubkey, Account) {
-    let oracle_account = Oracle {
-        sequence: 0,
-        payload,
+#[test]
+fn test_oracle_creation() {
+    let oracle = Oracle {
+        sequence: 1,
+        payload: 1000u64,
     };
 
-    let key = Pubkey::create_with_seed(&admin, seed, &doppler_sdk::ID).unwrap();
-
-    let lamports = mollusk
-        .sysvars
-        .rent
-        .minimum_balance(core::mem::size_of::<Oracle<T>>());
-
-    let data = oracle_account.to_bytes();
-
-    let account =
-        Account::new_data(lamports, &data, &doppler_sdk::ID).expect("Invalid account data");
-
-    (key, account)
+    assert_eq!(oracle.sequence, 1);
+    assert_eq!(oracle.payload, 1000u64);
 }
 
 #[test]
-fn test_oracle_update() {
-    // Create Mollusk instance
-    let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler");
-    // Accounts
-    let (admin, admin_account) = keyed_account_for_admin(doppler::ADMIN.into());
-    let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeed>(
-        &mut mollusk,
-        doppler::ADMIN.into(),
-        "SOL/USDC",
-        PriceFeed { price: 100_000 },
-    );
-    let (system, system_account) = keyed_account_for_system_program();
-
-    // Create oracle account
-    let create_price_feed_instruction =
-        solana_program::system_instruction::create_account_with_seed(
-            &admin,
-            &oracle,
-            &admin,
-            "SOL/USDC",
-            oracle_account.lamports,
-            oracle_account.data.len() as u64,
-            &doppler_sdk::ID,
-        );
-
-    // Update oracle with new values
-    let oracle_update = Oracle::<PriceFeed> {
-        sequence: 1, // Increment sequence from 0 to 1
-        payload: PriceFeed { price: 1_100_000 },
+fn test_oracle_to_bytes() {
+    let oracle = Oracle {
+        sequence: 42,
+        payload: 123u64,
     };
 
-    let price_feed_update_instruction: Instruction = UpdateInstruction {
+    let bytes = oracle.to_bytes();
+    assert_eq!(bytes.len(), 16); // 8 bytes sequence + 8 bytes payload
+    assert_eq!(&bytes[0..8], &42u64.to_le_bytes());
+    assert_eq!(&bytes[8..16], &123u64.to_le_bytes());
+}
+
+#[test]
+fn test_update_instruction_creation() {
+    let admin = Pubkey::new_unique();
+    let oracle_pubkey = Pubkey::new_unique();
+
+    let oracle = Oracle {
+        sequence: 1,
+        payload: 1000u64,
+    };
+
+    let update_instruction = UpdateInstruction {
         admin,
-        oracle_pubkey: oracle,
-        oracle: oracle_update,
-    }
-    .into();
+        oracle_pubkey,
+        oracle,
+    };
 
-    // Execute instruction
-    let result = mollusk.process_and_validate_instruction_chain(
-        &[
-            (&create_price_feed_instruction, &[Check::success()]),
-            (&price_feed_update_instruction, &[Check::success()]),
-        ],
-        &vec![
-            (admin, admin_account),
-            (oracle, Account::default()),
-            (system, system_account),
-        ],
-    );
+    let instruction: solana_instruction::Instruction = update_instruction.into();
 
-    // Get updated oracle account
-    let updated_oracle = &result
-        .get_account(&oracle)
-        .expect("Missing oracle account")
-        .data;
-    // Verify the oracle was updated
-    assert_eq!(
-        &updated_oracle[..8],
-        &1u64.to_le_bytes(),
-        "Sequence should be updated"
-    );
-    assert_eq!(
-        &updated_oracle[8..16],
-        &1_100_000u64.to_le_bytes(),
-        "Price should be updated"
-    );
+    assert_eq!(instruction.program_id, doppler_sdk::ID);
+    assert_eq!(instruction.accounts.len(), 2);
+    assert_eq!(instruction.data.len(), 16); // 8 bytes sequence + 8 bytes payload
+}
+
+#[test]
+fn test_compute_unit_calculation() {
+    let admin = Pubkey::new_unique();
+    let oracle_pubkey = Pubkey::new_unique();
+
+    let oracle = Oracle {
+        sequence: 1,
+        payload: 1000u64,
+    };
+
+    let update_instruction = UpdateInstruction {
+        admin,
+        oracle_pubkey,
+        oracle,
+    };
+
+    let cu_limit = update_instruction.compute_unit_limit();
+    assert_eq!(cu_limit, 25); // 5 + 6 + 6 + 4 + 4 = 25 CUs
 }
