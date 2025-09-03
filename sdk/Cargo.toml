@@ -6,6 +6,6 @@ edition = "2021"
 
 [dependencies]
 doppler = { path = "../program" }
+solana-account = { workspace = true }
 solana-instruction = { workspace = true }
 solana-pubkey = { workspace = true }
-solana-account = { workspace = true }
