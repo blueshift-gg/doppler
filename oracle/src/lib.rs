@@ -1,3 +1,6 @@
+#![no_std]
+#![cfg_attr(target_os = "solana", feature(asm_experimental_arch))]
+
 // ORACLE - Account data offsets
 const ORACLE_SEQUENCE: usize = 0x28c0; // (sequence: u64)
 const ORACLE_PAYLOAD: usize = 0x28c8; // (payload: T)

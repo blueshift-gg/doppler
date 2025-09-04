@@ -1,3 +1,6 @@
+#![no_std]
+#![cfg_attr(target_os = "solana", feature(asm_experimental_arch))]
+
 // ADMIN
 const ADMIN_HEADER: usize = 0x0008;
 const ADMIN_KEY: usize = 0x0010;
