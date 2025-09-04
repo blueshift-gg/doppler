@@ -10,13 +10,32 @@ use solana_transaction::Transaction;
 const COMPUTE_BUDGET_IXS_CU_OVERHEAD: u32 = 3 * 150; // 3 compute budget ixs * 150 CU each
 const DATA_SIZE_OVERHEAD: u32 = 36 + 22 + 5 + 5 + 9 + 18; // doppler program + compute budget program + load ix + limit ix + price ix
 
+pub fn fetch_oracle_account(
+    client: &RpcClient,
+    oracle_pubkey: &Pubkey,
+) -> Option<Oracle<PriceFeed>> {
+    client
+        .get_account_data(oracle_pubkey)
+        .ok()
+        .map(|b| Oracle::<PriceFeed>::from_bytes(b.as_slice()))
+}
+
 fn main() {
     // Connect to local Solana cluster
     let rpc_url = "http://localhost:8899";
     let client = RpcClient::new(rpc_url.to_string());
 
     // Load admin keypair (ensure this path is correct)
-    let admin = Keypair::read_from_file("./admin.json").expect("Failed to read keypair");
+    let admin = Keypair::read_from_file("./admin.json").expect("keypair not found at that path");
+
+    let res = client
+        .request_airdrop(&admin.pubkey(), 3 * 1_000_000_000)
+        .expect("airdrop failed"); // airdrop 1 SOL;
+
+    println!("sig : {}", res);
+
+    let balance = client.get_balance(&admin.pubkey());
+    println!("bal : {:?}", balance);
 
     // Define oracle account public key (replace with actual oracle account)
     let oracle_pubkey = Pubkey::from_str_const("QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW");
@@ -66,4 +85,12 @@ fn main() {
         .expect("Failed to send transaction");
 
     println!("Transaction successful with signature: {:?}", signature);
+
+    let oracle_data =
+        fetch_oracle_account(&client, &oracle_pubkey).expect("failed to fetch oracle account");
+
+    println!(
+        "Price feed : seq - {}, price - {}",
+        oracle_data.sequence, oracle_data.payload.price
+    );
 }
