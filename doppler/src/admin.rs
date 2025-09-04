@@ -11,6 +11,7 @@ pub const ADMIN: [u8; 32] = [
 pub const NO_DUP_SIGNER: u16 = 0x01 << 8 | 0xff; // SIGNER | NO_DUP
 
 pub struct Admin;
+
 impl Admin {
     #[inline(always)]
     /// # Check

@@ -9,7 +9,7 @@ edition = { workspace = true }
 version = { workspace = true }
 
 [dependencies]
-doppler = { workspace = true }
+doppler-program = { workspace = true }
 doppler-sdk = { workspace = true }
 solana-client = { workspace = true }
 solana-compute-budget-interface = { workspace = true }
