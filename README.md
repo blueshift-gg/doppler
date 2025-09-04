@@ -395,7 +395,8 @@ A: Limited only by Solana's throughput. With 21 CUs, you can update as fast as y
 For issues, questions, or contributions:
 - GitHub: [@blueshift-gg](https://github.com/blueshift-gg)
 - X: [@blueshift_gg](https://x.com/blueshift_gg)
+- Discord: [discord.gg/blueshift](https://discord.gg/blueshift)
 
 ## License
 
-MIT License - See LICENSE file for details
+Licensed under [MIT](./LICENSE).

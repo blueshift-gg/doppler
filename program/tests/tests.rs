@@ -100,7 +100,7 @@ fn test_oracle_update() {
     // Get updated oracle account
     let updated_oracle = result.get_account(&oracle).expect("Missing oracle account");
 
-    let oracle = Oracle::<PriceFeed>::from_bytes(&updated_oracle.data());
+    let oracle = Oracle::<PriceFeed>::from_bytes(updated_oracle.data());
     // Verify the oracle was updated
     assert_eq!(&oracle.sequence, &1u64, "Sequence should be updated");
     assert_eq!(&oracle.payload.price, &1_100_000, "Price should be updated");
