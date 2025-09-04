@@ -1,8 +1,12 @@
 [package]
 name = "doppler-sdk"
-authors = ["Blueshift <@blueshift_gg>"]
-version = "0.1.0"
-edition = "2021"
+description = "An ultra-optimized oracle SDK."
+authors = { workspace = true }
+repository = { workspace = true }
+readme = { workspace = true }
+license-file ={ workspace = true }
+edition = { workspace = true }
+version = { workspace = true }
 
 [dependencies]
 doppler = { path = "../program" }

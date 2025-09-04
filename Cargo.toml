@@ -2,6 +2,14 @@
 resolver = "2"
 members = ["example", "program", "sdk"]
 
+[workspace.package]
+authors = ["Blueshift <@blueshift_gg>"]
+repository = "https://github.com/blueshift-gg/doppler"
+readme = "README.md"
+license-file = "LICENSE"
+edition = "2021"
+version = "0.1.0"
+
 [workspace.dependencies]
 mollusk-svm = { version = "0.5.1" }
 serde = { version = "1.0.219" }
