@@ -8,15 +8,23 @@ edition = "2021"
 crate-type = ["lib", "cdylib"]
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+] }
 
 [dependencies]
 # lol = "13.37"
 
 [dev-dependencies]
 doppler-sdk = { path = "../sdk" }
-mollusk-svm = { workspace = true }
 solana-account = { workspace = true }
 solana-instruction = { workspace = true }
 solana-program = { workspace = true }
 solana-pubkey = { workspace = true }
+mollusk-svm = { workspace = true }
+mollusk-svm-bencher = "0.5.1"
+
+
+[[bench]]
+name = "compute_units"
+harness = false

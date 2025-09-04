@@ -10,8 +10,8 @@ pub struct Oracle<T: Sized + Copy> {
 
 impl<T: Sized + Copy> Oracle<T> {
     // Relative offsets for instruction data
-    const INSTRUCTION_SEQUENCE: usize = 0x50e8 + core::mem::size_of::<T>(); // (sequence: u64)
-    const INSTRUCTION_PAYLOAD: usize = 0x50f0 + core::mem::size_of::<T>(); // (payload: T)
+    const INSTRUCTION_SEQUENCE: usize = 0x50e0; // (sequence: u64)
+    const INSTRUCTION_PAYLOAD: usize = 0x50e8; // (payload: T)
 
     #[inline(always)]
     pub unsafe fn check_and_update(ptr: *mut u8) {
