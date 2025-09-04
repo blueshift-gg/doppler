@@ -1,6 +1,6 @@
 [package]
 name = "doppler-example"
-description = "Example on how to update  oracle."
+description = "Example on how to update oracle."
 authors = { workspace = true }
 repository = { workspace = true }
 readme = { workspace = true }
