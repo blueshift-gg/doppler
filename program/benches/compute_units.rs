@@ -1,8 +1,8 @@
 use doppler::PriceFeed;
 use doppler_sdk::{Oracle, UpdateInstruction};
-use mollusk_svm::result::Check;
 use mollusk_svm::{program::keyed_account_for_system_program, Mollusk};
-use solana_account::{Account, ReadableAccount};
+use mollusk_svm_bencher::MolluskComputeUnitBencher;
+use solana_account::Account;
 use solana_instruction::Instruction;
 use solana_program::clock::Epoch;
 use solana_pubkey::Pubkey;
@@ -45,19 +45,20 @@ pub fn keyed_account_for_oracle<T: Sized + Copy>(
     (key, account)
 }
 
-#[test]
-fn test_oracle_update() {
+fn main() {
     // Create Mollusk instance
     let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler");
-    // Accounts
-    let (admin, admin_account) = keyed_account_for_admin(doppler::ADMIN.into());
+
     let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeed>(
         &mut mollusk,
         doppler::ADMIN.into(),
         "SOL/USDC",
         PriceFeed { price: 100_000 },
     );
+
+    // Accounts
     let (system, system_account) = keyed_account_for_system_program();
+    let (admin, admin_account) = keyed_account_for_admin(doppler::ADMIN.into());
 
     // Create oracle account
     let create_price_feed_instruction =
@@ -84,24 +85,22 @@ fn test_oracle_update() {
     }
     .into();
 
-    // Execute instruction
-    let result = mollusk.process_and_validate_instruction_chain(
-        &[
-            (&create_price_feed_instruction, &[Check::success()]),
-            (&price_feed_update_instruction, &[Check::success()]),
-        ],
-        &vec![
-            (admin, admin_account.clone()),
-            (oracle, Account::default()),
-            (system, system_account),
-        ],
-    );
-
-    // Get updated oracle account
-    let updated_oracle = result.get_account(&oracle).expect("Missing oracle account");
-
-    let oracle = Oracle::<PriceFeed>::from_bytes(&updated_oracle.data());
-    // Verify the oracle was updated
-    assert_eq!(&oracle.sequence, &1u64, "Sequence should be updated");
-    assert_eq!(&oracle.payload.price, &1_100_000, "Price should be updated");
+    MolluskComputeUnitBencher::new(mollusk)
+        .bench((
+            "CreatePriceFeed",
+            &create_price_feed_instruction,
+            &[
+                (admin, admin_account.clone()),
+                (oracle, Account::default()),
+                (system, system_account),
+            ],
+        ))
+        .bench((
+            "PriceFeedUpdate",
+            &price_feed_update_instruction,
+            &[(admin, admin_account), (oracle, oracle_account)],
+        ))
+        .must_pass(true)
+        .out_dir("benches/")
+        .execute();
 }

@@ -21,14 +21,30 @@ pub struct Oracle<T: Sized + Copy> {
 impl<T: Sized + Copy> Oracle<T> {
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(core::mem::size_of::<Oracle<T>>());
+        // write sequence bytes
         data.extend_from_slice(&self.sequence.to_le_bytes());
+        // write payload bytes
         data.extend_from_slice(unsafe {
             core::slice::from_raw_parts(
                 core::ptr::from_ref(&self.payload) as *const u8,
-                core::mem::size_of::<Oracle<T>>(),
+                core::mem::size_of::<T>(),
             )
         });
         data
+    }
+
+    pub fn from_bytes(data: &[u8]) -> Self {
+        assert!(data.len() == core::mem::size_of::<Oracle<T>>());
+
+        // read u64 sequence from first 8 bytes
+        let mut seq_bytes = [0u8; 8];
+        seq_bytes.copy_from_slice(&data[..8]);
+        let sequence = u64::from_le_bytes(seq_bytes);
+
+        // read payload from remaining bytes
+        let payload = unsafe { *(data[8..].as_ptr() as *const T) };
+
+        Self { sequence, payload }
     }
 }
 
@@ -95,7 +111,7 @@ mod tests {
         };
 
         let bytes = oracle.to_bytes();
-        assert_eq!(bytes.len(), 24);
+        assert_eq!(bytes.len(), 12);
         assert_eq!(&bytes[0..8], &42u64.to_le_bytes());
         assert_eq!(&bytes[8..12], &123u32.to_le_bytes());
     }
