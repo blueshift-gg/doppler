@@ -20,7 +20,7 @@ pub struct Oracle<T: Sized + Copy> {
 
 impl<T: Sized + Copy> Oracle<T> {
     pub fn to_bytes(&self) -> Vec<u8> {
-        let mut data = Vec::with_capacity(core::mem::size_of::<Oracle<T>>());
+        let mut data = Vec::with_capacity(core::mem::size_of::<Self>());
         // write sequence bytes
         data.extend_from_slice(&self.sequence.to_le_bytes());
         // write payload bytes
@@ -34,7 +34,7 @@ impl<T: Sized + Copy> Oracle<T> {
     }
 
     pub fn from_bytes(data: &[u8]) -> Self {
-        assert!(data.len() == core::mem::size_of::<Oracle<T>>());
+        assert!(data.len() == core::mem::size_of::<Self>());
 
         // read u64 sequence from first 8 bytes
         let mut seq_bytes = [0u8; 8];
@@ -71,7 +71,7 @@ impl<T: Sized + Copy> From<UpdateInstruction<T>> for Instruction {
     fn from(update: UpdateInstruction<T>) -> Self {
         let data = update.oracle.to_bytes();
 
-        Instruction {
+        Self {
             program_id: ID,
             accounts: vec![
                 AccountMeta::new_readonly(update.admin, true),

@@ -3,9 +3,6 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-#[cfg(not(feature = "std"))]
-use core::alloc::GlobalAlloc;
-
 mod admin;
 mod oracle;
 mod panic_handler;
@@ -16,7 +13,7 @@ mod panic_handler;
 /// - The caller must ensure that `ptr.add(offset)` is a valid pointer and properly aligned for type `T`.
 /// - The memory at the computed address must be initialized and valid for reads of type `T`.
 #[inline(always)]
-unsafe fn read<T>(ptr: *const u8, offset: usize) -> T
+const unsafe fn read<T>(ptr: *const u8, offset: usize) -> T
 where
     T: core::marker::Copy,
 {

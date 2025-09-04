@@ -62,7 +62,7 @@ fn main() {
 
     // Create oracle account
     let create_price_feed_instruction =
-    solana_system_interface::instruction::create_account_with_seed(
+        solana_system_interface::instruction::create_account_with_seed(
             &admin,
             &oracle,
             &admin,

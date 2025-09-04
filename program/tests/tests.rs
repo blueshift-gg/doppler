@@ -48,7 +48,7 @@ pub fn keyed_account_for_oracle<T: Sized + Copy>(
 #[test]
 fn test_oracle_update() {
     // Create Mollusk instance
-    let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler");
+    let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler_program");
     // Accounts
     let (admin, admin_account) = keyed_account_for_admin(ADMIN.into());
     let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeed>(
@@ -91,7 +91,7 @@ fn test_oracle_update() {
             (&price_feed_update_instruction, &[Check::success()]),
         ],
         &vec![
-            (admin, admin_account.clone()),
+            (admin, admin_account),
             (oracle, Account::default()),
             (system, system_account),
         ],

@@ -16,14 +16,14 @@ doppler = { workspace = true }
 
 [dev-dependencies]
 doppler-sdk = { workspace = true }
-solana-account = { workspace = true }
-solana-instruction = { workspace = true }
-solana-clock = { workspace = true }
-solana-sdk-ids = { workspace = true }
-solana-pubkey = { workspace = true }
-solana-system-interface = { workspace = true, features = ["bincode"] }
 mollusk-svm = { workspace = true }
 mollusk-svm-bencher = { workspace = true }
+solana-account = { workspace = true }
+solana-clock = { workspace = true }
+solana-instruction = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-sdk-ids = { workspace = true }
+solana-system-interface = { workspace = true, features = ["bincode"] }
 
 [[bench]]
 name = "compute_units"
