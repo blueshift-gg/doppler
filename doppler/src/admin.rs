@@ -1,7 +1,3 @@
-#![no_std]
-#![cfg_attr(target_os = "solana", feature(asm_experimental_arch))]
-
-// ADMIN
 const ADMIN_HEADER: usize = 0x0008;
 const ADMIN_KEY: usize = 0x0010;
 
@@ -15,7 +11,6 @@ pub const ADMIN: [u8; 32] = [
 pub const NO_DUP_SIGNER: u16 = 0x01 << 8 | 0xff; // SIGNER | NO_DUP
 
 pub struct Admin;
-
 impl Admin {
     #[inline(always)]
     /// # Check
@@ -41,13 +36,4 @@ impl Admin {
             }
         }
     }
-}
-
-/// Helper to read a value at offset and cast it
-#[inline(always)]
-unsafe fn read<T>(ptr: *const u8, offset: usize) -> T
-where
-    T: core::marker::Copy,
-{
-    *(ptr.add(offset) as *const T)
 }

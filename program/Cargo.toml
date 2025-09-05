@@ -1,5 +1,5 @@
 [package]
-name = "doppler"
+name = "doppler-program"
 description = "An ultra-optimized oracle program for Solana."
 authors = { workspace = true }
 repository = { workspace = true }
@@ -11,21 +11,17 @@ version = { workspace = true }
 [lib]
 crate-type = ["lib", "cdylib"]
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-  'cfg(target_os, values("solana"))',
-] }
-
 [dependencies]
-doppler-admin = { workspace = true }
-doppler-oracle = { workspace = true }
+doppler = { workspace = true }
 
 [dev-dependencies]
 doppler-sdk = { workspace = true }
 solana-account = { workspace = true }
 solana-instruction = { workspace = true }
-solana-program = { workspace = true }
+solana-clock = { workspace = true }
+solana-sdk-ids = { workspace = true }
 solana-pubkey = { workspace = true }
+solana-system-interface = { workspace = true, features = ["bincode"] }
 mollusk-svm = { workspace = true }
 mollusk-svm-bencher = { workspace = true }
 

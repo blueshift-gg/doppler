@@ -1,6 +1,4 @@
-use std::path::PathBuf;
-
-use doppler::PriceFeed;
+use doppler::prelude::*;
 use doppler_sdk::{Oracle, UpdateInstruction};
 use solana_client::rpc_client::RpcClient;
 use solana_compute_budget_interface::ComputeBudgetInstruction;

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["admin", "example", "oracle", "program", "sdk"]
+members = ["doppler", "example", "program", "sdk"]
 
 [workspace.package]
 authors = ["Blueshift <@blueshift_gg>"]
@@ -21,12 +21,14 @@ solana-instruction = { version = "2.3.0" }
 solana-keypair = { version = "2.2.3" }
 solana-program = { version = "2.3.0" }
 solana-pubkey = { version = "2.3.0" }
+solana-system-interface = { version = "1.0.0" }
+solana-clock = { version = "2.2.2" }
+solana-sdk-ids = { version = "2.2.1" }
 solana-signer = { version = "2.2.1" }
 solana-transaction = { version = "2.2.3" }
-doppler = { path = "./program" }
-doppler-admin = { path = "./admin" }
+doppler = { path = "./doppler" }
+doppler-program = { path = "./program" }
 doppler-sdk = { path = "./sdk" }
-doppler-oracle = { path = "./oracle" }
 
 [profile.release]
 opt-level = 3

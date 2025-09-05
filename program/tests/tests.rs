@@ -1,16 +1,16 @@
-use doppler::PriceFeed;
+use doppler::prelude::*;
 use doppler_sdk::{Oracle, UpdateInstruction};
 use mollusk_svm::result::Check;
 use mollusk_svm::{program::keyed_account_for_system_program, Mollusk};
 use solana_account::{Account, ReadableAccount};
+use solana_clock::Epoch;
 use solana_instruction::Instruction;
-use solana_program::clock::Epoch;
 use solana_pubkey::Pubkey;
 
 pub fn keyed_account_for_admin(key: Pubkey) -> (Pubkey, Account) {
     (
         key,
-        Account::new(10_000_000_000, 0, &solana_program::system_program::ID),
+        Account::new(10_000_000_000, 0, &solana_sdk_ids::system_program::ID),
     )
 }
 
@@ -50,10 +50,10 @@ fn test_oracle_update() {
     // Create Mollusk instance
     let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler");
     // Accounts
-    let (admin, admin_account) = keyed_account_for_admin(doppler_admin::ADMIN.into());
+    let (admin, admin_account) = keyed_account_for_admin(ADMIN.into());
     let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeed>(
         &mut mollusk,
-        doppler_admin::ADMIN.into(),
+        ADMIN.into(),
         "SOL/USDC",
         PriceFeed { price: 100_000 },
     );
@@ -61,7 +61,7 @@ fn test_oracle_update() {
 
     // Create oracle account
     let create_price_feed_instruction =
-        solana_program::system_instruction::create_account_with_seed(
+        solana_system_interface::instruction::create_account_with_seed(
             &admin,
             &oracle,
             &admin,

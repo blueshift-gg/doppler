@@ -1,9 +1,12 @@
-#![no_std]
-#![cfg_attr(target_os = "solana", feature(asm_experimental_arch))]
-
-// ORACLE - Account data offsets
+// Account data offsets
 const ORACLE_SEQUENCE: usize = 0x28c0; // (sequence: u64)
 const ORACLE_PAYLOAD: usize = 0x28c8; // (payload: T)
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PriceFeed {
+    pub price: u64,
+}
 
 #[repr(C)]
 pub struct Oracle<T: Sized + Copy> {
@@ -39,22 +42,4 @@ impl<T: Sized + Copy> Oracle<T> {
         crate::write(ptr, ORACLE_SEQUENCE, new_sequence);
         crate::write(ptr, ORACLE_PAYLOAD, new_payload);
     }
-}
-
-/// Helper to read a value at offset and cast it
-#[inline(always)]
-unsafe fn read<T>(ptr: *const u8, offset: usize) -> T
-where
-    T: core::marker::Copy,
-{
-    *(ptr.add(offset) as *const T)
-}
-
-/// Helper to write a value at offset
-#[inline(always)]
-unsafe fn write<T>(ptr: *mut u8, offset: usize, value: T)
-where
-    T: core::marker::Copy,
-{
-    *(ptr.add(offset) as *mut T) = value;
 }

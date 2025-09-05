@@ -1,18 +1,7 @@
 #![no_std]
-#![cfg_attr(target_os = "solana", feature(asm_experimental_arch))]
 
 // fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
-mod panic_handler;
-use doppler_admin::Admin;
-use doppler_oracle::Oracle;
-
-nostd_panic_handler!();
-
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct PriceFeed {
-    pub price: u64,
-}
+use doppler::prelude::*;
 
 #[no_mangle]
 /// # Safety

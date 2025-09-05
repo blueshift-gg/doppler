@@ -1,6 +1,6 @@
 [package]
-name = "doppler-admin"
-description = "Admin management for Doppler."
+name = "doppler"
+description = "Doppler building blocks."
 authors = { workspace = true }
 repository = { workspace = true }
 readme = { workspace = true }
@@ -10,6 +10,10 @@ version = { workspace = true }
 
 [lib]
 crate-type = ["lib", "cdylib"]
+
+[features]
+default = []
+std = []
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = [

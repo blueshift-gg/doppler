@@ -84,7 +84,7 @@ impl<T: Sized + Copy> From<UpdateInstruction<T>> for Instruction {
 
 #[cfg(test)]
 mod tests {
-    use doppler::PriceFeed;
+    use doppler::prelude::PriceFeed;
 
     use super::*;
 
