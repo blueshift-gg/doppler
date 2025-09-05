@@ -3,12 +3,6 @@ const ORACLE_SEQUENCE: usize = 0x28c0; // (sequence: u64)
 const ORACLE_PAYLOAD: usize = 0x28c8; // (payload: T)
 
 #[repr(C)]
-#[derive(Clone, Copy)]
-pub struct PriceFeed {
-    pub price: u64,
-}
-
-#[repr(C)]
 pub struct Oracle<T: Sized + Copy> {
     sequence: u64, // timestamp_millis, timestamp_seconds, autoincrement, whatever
     payload: T,

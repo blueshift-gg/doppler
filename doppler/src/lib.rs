@@ -35,7 +35,7 @@ where
 
 pub mod prelude {
     pub use crate::admin::{Admin, ADMIN};
-    pub use crate::oracle::{Oracle, PriceFeed};
     #[cfg(not(feature = "std"))]
     pub use crate::nostd_panic_handler;
+    pub use crate::oracle::Oracle;
 }

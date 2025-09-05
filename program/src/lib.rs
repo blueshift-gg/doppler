@@ -3,6 +3,12 @@
 // fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
 use doppler::prelude::*;
 
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PriceFeed {
+    pub price: u64,
+}
+
 #[no_mangle]
 /// # Safety
 ///
