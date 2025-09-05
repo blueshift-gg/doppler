@@ -6,7 +6,7 @@
 
 # Configuration files
 .DS_Store
-admin.json
+admin-keypair.json
 
 # testing
 test-ledger
