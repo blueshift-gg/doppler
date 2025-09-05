@@ -1,0 +1,18 @@
+[package]
+name = "doppler"
+description = "Doppler building blocks."
+authors = { workspace = true }
+repository = { workspace = true }
+readme = { workspace = true }
+license-file = { workspace = true }
+edition = { workspace = true }
+version = { workspace = true }
+
+[features]
+default = []
+std = []
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+] }

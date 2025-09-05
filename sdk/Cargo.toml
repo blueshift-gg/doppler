@@ -9,7 +9,7 @@ edition = { workspace = true }
 version = { workspace = true }
 
 [dependencies]
-doppler = { path = "../program" }
+doppler-program = { workspace = true }
 solana-account = { workspace = true }
 solana-instruction = { workspace = true }
 solana-pubkey = { workspace = true }

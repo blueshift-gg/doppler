@@ -9,8 +9,8 @@ edition = { workspace = true }
 version = { workspace = true }
 
 [dependencies]
-doppler = { path = "../program" }
-doppler-sdk = { path = "../sdk" }
+doppler-program = { workspace = true }
+doppler-sdk = { workspace = true }
 solana-client = { workspace = true }
 solana-compute-budget-interface = { workspace = true }
 solana-instruction = { workspace = true }

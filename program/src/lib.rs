@@ -2,19 +2,15 @@
 #![cfg_attr(target_os = "solana", feature(asm_experimental_arch))]
 
 // fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
-mod accounts;
-pub use accounts::ADMIN;
-use accounts::*;
-mod helpers;
-use helpers::*;
-
-nostd_panic_handler!();
+use doppler::{nostd_panic_handler, prelude::*};
 
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct PriceFeed {
     pub price: u64,
 }
+
+nostd_panic_handler!();
 
 #[no_mangle]
 /// # Safety
