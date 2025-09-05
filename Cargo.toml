@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["doppler", "example", "program", "sdk"]
+members = ["doppler", "examples", "program", "sdk"]
 
 [workspace.package]
 authors = ["Blueshift <@blueshift_gg>"]

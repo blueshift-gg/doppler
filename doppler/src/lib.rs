@@ -1,14 +1,9 @@
-// #![no_std]
 #![cfg_attr(target_os = "solana", feature(asm_experimental_arch))]
-
 #![cfg_attr(not(feature = "std"), no_std)]
-extern crate alloc;
-use core::alloc::GlobalAlloc;
 
 mod admin;
 mod oracle;
-pub mod helpers;
-pub use helpers::*;
+pub mod panic_handler;
 
 /// Helper to read a value at offset and cast it
 ///
@@ -38,7 +33,7 @@ where
 
 pub mod prelude {
     pub use crate::admin::{Admin, ADMIN};
-    // #[cfg(not(feature = "std"))]
-    pub use crate::helpers::*;
     pub use crate::oracle::Oracle;
+    #[cfg(not(feature = "std"))]
+    pub use crate::panic_handler::*;
 }

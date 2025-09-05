@@ -13,7 +13,7 @@ macro_rules! nostd_panic_handler {
         pub fn panic_handler(info: &core::panic::PanicInfo<'_>) -> ! {
             if let Some(location) = info.location() {
                 unsafe {
-                    $crate::helpers::sol_panic_(
+                    $crate::panic_handler::sol_panic_(
                         location.file().as_ptr(),
                         location.file().len() as u64,
                         location.line() as u64,
