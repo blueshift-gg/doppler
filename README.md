@@ -146,28 +146,28 @@ async fn update_oracle(
     let mut instructions = vec![
         // 1. Set compute budget
         ComputeBudgetInstruction::set_compute_unit_limit(200_000),
-        
+
         // 2. Set priority fee (1000 micro-lamports per CU)
         ComputeBudgetInstruction::set_compute_unit_price(1_000),
-        
+
         // 3. Set loaded accounts data size limit
         ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(32_768),
     ];
-    
+
     // 4. Add oracle update
     let oracle_update = Oracle {
         sequence,
         payload: PriceFeed { price: new_price },
     };
-    
+
     let update_ix: Instruction = UpdateInstruction {
         admin: admin.pubkey(),
         oracle_pubkey,
         oracle: oracle_update,
     }.into();
-    
+
     instructions.push(update_ix);
-    
+
     // Create and send transaction
     let recent_blockhash = client.get_latest_blockhash()?;
     let tx = Transaction::new_signed_with_payer(
@@ -176,10 +176,10 @@ async fn update_oracle(
         &[admin],
         recent_blockhash,
     );
-    
+
     let signature = client.send_and_confirm_transaction(&tx)?;
     println!("Oracle updated: {}", signature);
-    
+
     Ok(())
 }
 ```
@@ -239,10 +239,7 @@ cargo test
 ### E2E
 
 ```bash
-solana-test-validator \
-    --bpf-program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm ./target/deploy/doppler.so \
-    --account QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW ./oracle.json -r
-solana -u l airdrop 10 admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE # admin.json keypair
+bash test-validator.sh
 
 cargo run -p doppler-example
 ```
@@ -296,7 +293,6 @@ Finalized
 
 > Fully fledged tx requires: `471 CU` + `127 bytes`
 
-
 ### Expected Priority Score
 
 based on the [Anza's blog post](https://www.anza.xyz/blog/cu-optimization-with-setloadedaccountsdatasizelimit) and the code from [example](https://github.com/blueshift-gg/doppler/blob/master/example/src/main.rs)
@@ -308,16 +304,16 @@ let's assume we are going to update a single oracle:
 - Requested compute-budget-limit to 21 (with compute-budget instructions 321 and 471 respectively) CUs
 - Paying priority fee: 1.00 lamports per CU
 
-| Metric                         | Without Instruction              | With 127 byte Limit               |
-| ------------------------------ | -------------------------------- | --------------------------------- |
-| Loaded Account Data Size Limit | 64M                              | 127 bytes                         |
-| Data Size Cost Calculation     | 64M * (4/32K)                    | 127 bytes * (4/32K)               |
-| Data Size Cost (CUs)           | 16,000                           | 0.03175                           |
-| Reward to Leader Calculation   | (1 * 5000 + 1 * 321)/2           | (1 * 5000 + 1 * 471)/2            |
-| Reward to Leader (lamports)    | 2,660.5                          | 2,735.5                           |
-| Transaction Cost Formula       | 1 * 720 + 0 * 300 + 321 + 16,000 | 1 * 720 + 0 * 300 + 471 + 0.03175 |
-| Transaction Cost (CUs)         | 17,041                           | 1,141.03175                       |
-| Priority Score                 | 0.156                            | 2.397                             |
+| Metric                         | Without Instruction               | With 127 byte Limit               |
+| ------------------------------ | --------------------------------- | --------------------------------- |
+| Loaded Account Data Size Limit | 64M                               | 127 bytes                         |
+| Data Size Cost Calculation     | 64M \* (4/32K)                    | 127 bytes \* (4/32K)              |
+| Data Size Cost (CUs)           | 16,000                            | 0.03175                           |
+| Reward to Leader Calculation   | (1 x 5000 + 1 x 321)/2            | (1 x 5000 + 1 x 471)/2            |
+| Reward to Leader (lamports)    | 2,660.5                           | 2,735.5                           |
+| Transaction Cost Formula       | 1 x 720 + 0 \_ 300 + 321 + 16,000 | 1 x 720 + 0 x 300 + 471 + 0.03175 |
+| Transaction Cost (CUs)         | 17,041                            | 1,141.03175                       |
+| Priority Score                 | 0.156                             | 2.397                             |
 
 ## Building
 
@@ -350,6 +346,7 @@ solana program deploy target/deploy/doppler.so
 ## Example Payloads
 
 ### Simple Price Feed
+
 ```rust
 #[derive(Clone, Copy)]
 pub struct PriceFeed {
@@ -358,6 +355,7 @@ pub struct PriceFeed {
 ```
 
 ### AMM Oracle
+
 ```rust
 #[derive(Clone, Copy)]
 pub struct PropAMM {
@@ -367,6 +365,7 @@ pub struct PropAMM {
 ```
 
 ### Complex Market Data
+
 ```rust
 #[derive(Clone, Copy)]
 pub struct MarketData {
@@ -393,6 +392,7 @@ A: Limited only by Solana's throughput. With 21 CUs, you can update as fast as y
 ## Support
 
 For issues, questions, or contributions:
+
 - GitHub: [@blueshift-gg](https://github.com/blueshift-gg)
 - X: [@blueshift_gg](https://x.com/blueshift_gg)
 - Discord: [discord.gg/blueshift](https://discord.gg/blueshift)

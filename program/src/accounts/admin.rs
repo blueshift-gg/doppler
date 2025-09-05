@@ -9,7 +9,7 @@ pub const ADMIN: [u8; 32] = [
 ];
 
 // Account flags
-pub const NO_DUP_SIGNER: u32 = 0x01 << 8 | 0xff; // SIGNER | NO_DUP
+pub const NO_DUP_SIGNER: u16 = 0x01 << 8 | 0xff; // SIGNER | NO_DUP
 
 pub struct Admin;
 
@@ -20,7 +20,7 @@ impl Admin {
     /// - Checks Admin is a non-duplicate signer (2 CUs)
     /// - Checks Admin address matches ADMIN (12 CUs)
     pub unsafe fn check(ptr: *mut u8) {
-        if crate::read::<u32>(ptr, ADMIN_HEADER) != NO_DUP_SIGNER
+        if crate::read::<u16>(ptr, ADMIN_HEADER) != NO_DUP_SIGNER
             || crate::read::<u64>(ptr, ADMIN_KEY) != *(ADMIN.as_ptr() as *const u64)
             || crate::read::<u64>(ptr, ADMIN_KEY + 0x08) != *(ADMIN.as_ptr().add(8) as *const u64)
             || crate::read::<u64>(ptr, ADMIN_KEY + 0x10) != *(ADMIN.as_ptr().add(16) as *const u64)

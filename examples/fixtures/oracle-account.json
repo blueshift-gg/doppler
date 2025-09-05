@@ -2,13 +2,10 @@
   "pubkey": "QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW",
   "account": {
     "lamports": 1002240,
-    "data": [
-      "GAAAAAAAAAAAAAAAAAAAAKCGAQAAAAAAArgF/jj0JPk=",
-      "base64"
-    ],
+    "data": ["AAAAAAAAAACghgEAAAAAAA==", "base64"],
     "owner": "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
     "executable": false,
     "rentEpoch": 1000000000,
-    "space": 32
+    "space": 16
   }
 }
