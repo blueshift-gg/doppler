@@ -11,5 +11,7 @@ version = { workspace = true }
 [dependencies]
 doppler-program = { workspace = true }
 solana-account = { workspace = true }
+solana-compute-budget-interface = { workspace = true }
 solana-instruction = { workspace = true }
 solana-pubkey = { workspace = true }
+solana-transaction = { workspace = true }

@@ -1,5 +1,7 @@
+use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_instruction::{AccountMeta, Instruction};
 use solana_pubkey::Pubkey;
+use solana_transaction::Transaction;
 
 // fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
 pub const ID: Pubkey = Pubkey::new_from_array([
@@ -10,6 +12,87 @@ pub const ID: Pubkey = Pubkey::new_from_array([
 const SEQUENCE_CHECK_CU: u32 = 5;
 const ADMIN_VERIFICATION_CU: u32 = 6;
 const PAYLOAD_WRITE_CU: u32 = 6;
+
+const COMPUTE_BUDGET_IXS_NUM: u32 = 3;
+const COMPUTE_BUDGET_IXS_CU_OVERHEAD: u32 = COMPUTE_BUDGET_IXS_NUM * 150; // 3 compute budget ixs * 150 CU each
+const COMPUTE_BUDGET_UNIT_PRICE_SIZE: u32 = 9;
+const COMPUTE_BUDGET_UNIT_LIMIT_SIZE: u32 = 5;
+const COMPUTE_BUDGET_DATA_LIMIT_SIZE: u32 = 5;
+const COMPUTE_BUDGET_PROGRAM_SIZE: u32 = 22;
+const ORACLE_PROGRAM_SIZE: u32 = 36;
+const DATA_SIZE_OVERHEAD: u32 = ORACLE_PROGRAM_SIZE
+    + COMPUTE_BUDGET_PROGRAM_SIZE
+    + COMPUTE_BUDGET_UNIT_PRICE_SIZE
+    + COMPUTE_BUDGET_UNIT_LIMIT_SIZE
+    + COMPUTE_BUDGET_DATA_LIMIT_SIZE
+    + 2;
+
+pub struct TransactionBuilder {
+    oracle_update_ixs: Vec<Instruction>,
+    admin: Pubkey,
+    unit_price: u64,
+    compute_units: u32,
+    loaded_account_data_size: u32,
+}
+
+impl TransactionBuilder {
+    pub fn new(admin: Pubkey) -> Self {
+        Self {
+            admin,
+            oracle_update_ixs: vec![],
+            unit_price: 1,
+            compute_units: 0,
+            loaded_account_data_size: 0,
+        }
+    }
+
+    pub fn add_oracle_update_instruction<T: Sized + Copy>(
+        mut self,
+        oracle_pubkey: Pubkey,
+        oracle: Oracle<T>,
+    ) -> Self {
+        let update_ix = UpdateInstruction {
+            admin: self.admin,
+            oracle_pubkey,
+            oracle,
+        };
+
+        self.compute_units += update_ix.compute_units();
+        self.loaded_account_data_size += update_ix.loaded_accounts_data_size_limit() * 2;
+
+        self.oracle_update_ixs.push(update_ix.into());
+
+        self
+    }
+
+    pub fn unit_price(mut self, micro_lamports: u64) -> Self {
+        self.unit_price = micro_lamports;
+        self
+    }
+
+    pub fn build(self) -> Vec<Instruction> {
+        let mut ixs =
+            Vec::with_capacity(self.oracle_update_ixs.len() + COMPUTE_BUDGET_IXS_NUM as usize);
+
+        ixs.push(ComputeBudgetInstruction::set_compute_unit_price(
+            self.unit_price,
+        ));
+        ixs.push(ComputeBudgetInstruction::set_compute_unit_limit(
+            self.compute_units + COMPUTE_BUDGET_IXS_CU_OVERHEAD,
+        ));
+        ixs.push(
+            ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(
+                self.loaded_account_data_size + DATA_SIZE_OVERHEAD,
+            ),
+        );
+
+        for oracle_ix in self.oracle_update_ixs {
+            ixs.push(oracle_ix);
+        }
+
+        ixs
+    }
+}
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -55,7 +138,7 @@ pub struct UpdateInstruction<T: Sized + Copy> {
 }
 
 impl<T: Sized + Copy> UpdateInstruction<T> {
-    pub const fn compute_unit_limit(&self) -> u32 {
+    pub const fn compute_units(&self) -> u32 {
         SEQUENCE_CHECK_CU
             + ADMIN_VERIFICATION_CU
             + PAYLOAD_WRITE_CU
@@ -132,7 +215,7 @@ mod tests {
             oracle,
         };
 
-        let compute_instruction = update_instruction.compute_unit_limit();
+        let compute_instruction = update_instruction.compute_units();
 
         assert_eq!(compute_instruction, 21);
     }
@@ -153,7 +236,7 @@ mod tests {
             oracle,
         };
 
-        let compute_instruction = update_instruction.compute_unit_limit();
+        let compute_instruction = update_instruction.compute_units();
 
         assert_eq!(compute_instruction, 21);
     }
@@ -177,7 +260,7 @@ mod tests {
             oracle,
         };
 
-        let compute_instruction = update_instruction.compute_unit_limit();
+        let compute_instruction = update_instruction.compute_units();
 
         assert_eq!(compute_instruction, 23);
     }
@@ -202,7 +285,7 @@ mod tests {
             oracle,
         };
 
-        let compute_instruction = update_instruction.compute_unit_limit();
+        let compute_instruction = update_instruction.compute_units();
 
         assert_eq!(compute_instruction, 25);
     }

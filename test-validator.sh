@@ -1,3 +1,7 @@
+#!/bin/bash
+
+set -e
+
 solana-test-validator \
     --bpf-program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm ./target/deploy/doppler_program.so \
     --account QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW ./examples/fixtures/oracle-account.json \

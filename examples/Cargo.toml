@@ -19,7 +19,6 @@ solana-pubkey = { workspace = true }
 solana-signer = { workspace = true }
 solana-transaction = { workspace = true }
 
-
 [[bin]]
 name = "price-feed"
 path = "src/price_feed.rs"

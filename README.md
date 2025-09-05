@@ -245,7 +245,7 @@ cargo test
 ### E2E
 
 ```bash
-bash test-validator.sh
+./test-validator.sh
 
 cargo run -p doppler-example
 ```
