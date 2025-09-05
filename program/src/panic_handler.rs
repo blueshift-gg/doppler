@@ -1,21 +1,3 @@
-/// Helper to read a value at offset and cast it
-#[inline(always)]
-pub unsafe fn read<T>(ptr: *const u8, offset: usize) -> T
-where
-    T: core::marker::Copy,
-{
-    *(ptr.add(offset) as *const T)
-}
-
-/// Helper to write a value at offset
-#[inline(always)]
-pub unsafe fn write<T>(ptr: *mut u8, offset: usize, value: T)
-where
-    T: core::marker::Copy,
-{
-    *(ptr.add(offset) as *mut T) = value;
-}
-
 #[allow(dead_code)]
 extern "C" {
     pub fn sol_panic_(filename: *const u8, filename_len: u64, line: u64, column: u64) -> !;

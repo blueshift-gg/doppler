@@ -2,11 +2,9 @@
 #![cfg_attr(target_os = "solana", feature(asm_experimental_arch))]
 
 // fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
-mod accounts;
-pub use accounts::ADMIN;
-use accounts::*;
-mod helpers;
-use helpers::*;
+mod panic_handler;
+use doppler_admin::Admin;
+use doppler_oracle::Oracle;
 
 nostd_panic_handler!();
 

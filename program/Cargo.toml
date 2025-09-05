@@ -17,17 +17,17 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 ] }
 
 [dependencies]
-# lol = "13.37"
+doppler-admin = { workspace = true }
+doppler-oracle = { workspace = true }
 
 [dev-dependencies]
-doppler-sdk = { path = "../sdk" }
+doppler-sdk = { workspace = true }
 solana-account = { workspace = true }
 solana-instruction = { workspace = true }
 solana-program = { workspace = true }
 solana-pubkey = { workspace = true }
 mollusk-svm = { workspace = true }
-mollusk-svm-bencher = "0.5.1"
-
+mollusk-svm-bencher = { workspace = true }
 
 [[bench]]
 name = "compute_units"

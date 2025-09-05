@@ -50,10 +50,10 @@ fn test_oracle_update() {
     // Create Mollusk instance
     let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler");
     // Accounts
-    let (admin, admin_account) = keyed_account_for_admin(doppler::ADMIN.into());
+    let (admin, admin_account) = keyed_account_for_admin(doppler_admin::ADMIN.into());
     let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeed>(
         &mut mollusk,
-        doppler::ADMIN.into(),
+        doppler_admin::ADMIN.into(),
         "SOL/USDC",
         PriceFeed { price: 100_000 },
     );

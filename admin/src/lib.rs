@@ -19,6 +19,12 @@ impl Admin {
     /// Performs the following checks on the Admin account:
     /// - Checks Admin is a non-duplicate signer (2 CUs)
     /// - Checks Admin address matches ADMIN (12 CUs)
+    ///
+    /// # Safety
+    /// - The caller must ensure that `ptr` is a valid pointer to a memory region
+    ///   that can be safely read from.
+    /// - The memory region must be properly aligned and large enough to hold the
+    ///   data being read.
     pub unsafe fn check(ptr: *mut u8) {
         if crate::read::<u16>(ptr, ADMIN_HEADER) != NO_DUP_SIGNER
             || crate::read::<u64>(ptr, ADMIN_KEY) != *(ADMIN.as_ptr() as *const u64)
@@ -32,4 +38,13 @@ impl Admin {
             }
         }
     }
+}
+
+/// Helper to read a value at offset and cast it
+#[inline(always)]
+unsafe fn read<T>(ptr: *const u8, offset: usize) -> T
+where
+    T: core::marker::Copy,
+{
+    *(ptr.add(offset) as *const T)
 }

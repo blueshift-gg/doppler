@@ -51,14 +51,14 @@ fn main() {
 
     let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeed>(
         &mut mollusk,
-        doppler::ADMIN.into(),
+        doppler_admin::ADMIN.into(),
         "SOL/USDC",
         PriceFeed { price: 100_000 },
     );
 
     // Accounts
     let (system, system_account) = keyed_account_for_system_program();
-    let (admin, admin_account) = keyed_account_for_admin(doppler::ADMIN.into());
+    let (admin, admin_account) = keyed_account_for_admin(doppler_admin::ADMIN.into());
 
     // Create oracle account
     let create_price_feed_instruction =
