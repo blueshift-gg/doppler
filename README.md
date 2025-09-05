@@ -1,6 +1,5 @@
-<h1 align="center">
-  Doppler
-</h1>
+![](./assets/logo.svg)
+
 <h3 align="center">
   A 21 CU Solana Oracle Program
 </h3>
