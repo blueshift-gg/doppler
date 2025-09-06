@@ -1,6 +1,6 @@
 [package]
-name = "doppler-single-update-example"
-description = "Example on how to update a single oracle."
+name = "doppler-examples"
+description = "Examples on how to use Doppler."
 authors = { workspace = true }
 repository = { workspace = true }
 readme = { workspace = true }
@@ -17,5 +17,9 @@ solana-pubkey = { workspace = true }
 solana-signer = { workspace = true }
 
 [[bin]]
-name = "price-feed"
-path = "src/price_feed.rs"
+name = "single-price-feed"
+path = "src/single_price_feed.rs"
+
+[[bin]]
+name = "multiple-price-feed"
+path = "src/multiple_price_feed.rs"

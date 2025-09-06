@@ -10,12 +10,12 @@ version = { workspace = true }
 
 [dependencies]
 solana-compute-budget-interface = { workspace = true }
-solana-instruction = { workspace = true }
-solana-pubkey = { workspace = true }
-solana-keypair = { workspace = true }
 solana-hash = { workspace = true }
+solana-instruction = { workspace = true }
+solana-keypair = { workspace = true }
+solana-pubkey = { workspace = true }
 solana-signer = { workspace = true }
-solana-transaction = { workspace = true }
+solana-transaction = { workspace = true, features = ["bincode"] }
 
 [dev-dependencies]
 doppler-program = { workspace = true }
