@@ -1,16 +1,12 @@
 use std::path::PathBuf;
 
 use doppler_program::PriceFeed;
-use doppler_sdk::{Oracle, TransactionBuilder};
+use doppler_sdk::{transaction::Builder, Oracle};
 use solana_client::rpc_client::RpcClient;
 // use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_keypair::Keypair;
 use solana_pubkey::Pubkey;
-use solana_signer::{EncodableKey as _, Signer};
-use solana_transaction::Transaction;
-
-// const COMPUTE_BUDGET_IXS_CU_OVERHEAD: u32 = 3 * 150; // 3 compute budget ixs * 150 CU each
-// const DATA_SIZE_OVERHEAD: u32 = 36 + 22 + 5 + 5 + 9 + 18; // doppler program + compute budget program + load ix + limit ix + price ix
+use solana_signer::EncodableKey as _;
 
 pub fn fetch_oracle_account(
     client: &RpcClient,
@@ -45,28 +41,22 @@ fn main() {
         price: oracle_data.payload.price + 10,
     };
 
-    let tx_builder = TransactionBuilder::new(admin.pubkey())
-        .add_oracle_update_instruction(
-            oracle_pubkey,
-            Oracle {
-                sequence: oracle_data.sequence + 1, // New sequence number, must be greater than current
-                payload: new_price_feed,
-            },
-        )
-        .unit_price(1_000);
-
     // Get a recent blockhash
     let recent_blockhash = client
         .get_latest_blockhash()
         .expect("Failed to get recent blockhash");
 
     // Create and sign the transaction
-    let transaction = Transaction::new_signed_with_payer(
-        &tx_builder.build(),
-        Some(&admin.pubkey()),
-        &[&admin],
-        recent_blockhash,
-    );
+    let transaction = Builder::new(&admin)
+        .add_oracle_update(
+            oracle_pubkey,
+            Oracle {
+                sequence: oracle_data.sequence + 1, // New sequence number, must be greater than current
+                payload: new_price_feed,
+            },
+        )
+        .with_unit_price(1_000)
+        .build(recent_blockhash);
 
     println!("Sending Tx...");
 
@@ -75,7 +65,7 @@ fn main() {
         .send_and_confirm_transaction(&transaction)
         .expect("Failed to send transaction");
 
-    println!("Transaction successful with signature: {:?}", signature);
+    println!("Transaction successful with signature: {signature:?}");
 
     let oracle_data =
         fetch_oracle_account(&client, &oracle_pubkey).expect("failed to fetch oracle account");

@@ -247,7 +247,7 @@ cargo test
 ```bash
 ./test-validator.sh
 
-cargo run -p doppler-example
+cargo run -p doppler-single-update-example
 ```
 
 example of response

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["doppler", "examples", "program", "sdk"]
+members = ["doppler", "examples/single-update", "program", "sdk"]
 
 [workspace.package]
 authors = ["Blueshift <@blueshift_gg>"]
@@ -35,6 +35,7 @@ serde = { version = "1.0.219" }
 solana-account = { version = "2.2.1" }
 solana-client = { version = "2.2.3" }
 solana-clock = { version = "2.2.2" }
+solana-hash = { version = "2.2.1" }
 solana-compute-budget-interface = { version = "2.2.2" }
 solana-instruction = { version = "2.3.0" }
 solana-keypair = { version = "2.2.3" }

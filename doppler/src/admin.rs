@@ -26,10 +26,10 @@ impl Admin {
     ///   data being read.
     pub unsafe fn check(ptr: *mut u8) {
         if crate::read::<u16>(ptr, ADMIN_HEADER) != NO_DUP_SIGNER
-            || crate::read::<u64>(ptr, ADMIN_KEY) != *(ADMIN.as_ptr() as *const u64)
-            || crate::read::<u64>(ptr, ADMIN_KEY + 0x08) != *(ADMIN.as_ptr().add(8) as *const u64)
-            || crate::read::<u64>(ptr, ADMIN_KEY + 0x10) != *(ADMIN.as_ptr().add(16) as *const u64)
-            || crate::read::<u64>(ptr, ADMIN_KEY + 0x18) != *(ADMIN.as_ptr().add(24) as *const u64)
+            || crate::read::<u64>(ptr, ADMIN_KEY) != *ADMIN.as_ptr().cast::<u64>()
+            || crate::read::<u64>(ptr, ADMIN_KEY + 0x08) != *ADMIN.as_ptr().add(8).cast::<u64>()
+            || crate::read::<u64>(ptr, ADMIN_KEY + 0x10) != *ADMIN.as_ptr().add(16).cast::<u64>()
+            || crate::read::<u64>(ptr, ADMIN_KEY + 0x18) != *ADMIN.as_ptr().add(24).cast::<u64>()
         {
             #[cfg(target_os = "solana")]
             unsafe {
