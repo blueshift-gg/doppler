@@ -245,12 +245,13 @@ cargo test
 ### E2E
 
 ```bash
-bash test-validator.sh
+./test-validator.sh
 
-cargo run -p doppler-example
+cargo run --bin single-price-feed
+cargo run --bin multiple-price-feed
 ```
 
-example of response
+example of single price feed update response
 
 ```
 Transaction executed in slot 131:
@@ -297,11 +298,78 @@ Transaction executed in slot 131:
 Finalized
 ```
 
-> Fully fledged tx requires: `471 CU` + `127 bytes`
+> Fully fledged tx requires: `471 CU` + `111 bytes`
+
+example of multiple price feed update response
+
+```
+Transaction executed in slot 218:
+  Block Time: 2025-09-06T13:06:05+03:00
+  Version: legacy
+  Recent Blockhash: AeCvWYJjrx6Yxjknh6ndTTaTYsHkPQgr9iMURRN8Ah4S
+  Signature 0: 3MLXk7YCsqEoMiYiGT4RYKa3Js2QJ6acM1BQstKGNbXsUJ6rNaySmUzzqNRDnFd7St1XTpPngAbcnf3ZxD2Lj9Jr
+  Account 0: srw- admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (fee payer)
+  Account 1: -rw- QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW
+  Account 2: -rw- 6uQ848roY5vumz43QeQguE7xCyBSmgZbwNdJMTrs2Xhy
+  Account 3: -rw- 9bA7GPqPpZ5aLbwb8E6cKvUPM8pcHXXTqLpf5zLAqHP5
+  Account 4: -r-x ComputeBudget111111111111111111111111111111
+  Account 5: -r-x fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
+  Instruction 0
+    Program:   ComputeBudget111111111111111111111111111111 (4)
+    Data: [3, 232, 3, 0, 0, 0, 0, 0, 0]
+  Instruction 1
+    Program:   ComputeBudget111111111111111111111111111111 (4)
+    Data: [4, 175, 0, 0, 0]
+  Instruction 2
+    Program:   ComputeBudget111111111111111111111111111111 (4)
+    Data: [2, 1, 2, 0, 0]
+  Instruction 3
+    Program:   fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm (5)
+    Account 0: admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (0)
+    Account 1: QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW (1)
+    Data: [2, 0, 0, 0, 0, 0, 0, 0, 180, 134, 1, 0, 0, 0, 0, 0]
+  Instruction 4
+    Program:   fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm (5)
+    Account 0: admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (0)
+    Account 1: 9bA7GPqPpZ5aLbwb8E6cKvUPM8pcHXXTqLpf5zLAqHP5 (3)
+    Data: [1, 0, 0, 0, 0, 0, 0, 0, 170, 134, 1, 0, 0, 0, 0, 0]
+  Instruction 5
+    Program:   fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm (5)
+    Account 0: admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (0)
+    Account 1: 6uQ848roY5vumz43QeQguE7xCyBSmgZbwNdJMTrs2Xhy (2)
+    Data: [1, 0, 0, 0, 0, 0, 0, 0, 170, 134, 1, 0, 0, 0, 0, 0]
+  Status: Ok
+    Fee: ◎0.000005001
+    Account 0 balance: ◎0.999994999 -> ◎0.999989998
+    Account 1 balance: ◎0.00100224
+    Account 2 balance: ◎0.00100224
+    Account 3 balance: ◎0.00100224
+    Account 4 balance: ◎0.000000001
+    Account 5 balance: ◎0.00114144
+  Compute Units Consumed: 513
+  Log Messages:
+    Program ComputeBudget111111111111111111111111111111 invoke [1]
+    Program ComputeBudget111111111111111111111111111111 success
+    Program ComputeBudget111111111111111111111111111111 invoke [1]
+    Program ComputeBudget111111111111111111111111111111 success
+    Program ComputeBudget111111111111111111111111111111 invoke [1]
+    Program ComputeBudget111111111111111111111111111111 success
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm invoke [1]
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm consumed 21 of 63 compute units
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm success
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm invoke [1]
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm consumed 21 of 42 compute units
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm success
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm invoke [1]
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm consumed 21 of 21 compute units
+    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm success
+
+Finalized
+```
 
 ### Expected Priority Score
 
-based on the [Anza's blog post](https://www.anza.xyz/blog/cu-optimization-with-setloadedaccountsdatasizelimit) and the code from [example](https://github.com/blueshift-gg/doppler/blob/master/example/src/main.rs)
+based on the [Anza's blog post](https://www.anza.xyz/blog/cu-optimization-with-setloadedaccountsdatasizelimit) and the code from [single price feed update example](https://github.com/blueshift-gg/doppler/blob/master/examples/src/single_price_feed.rs)
 
 let's assume we are going to update a single oracle:
 
@@ -310,16 +378,16 @@ let's assume we are going to update a single oracle:
 - Requested compute-budget-limit to 21 (with compute-budget instructions 321 and 471 respectively) CUs
 - Paying priority fee: 1.00 lamports per CU
 
-| Metric                         | Without Instruction               | With 127 byte Limit               |
-| ------------------------------ | --------------------------------- | --------------------------------- |
-| Loaded Account Data Size Limit | 64M                               | 127 bytes                         |
-| Data Size Cost Calculation     | 64M \* (4/32K)                    | 127 bytes \* (4/32K)              |
-| Data Size Cost (CUs)           | 16,000                            | 0.03175                           |
-| Reward to Leader Calculation   | (1 x 5000 + 1 x 321)/2            | (1 x 5000 + 1 x 471)/2            |
-| Reward to Leader (lamports)    | 2,660.5                           | 2,735.5                           |
-| Transaction Cost Formula       | 1 x 720 + 0 \_ 300 + 321 + 16,000 | 1 x 720 + 0 x 300 + 471 + 0.03175 |
-| Transaction Cost (CUs)         | 17,041                            | 1,141.03175                       |
-| Priority Score                 | 0.156                             | 2.397                             |
+| Metric                         | Without Instruction              | With 111 byte Limit               |
+| ------------------------------ | -------------------------------- | --------------------------------- |
+| Loaded Account Data Size Limit | 64M                              | 111 bytes                         |
+| Data Size Cost Calculation     | 64M x (8/32K)                    | 111 bytes x (8/32K)               |
+| Data Size Cost (CUs)           | 16,000                           | 0.02775                           |
+| Reward to Leader Calculation   | (1 x 5000 + 1 x 321)/2           | (1 x 5000 + 1 x 471)/2            |
+| Reward to Leader (lamports)    | 2,660.5                          | 2,735.5                           |
+| Transaction Cost Formula       | 1 x 720 + 0 x 300 + 321 + 16,000 | 1 x 720 + 0 x 300 + 471 + 0.02775 |
+| Transaction Cost (CUs)         | 17,041                           | 1,141.02775                       |
+| Priority Score                 | 0.156                            | 2.397                             |
 
 ## Building
 

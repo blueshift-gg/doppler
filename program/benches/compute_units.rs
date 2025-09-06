@@ -8,6 +8,7 @@ use solana_clock::Epoch;
 use solana_instruction::Instruction;
 use solana_pubkey::Pubkey;
 
+#[must_use]
 pub fn keyed_account_for_admin(key: Pubkey) -> (Pubkey, Account) {
     (
         key,

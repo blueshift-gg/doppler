@@ -15,7 +15,7 @@ const unsafe fn read<T>(ptr: *const u8, offset: usize) -> T
 where
     T: core::marker::Copy,
 {
-    *(ptr.add(offset) as *const T)
+    *ptr.add(offset).cast::<T>()
 }
 
 /// Helper to write a value at offset
@@ -28,7 +28,7 @@ unsafe fn write<T>(ptr: *mut u8, offset: usize, value: T)
 where
     T: core::marker::Copy,
 {
-    *(ptr.add(offset) as *mut T) = value;
+    *ptr.add(offset).cast::<T>() = value;
 }
 
 pub mod prelude {
