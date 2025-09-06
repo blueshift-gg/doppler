@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use solana_pubkey::Pubkey;
 
 pub const SOL_USDC_ORACLE: Pubkey =

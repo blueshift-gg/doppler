@@ -49,30 +49,36 @@ fn main() {
         .expect("Failed to get recent blockhash");
 
     // Create and sign the transaction
-    let transaction = Builder::new(&admin)
-        .add_oracle_update(
+    let mut tx_builder = Builder::new(&admin).with_unit_price(1_000);
+
+    // Add multiple oracle updates
+    for (oracle_pubkey, oracle_data, new_price_feed) in [
+        (
             constants::SOL_USDC_ORACLE,
-            Oracle {
-                sequence: sol_usdc_oracle_data.sequence + 1, // New sequence number, must be greater than current
-                payload: new_sol_usdc_price_feed,
-            },
-        )
-        .add_oracle_update(
+            sol_usdc_oracle_data,
+            new_sol_usdc_price_feed,
+        ),
+        (
             constants::SOL_USDT_ORACLE,
-            Oracle {
-                sequence: sol_usdt_oracle_data.sequence + 1, // New sequence number, must be greater than current
-                payload: new_sol_usdt_price_feed,
-            },
-        )
-        .add_oracle_update(
+            sol_usdt_oracle_data,
+            new_sol_usdt_price_feed,
+        ),
+        (
             constants::BONK_SOL_ORACLE,
+            bonk_sol_oracle_data,
+            new_bonk_sol_price_feed,
+        ),
+    ] {
+        tx_builder = tx_builder.add_oracle_update(
+            oracle_pubkey,
             Oracle {
-                sequence: bonk_sol_oracle_data.sequence + 1, // New sequence number, must be greater than current
-                payload: new_bonk_sol_price_feed,
+                sequence: oracle_data.sequence + 1, // New sequence number, must be greater than current
+                payload: new_price_feed,
             },
-        )
-        .with_unit_price(1_000)
-        .build(recent_blockhash);
+        );
+    }
+
+    let transaction = tx_builder.build(recent_blockhash);
 
     println!("Sending Tx...");
 
