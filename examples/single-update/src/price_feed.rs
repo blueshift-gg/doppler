@@ -1,12 +1,10 @@
-use std::path::PathBuf;
-
 use doppler_program::PriceFeed;
 use doppler_sdk::{transaction::Builder, Oracle};
 use solana_client::rpc_client::RpcClient;
-// use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_keypair::Keypair;
 use solana_pubkey::Pubkey;
 use solana_signer::EncodableKey as _;
+use std::path::PathBuf;
 
 pub fn fetch_oracle_account(
     client: &RpcClient,
@@ -23,9 +21,14 @@ fn main() {
     let rpc_url = "http://localhost:8899";
     let client = RpcClient::new(rpc_url.to_string());
 
-    let keypair_path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "fixtures", "admin-keypair.json"]
-        .iter()
-        .collect();
+    let keypair_path: PathBuf = [
+        env!("CARGO_MANIFEST_DIR"),
+        "..",
+        "fixtures",
+        "admin-keypair.json",
+    ]
+    .iter()
+    .collect();
 
     // Load admin keypair (ensure this path is correct)
     let admin = Keypair::read_from_file(keypair_path).expect("keypair not found at that path");

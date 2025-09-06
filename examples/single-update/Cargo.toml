@@ -12,12 +12,9 @@ version = { workspace = true }
 doppler-program = { workspace = true }
 doppler-sdk = { workspace = true }
 solana-client = { workspace = true }
-solana-compute-budget-interface = { workspace = true }
-solana-instruction = { workspace = true }
 solana-keypair = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-signer = { workspace = true }
-solana-transaction = { workspace = true }
 
 [[bin]]
 name = "price-feed"

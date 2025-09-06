@@ -9,8 +9,6 @@ edition = { workspace = true }
 version = { workspace = true }
 
 [dependencies]
-doppler-program = { workspace = true }
-solana-account = { workspace = true }
 solana-compute-budget-interface = { workspace = true }
 solana-instruction = { workspace = true }
 solana-pubkey = { workspace = true }
@@ -18,3 +16,6 @@ solana-keypair = { workspace = true }
 solana-hash = { workspace = true }
 solana-signer = { workspace = true }
 solana-transaction = { workspace = true }
+
+[dev-dependencies]
+doppler-program = { workspace = true }

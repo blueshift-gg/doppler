@@ -12,7 +12,9 @@ version = { workspace = true }
 crate-type = ["lib", "cdylib"]
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(target_os, values("solana"))',
+] }
 
 [dependencies]
 doppler = { workspace = true }
