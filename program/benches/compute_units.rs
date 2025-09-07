@@ -49,7 +49,7 @@ pub fn keyed_account_for_oracle<T: Sized + Copy>(
 
 fn main() {
     // Create Mollusk instance
-    let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler");
+    let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler_program");
 
     let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeed>(
         &mut mollusk,
