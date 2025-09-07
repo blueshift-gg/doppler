@@ -21,6 +21,7 @@ solana-account = { version = "2.2.1" }
 solana-client = { version = "2.2.3" }
 solana-clock = { version = "2.2.2" }
 solana-compute-budget-interface = { version = "2.2.2" }
+solana-hash = { version = "2.2.1" }
 solana-instruction = { version = "2.3.0" }
 solana-keypair = { version = "2.2.3" }
 solana-program = { version = "2.3.0" }

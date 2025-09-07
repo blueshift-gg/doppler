@@ -1,6 +1,6 @@
 [package]
-name = "doppler-example"
-description = "Example on how to update oracle."
+name = "doppler-examples"
+description = "Examples on how to use Doppler."
 authors = { workspace = true }
 repository = { workspace = true }
 readme = { workspace = true }
@@ -12,14 +12,14 @@ version = { workspace = true }
 doppler-program = { workspace = true }
 doppler-sdk = { workspace = true }
 solana-client = { workspace = true }
-solana-compute-budget-interface = { workspace = true }
-solana-instruction = { workspace = true }
 solana-keypair = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-signer = { workspace = true }
-solana-transaction = { workspace = true }
-
 
 [[bin]]
-name = "price-feed"
-path = "src/price_feed.rs"
+name = "single-price-feed"
+path = "src/single_price_feed.rs"
+
+[[bin]]
+name = "multiple-price-feed"
+path = "src/multiple_price_feed.rs"
