@@ -48,8 +48,7 @@ pub struct UpdateInstruction<T: Sized + Copy> {
 }
 
 impl<T: Sized + Copy> UpdateInstruction<T> {
-
-       pub fn new(admin: Pubkey, oracle_pubkey: Pubkey, sequence: u64, payload: T) -> Self {
+    pub fn new(admin: Pubkey, oracle_pubkey: Pubkey, sequence: u64, payload: T) -> Self {
         Self {
             admin,
             oracle_pubkey,

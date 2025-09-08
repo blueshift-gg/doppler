@@ -25,8 +25,7 @@ impl Admin {
     /// - The memory region must be properly aligned and large enough to hold the
     ///   data being read.
     pub unsafe fn check(ptr: *mut u8) {
-        if crate::read::<u16>(ptr, ADMIN_HEADER) != NO_DUP_SIGNER
-            || !Self::check_admin_pubkey(ptr)
+        if crate::read::<u16>(ptr, ADMIN_HEADER) != NO_DUP_SIGNER || !Self::check_admin_pubkey(ptr)
         {
             #[cfg(target_os = "solana")]
             unsafe {
@@ -38,8 +37,8 @@ impl Admin {
     #[inline(always)]
     unsafe fn check_admin_pubkey(ptr: *const u8) -> bool {
         crate::read::<u64>(ptr, ADMIN_KEY) == *(ADMIN.as_ptr() as *const u64)
-        && crate::read::<u64>(ptr, ADMIN_KEY + 0x08) == *(ADMIN.as_ptr().add(8) as *const u64)
-        && crate::read::<u64>(ptr, ADMIN_KEY + 0x10) == *(ADMIN.as_ptr().add(16) as *const u64)
-        && crate::read::<u64>(ptr, ADMIN_KEY + 0x18) == *(ADMIN.as_ptr().add(24) as *const u64)
-}
+            && crate::read::<u64>(ptr, ADMIN_KEY + 0x08) == *(ADMIN.as_ptr().add(8) as *const u64)
+            && crate::read::<u64>(ptr, ADMIN_KEY + 0x10) == *(ADMIN.as_ptr().add(16) as *const u64)
+            && crate::read::<u64>(ptr, ADMIN_KEY + 0x18) == *(ADMIN.as_ptr().add(24) as *const u64)
+    }
 }
