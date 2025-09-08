@@ -48,6 +48,19 @@ pub struct UpdateInstruction<T: Sized + Copy> {
 }
 
 impl<T: Sized + Copy> UpdateInstruction<T> {
+
+    pub fn new(admin: Pubkey, oracle_pubkey: Pubkey, sequence:u64,payload:T) -> Self {
+        Self {
+            admin,
+            oracle_pubkey,
+            oracle:{
+                Oracle {
+                    sequence,
+                    payload
+                }
+            }
+        }
+    }
     pub const fn compute_units(&self) -> u32 {
         SEQUENCE_CHECK_CU
             + ADMIN_VERIFICATION_CU
