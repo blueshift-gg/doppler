@@ -1,4 +1,4 @@
-![](./assets/logo.svg)
+![](./book/images/logo.svg)
 
 <h3 align="center">
   A 21 CU Solana Oracle Program
@@ -349,6 +349,18 @@ solana program deploy target/deploy/doppler.so
 | Sequence Check     | 5             |
 | Payload Write      | 10            |
 | Admin Verification | 6             |
+
+## Documentation
+
+documentation is powered by [mdBook](https://github.com/rust-lang/mdBook/tree/master)
+
+to run locally:
+
+```sh
+cargo install mdbook
+
+mdbook serve
+```
 
 ## FAQ
 

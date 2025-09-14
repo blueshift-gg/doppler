@@ -1,0 +1,31 @@
+[book]
+authors = ["Blueshift <@blueshift_gg>"]
+language = "en"
+multilingual = false
+src = "book"
+title = "Doppler"
+description = "Ultra-optimized oracle program for Solana"
+
+[rust]
+edition = "2021"
+
+[output.html]
+theme = "book/theme"
+git-repository-url = "https://github.com/blueshift-gg/doppler"
+default-theme = "ayu"
+preferred-dark-theme = "ayu"
+no-section-label = true
+
+[output.html.fold]
+enable = true
+level = 1
+
+[build]
+build-dir = "target/book"
+
+[preprocessor.template]
+before = ["links"]
+
+[preprocessor.index]
+
+[preprocessor.links]
