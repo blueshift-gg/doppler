@@ -1,0 +1,19 @@
+{
+  "name": "sdk-ts",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@solana-program/compute-budget": "^0.10.0",
+    "@solana-program/memo": "^0.8.0",
+    "@solana-program/system": "^0.9.0",
+    "@solana-program/token": "^0.7.0",
+    "@solana/kit": "^4.0.0"
+  }
+}
