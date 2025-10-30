@@ -24,13 +24,16 @@ impl<T: Sized + Copy> Oracle<T> {
         let current_sequence = crate::read::<u64>(ptr, ORACLE_SEQUENCE);
         let new_sequence = crate::read::<u64>(ptr, Self::INSTRUCTION_SEQUENCE);
 
-        if new_sequence <= current_sequence {
-            #[cfg(target_os = "solana")]
-            unsafe {
-                core::arch::asm!("lddw r0, 2\nexit");
-            }
+        #[cfg(target_os = "solana")]
+        unsafe {
+            core::arch::asm!(
+                "jgt {0}, {1}, +2",
+                "lddw r0, 2",
+                "exit",
+                in(reg) new_sequence,
+                in(reg) current_sequence,
+            );
         }
-
         // Update oracle data
         let new_payload = crate::read::<T>(ptr, Self::INSTRUCTION_PAYLOAD);
         crate::write(ptr, ORACLE_SEQUENCE, new_sequence);
