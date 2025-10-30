@@ -3,7 +3,6 @@ resolver = "2"
 members = ["doppler", "examples", "program", "sdk"]
 
 [workspace.package]
-authors = ["Blueshift <@blueshift_gg>"]
 repository = "https://github.com/blueshift-gg/doppler"
 readme = "README.md"
 license-file = "LICENSE"
