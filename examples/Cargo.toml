@@ -1,7 +1,6 @@
 [package]
 name = "doppler-examples"
 description = "Examples on how to use Doppler."
-authors = { workspace = true }
 repository = { workspace = true }
 readme = { workspace = true }
 license-file = { workspace = true }

@@ -1,7 +1,6 @@
 [package]
 name = "doppler-program"
 description = "An ultra-optimized oracle program for Solana."
-authors = { workspace = true }
 repository = { workspace = true }
 readme = { workspace = true }
 license-file = { workspace = true }

@@ -1,7 +1,6 @@
 [package]
 name = "doppler"
 description = "Doppler building blocks."
-authors = { workspace = true }
 repository = { workspace = true }
 readme = { workspace = true }
 license-file = { workspace = true }

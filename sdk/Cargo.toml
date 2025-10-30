@@ -1,7 +1,6 @@
 [package]
 name = "doppler-sdk"
 description = "An ultra-optimized oracle SDK."
-authors = { workspace = true }
 repository = { workspace = true }
 readme = { workspace = true }
 license-file = { workspace = true }
