@@ -233,6 +233,11 @@ let priority_ix = ComputeBudgetInstruction::set_compute_unit_price(optimal_fee);
 
 ## Testing
 
+### Build
+```bash
+# Within root
+cargo build-sbf --manifest-path program/Cargo.toml
+```
 ### Unit
 
 Run the test suite:
@@ -245,7 +250,8 @@ cargo test
 ### E2E
 
 ```bash
-./test-validator.sh
+chmod +X ./surfpool.sh
+./surfpool.sh
 
 cargo run --bin single-price-feed
 cargo run --bin multiple-price-feed

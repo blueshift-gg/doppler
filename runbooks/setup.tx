@@ -1,0 +1,33 @@
+addon "svm" {
+    rpc_api_url = input.rpc_api_url
+    network_id = input.network_id
+}
+
+signer "authority" "svm::secret_key" {
+    description = "Can upgrade programs and manage critical ops"
+    keypair_json = "~/.config/solana/id.json"
+}
+
+action "setup" "svm::setup_surfnet" {
+    deploy_program {
+        program_id = "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm"
+        binary_path = "target/deploy/doppler_program.so"
+        authority = signer.authority.public_key
+    }
+    set_account {
+        account_path = "./examples/accounts/sol-usdc-price-feed-oracle.json"
+    }
+    
+    set_account {
+        account_path = "./examples/accounts/sol-usdt-price-feed-oracle.json"
+    }
+    
+    set_account {
+        account_path = "./examples/accounts/bonk-sol-price-feed-oracle.json"
+    }
+    
+    set_account {
+        account_path = "./examples/accounts/admin-account.json"
+    }
+}
+    
