@@ -1,4 +1,4 @@
-![](./assets/logo.svg)
+![](./book/images/logo.svg)
 
 <h3 align="center">
   A 21 CU Solana Oracle Program
@@ -55,55 +55,48 @@ pub struct Oracle<T> {
 }
 ```
 
+### Example Payloads
+
+#### Simple Price Feed
+
+```rust
+#[derive(Clone, Copy)]
+pub struct PriceFeed {
+    pub price: u64,
+}
+```
+
+#### AMM Oracle
+
+```rust
+#[derive(Clone, Copy)]
+pub struct PropAMM {
+    pub bid: u64,
+    pub ask: u64,
+}
+```
+
+#### Complex Market Data
+
+```rust
+#[derive(Clone, Copy)]
+pub struct MarketData {
+    pub price: u64,
+    pub volume: u64,
+    pub confidence: u32,
+}
+```
+
 ## Usage Guide
 
-### 1. Setting Up Compute Budget
-
-To achieve the 21 CU performance, configure your transaction with appropriate compute budget:
+### Simple Oracle Update
 
 ```rust
-use solana_compute_budget_interface::ComputeBudgetInstruction;
-use solana_instruction::Instruction;
-use solana_transaction::Transaction;
-
-// Request exactly the CUs needed (21 + overhead for other instructions)
-let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(200_000);
-
-// Add to your transaction
-let mut instructions = vec![compute_budget_ix];
-```
-
-### 2. Setting Priority Fees
-
-For high-frequency oracle updates, use priority fees to ensure timely inclusion:
-
-```rust
-// Set priority fee (price per compute unit in micro-lamports)
-let priority_fee_ix = ComputeBudgetInstruction::set_compute_unit_price(1000);
-
-instructions.push(priority_fee_ix);
-```
-
-### 3. Optimizing Account Data Size
-
-Use `setLoadedAccountsDataSizeLimit` to optimize memory allocation:
-
-```rust
-// Set the maximum loaded account data size
-// Calculate based on your oracle data structure size
-let data_size_limit_ix = ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(
-    32_768  // 32KB is usually sufficient for oracle operations
-);
-
-instructions.push(data_size_limit_ix);
-```
-
-### 4. Creating an Oracle Update
-
-```rust
-use doppler_sdk::{Oracle, UpdateInstruction, ID as DOPPLER_ID};
-use solana_instruction::Instruction;
+use doppler_sdk::{Oracle, UpdateInstruction, ID as DOPPLER_ID, transaction::Builder};
 use solana_pubkey::Pubkey;
+
+// Define your oracle key
+let oracle_pubkey = Pubkey::from_str_const("QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW");
 
 // Define your payload structure
 #[derive(Clone, Copy)]
@@ -119,117 +112,57 @@ let oracle_update = Oracle {
     },
 };
 
-// Create update instruction
-let update_ix: Instruction = UpdateInstruction {
-    admin: admin_pubkey,
-    oracle_pubkey: oracle_pubkey,
-    oracle: oracle_update,
-}.into();
-
-// Add to instructions
-instructions.push(update_ix);
+// Create update tx
+let transaction = Builder::new(&admin) // your admin keypair
+      .add_oracle_update(
+          oracle_pubkey,
+          oracle_update,
+      )
+      .with_unit_price(1_000)
+      .build(recent_blockhash); // fresh and valid blockhash
 ```
 
-### 5. Complete Transaction Example
+## Optimization Tips
 
-```rust
-use doppler_sdk::{Oracle, UpdateInstruction};
-use solana_client::rpc_client::RpcClient;
-use solana_compute_budget_interface::ComputeBudgetInstruction;
-use solana_instruction::Instruction;
-use solana_keypair::Keypair;
-use solana_signer::Signer;
-use solana_transaction::Transaction;
-
-async fn update_oracle(
-    client: &RpcClient,
-    admin: &Keypair,
-    oracle_pubkey: Pubkey,
-    new_price: u64,
-    sequence: u64,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // Build all instructions
-    let mut instructions = vec![
-        // 1. Set compute budget
-        ComputeBudgetInstruction::set_compute_unit_limit(200_000),
-
-        // 2. Set priority fee (1000 micro-lamports per CU)
-        ComputeBudgetInstruction::set_compute_unit_price(1_000),
-
-        // 3. Set loaded accounts data size limit
-        ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(32_768),
-    ];
-
-    // 4. Add oracle update
-    let oracle_update = Oracle {
-        sequence,
-        payload: PriceFeed { price: new_price },
-    };
-
-    let update_ix: Instruction = UpdateInstruction {
-        admin: admin.pubkey(),
-        oracle_pubkey,
-        oracle: oracle_update,
-    }.into();
-
-    instructions.push(update_ix);
-
-    // Create and send transaction
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &instructions,
-        Some(&admin.pubkey()),
-        &[admin],
-        recent_blockhash,
-    );
-
-    let signature = client.send_and_confirm_transaction(&tx)?;
-    println!("Oracle updated: {}", signature);
-
-    Ok(())
-}
-```
-
-## Performance Optimization Tips
-
-### 1. Compute Budget Configuration
-
-- **Exact CU Request**: Request only what you need (21 CUs + overhead)
-- **Priority Fees**: Use dynamic priority fees based on network congestion
-- **Account Data Size**: Minimize loaded data to reduce memory overhead
-
-### 2. Batching Updates
+### 1. Batching Updates
 
 For multiple oracle updates, batch them efficiently:
 
 ```rust
 // DON'T: Multiple transactions
+let mut tx_builder = Builder::new(&admin).with_unit_price(1_000);
+
 for oracle in oracles {
-    send_update(oracle)?;  // 21 CU each, but multiple transactions
+  let transaction = tx_builder.add_oracle_update(oracle).build(recent_blockhash);  // 21 CU each, but multiple transactions
 }
 
 // DO: Single transaction with multiple updates
-let mut instructions = vec![
-    ComputeBudgetInstruction::set_compute_unit_limit(200_000),
-    ComputeBudgetInstruction::set_compute_unit_price(1_000),
-    ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(65_536),
-];
+let mut tx_builder = Builder::new(&admin).with_unit_price(1_000);
 
-for oracle in oracles {
-    instructions.push(create_update_instruction(oracle));
-}
+for (oracle_pubkey oracle_update) in [
+       // ... oracles
+    ] {
+        tx_builder = tx_builder.add_oracle_update(
+            oracle_pubkey,
+            oracle_update
+        );
+    }
+  
 // Single transaction with all updates
+let transaction = tx_builder.build(recent_blockhash);
 ```
 
-### 3. Network Optimization
+### 2. Network Optimization
 
 ```rust
 // Use getRecentPrioritizationFees to determine optimal fee
 let recent_fees = client.get_recent_prioritization_fees(&[oracle_pubkey])?;
 let optimal_fee = calculate_optimal_fee(recent_fees);
 
-let priority_ix = ComputeBudgetInstruction::set_compute_unit_price(optimal_fee);
+let mut tx_builder = Builder::new(&admin).with_unit_price(optimal_fee);
 ```
+
+more example can be found in the [examples folder](https://github.com/blueshift-gg/doppler/tree/master/examples)
 
 ## Testing
 
@@ -423,36 +356,16 @@ solana program deploy target/deploy/doppler.so
 | Payload Write      | 10            |
 | Admin Verification | 6             |
 
-## Example Payloads
+## Documentation
 
-### Simple Price Feed
+documentation is powered by [mdBook](https://github.com/rust-lang/mdBook/tree/master)
 
-```rust
-#[derive(Clone, Copy)]
-pub struct PriceFeed {
-    pub price: u64,
-}
-```
+to run locally:
 
-### AMM Oracle
+```sh
+cargo install mdbook
 
-```rust
-#[derive(Clone, Copy)]
-pub struct PropAMM {
-    pub bid: u64,
-    pub ask: u64,
-}
-```
-
-### Complex Market Data
-
-```rust
-#[derive(Clone, Copy)]
-pub struct MarketData {
-    pub price: u64,
-    pub volume: u64,
-    pub confidence: u32,
-}
+mdbook serve
 ```
 
 ## FAQ
