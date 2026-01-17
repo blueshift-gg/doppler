@@ -12,3 +12,6 @@ test-ledger
 
 # Lock file (optional - you may want to commit this for reproducible builds)
 Cargo.lock
+
+# surfpool simnet logs
+.surfpool
