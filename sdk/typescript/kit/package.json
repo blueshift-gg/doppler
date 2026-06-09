@@ -1,0 +1,41 @@
+{
+  "name": "@blueshift-gg/doppler-kit",
+  "version": "0.1.0",
+  "description": "Doppler oracle SDK for @solana/kit",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blueshift-gg/doppler.git",
+    "directory": "sdk/typescript/kit"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "rolldown -c rolldown.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@blueshift-gg/doppler-core": "workspace:*",
+    "@solana/kit": "^6.9.0",
+    "@solana-program/compute-budget": "^0.15.0",
+    "@solana-program/system": "^0.12.2",
+    "typescript": "6.0.3"
+  },
+  "peerDependencies": {
+    "@solana-program/compute-budget": "^0.15.0",
+    "@solana-program/system": "^0.12.2",
+    "@solana/kit": "^6.9.0",
+    "typescript": "^6"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  }
+}

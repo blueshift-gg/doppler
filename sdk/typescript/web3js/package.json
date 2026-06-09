@@ -1,0 +1,37 @@
+{
+  "name": "@blueshift-gg/doppler-web3js",
+  "version": "0.1.0",
+  "description": "Doppler oracle SDK for @solana/web3.js",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blueshift-gg/doppler.git",
+    "directory": "sdk/typescript/web3js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "rolldown -c rolldown.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@blueshift-gg/doppler-core": "workspace:*",
+    "@solana/web3.js": "3.0.0-rc.1",
+    "typescript": "6.0.3"
+  },
+  "peerDependencies": {
+    "@solana/web3.js": "^3.0.0",
+    "typescript": "^6"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
+  }
+}

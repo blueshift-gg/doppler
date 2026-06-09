@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "isolatedDeclarations": false,
+    "declaration": false,
+    "declarationMap": false,
+    "noEmit": true
+  },
+  "include": [
+    "rolldown.shared.ts",
+    "core/rolldown.config.ts",
+    "web3js/rolldown.config.ts",
+    "kit/rolldown.config.ts"
+  ]
+}
