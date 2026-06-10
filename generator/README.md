@@ -121,4 +121,4 @@ Rust integration tests under `tests/integration` generate bytecode and a Rust SD
 bun run test:integration
 ```
 
-The fixture uses `arch: "v0"` because LiteSVM still rejects the v3 ELF output from `@blueshift-gg/sbpf-assembler` at deploy time. Generated artifacts stay under `target/` and are not written into the source tree.
+The fixture uses `arch: "v0"` because the current LiteSVM version still rejects the v3 ELF output from `@blueshift-gg/sbpf-assembler` at deploy time. Generated artifacts stay under `target/` and are not written into the source tree.
