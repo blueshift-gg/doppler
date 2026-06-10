@@ -1,0 +1,82 @@
+# Doppler Generator
+
+Generate a custom Doppler program bytecode artifact and matching SDK files from a fixed-size payload schema.
+
+## Usage
+
+```sh
+npx @blueshift-gg/doppler-generator \
+  ./doppler.payload.ts \
+  --bytecode ./generated/sol-usdc-feed/doppler.so \
+  --assembly ./generated/sol-usdc-feed/asm/doppler.s \
+  --ts-sdk ./generated/sol-usdc-feed/ts \
+  --rust-sdk ./generated/sol-usdc-feed/rust
+```
+
+The published CLI is Node-compatible and can be invoked with `npx`, `yarn dlx`, `pnpm dlx`, or `bunx`.
+
+## Arguments
+
+```txt
+<schema-file>                  Required. Path to TypeScript, JavaScript, or JSON payload schema/config.
+--bytecode <file>              Required. Output filepath for compiled Doppler bytecode.
+--ts-sdk <directory>           Optional. Output directory for generated TypeScript SDK.
+--rust-sdk <directory>         Optional. Output directory for generated Rust SDK.
+--manifest <file>              Optional. Output filepath for manifest JSON.
+--assembly <file>              Optional. Output filepath for generated assembly source.
+--arch <v0|v3>                 Optional. Defaults to v3.
+--program-id <address>         Optional if schema file includes programId.
+--admin <address>              Optional if schema file includes admin.
+--name <name>                  Optional if schema file includes name.
+```
+
+If `--manifest` is omitted, the generator writes `manifest.json` next to the bytecode output.
+
+## Schema File
+
+```ts
+export default {
+  name: "sol-usdc-feed",
+  programId: "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
+  admin: "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
+  payload: {
+    price: "u64",
+    confidence: "u32",
+    slot: "u64",
+  },
+} as const;
+```
+
+`name`, `programId`, and `admin` may also be supplied through CLI flags.
+
+## Supported Fields
+
+Supported scalar types:
+
+```txt
+u8, u16, u32, u64, i8, i16, i32, i64, bool
+```
+
+Fixed-size arrays use this form:
+
+```ts
+payload: {
+  authority: { type: "u8", length: 32 },
+}
+```
+
+The generated payload layout is packed and little-endian. There is no Rust `repr(C)` padding. Dynamic fields such as strings, vectors, maps, optional fields, and enums are intentionally unsupported in v1.
+
+## Outputs
+
+The generator can emit:
+
+```txt
+doppler.so       Compiled Solana program ELF bytecode.
+doppler.s        Generated sBPF assembly source, if --assembly is provided.
+manifest.json    Program ID, admin, arch, payload size, schema hash, and ELF hash.
+ts/              Generated TypeScript payload types and serializer, if --ts-sdk is provided.
+rust/            Generated Rust payload type and explicit byte serializer, if --rust-sdk is provided.
+```
+
+The current Doppler program does not embed the program ID in bytecode. Program ID is written to the manifest and generated SDK constants. The bytecode embeds the admin address and payload size.

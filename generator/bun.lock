@@ -1,0 +1,152 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "@blueshift-gg/doppler-generator",
+      "dependencies": {
+        "@blueshift-gg/sbpf-assembler": "^0.1.9",
+        "@solana/codecs": "^6.9.0",
+        "bs58": "^6.0.0",
+        "commander": "^15.0.0",
+        "jiti": "^2.7.0",
+      },
+      "devDependencies": {
+        "@types/node": "^25.9.2",
+        "bun-types": "^1.3.14",
+        "rolldown": "^1.1.0",
+        "rolldown-plugin-dts": "^0.25.2",
+        "typescript": "^6.0.3",
+      },
+    },
+  },
+  "packages": {
+    "@babel/generator": ["@babel/generator@8.0.0-rc.6", "https://registry.better-npm.dev/@babel/generator/-/generator-8.0.0-rc.6.tgz", { "dependencies": { "@babel/parser": "^8.0.0-rc.6", "@babel/types": "^8.0.0-rc.6", "@jridgewell/gen-mapping": "^0.3.12", "@jridgewell/trace-mapping": "^0.3.28", "@types/jsesc": "^2.5.0", "jsesc": "^3.0.2" } }, "sha512-6mIzgVK8DgEzvIapoQwhXTMnnkuE4STQmVv9H03i/tZ2ml8oev3TRvZJgTenK2Bsq0YWNtzOrFdTyNzCMFtjJQ=="],
+
+    "@babel/helper-string-parser": ["@babel/helper-string-parser@8.0.0-rc.6", "https://registry.better-npm.dev/@babel/helper-string-parser/-/helper-string-parser-8.0.0-rc.6.tgz", {}, "sha512-BCkFy+zN6kXQed3YOT7aJl93NfDSzQc3pBfsvTVPs9gU9X3V0aefEF5kwBT0E+mDWH9QgKaZstYUQN9VdQZT4g=="],
+
+    "@babel/helper-validator-identifier": ["@babel/helper-validator-identifier@8.0.0-rc.6", "https://registry.better-npm.dev/@babel/helper-validator-identifier/-/helper-validator-identifier-8.0.0-rc.6.tgz", {}, "sha512-nVJ+1JcCgntv8d78rRo++o2wuODT0Irknx2BF8Np4Ft2CRgjLqIs4qzSZ8b66yGbBdMWGmZBO9WEZv1hhNiSpg=="],
+
+    "@babel/parser": ["@babel/parser@8.0.0-rc.6", "https://registry.better-npm.dev/@babel/parser/-/parser-8.0.0-rc.6.tgz", { "dependencies": { "@babel/types": "^8.0.0-rc.6" }, "bin": "./bin/babel-parser.js" }, "sha512-rOS8IpdO7mQELkTPlCsTgPejO0bFuZdEDCGQJouYbYf9e1FLTym7Fei2pEjq8q7MWbX0ravcd7QQYKs1TxOuog=="],
+
+    "@babel/types": ["@babel/types@8.0.0-rc.6", "https://registry.better-npm.dev/@babel/types/-/types-8.0.0-rc.6.tgz", { "dependencies": { "@babel/helper-string-parser": "^8.0.0-rc.6", "@babel/helper-validator-identifier": "^8.0.0-rc.6" } }, "sha512-p7/ABylAYlexb31wtRdIfH9L9A0Z2T/9H6zAqzqndkY2PLkvNNc580wGhp/gGKN4Sp9sQvSkhc6Oga8/O+wTyw=="],
+
+    "@blueshift-gg/sbpf-assembler": ["@blueshift-gg/sbpf-assembler@0.1.9", "https://registry.better-npm.dev/@blueshift-gg/sbpf-assembler/-/sbpf-assembler-0.1.9.tgz", {}, "sha512-apen7gP9egOfcuAjDsrOill27RXZbHY9dGHO4WbH/pFTYJb4FNQxhrjeaohAgRlGN/B59JIv1UfwTGWJFaPt4A=="],
+
+    "@emnapi/core": ["@emnapi/core@1.10.0", "https://registry.better-npm.dev/@emnapi/core/-/core-1.10.0.tgz", { "dependencies": { "@emnapi/wasi-threads": "1.2.1", "tslib": "^2.4.0" } }, "sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw=="],
+
+    "@emnapi/runtime": ["@emnapi/runtime@1.10.0", "https://registry.better-npm.dev/@emnapi/runtime/-/runtime-1.10.0.tgz", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA=="],
+
+    "@emnapi/wasi-threads": ["@emnapi/wasi-threads@1.2.1", "https://registry.better-npm.dev/@emnapi/wasi-threads/-/wasi-threads-1.2.1.tgz", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-uTII7OYF+/Mes/MrcIOYp5yOtSMLBWSIoLPpcgwipoiKbli6k322tcoFsxoIIxPDqW01SQGAgko4EzZi2BNv2w=="],
+
+    "@jridgewell/gen-mapping": ["@jridgewell/gen-mapping@0.3.13", "https://registry.better-npm.dev/@jridgewell/gen-mapping/-/gen-mapping-0.3.13.tgz", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.0", "@jridgewell/trace-mapping": "^0.3.24" } }, "sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA=="],
+
+    "@jridgewell/resolve-uri": ["@jridgewell/resolve-uri@3.1.2", "https://registry.better-npm.dev/@jridgewell/resolve-uri/-/resolve-uri-3.1.2.tgz", {}, "sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw=="],
+
+    "@jridgewell/sourcemap-codec": ["@jridgewell/sourcemap-codec@1.5.5", "https://registry.better-npm.dev/@jridgewell/sourcemap-codec/-/sourcemap-codec-1.5.5.tgz", {}, "sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og=="],
+
+    "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "https://registry.better-npm.dev/@jridgewell/trace-mapping/-/trace-mapping-0.3.31.tgz", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
+
+    "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.1.5", "https://registry.better-npm.dev/@napi-rs/wasm-runtime/-/wasm-runtime-1.1.5.tgz", { "dependencies": { "@tybys/wasm-util": "^0.10.2" }, "peerDependencies": { "@emnapi/core": "^1.7.1", "@emnapi/runtime": "^1.7.1" } }, "sha512-AWPoBRJ9tsnVhor4sjO7rkni+7p+2IAEFj6cx06UgP10jkQHqay/36uRV/bFkgrh18D9vb4cr8Q0Pthskgzy+Q=="],
+
+    "@oxc-project/types": ["@oxc-project/types@0.134.0", "https://registry.better-npm.dev/@oxc-project/types/-/types-0.134.0.tgz", {}, "sha512-T0xuRRKrQFmocH8y+jGfpmSkGcheaJExY9lEihmR1Gm2aH+75B8CzgU2rABRQSzzDxLjZ15Sc0bRVLj5lVeNXQ=="],
+
+    "@rolldown/binding-android-arm64": ["@rolldown/binding-android-arm64@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-android-arm64/-/binding-android-arm64-1.1.0.tgz", { "os": "android", "cpu": "arm64" }, "sha512-gCYzGOSkYY6Z034suzd20euvds7lPzMEEla62DJGE/ZAlR4OMBnNbvnBSsIGUCAr52gaWMsloGxP4tVGtN5aCA=="],
+
+    "@rolldown/binding-darwin-arm64": ["@rolldown/binding-darwin-arm64@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-darwin-arm64/-/binding-darwin-arm64-1.1.0.tgz", { "os": "darwin", "cpu": "arm64" }, "sha512-JQBD77MNgu+4Z6RAyg69acugdrhhVoWesr3l47zohYZ2YV2fwkWMArkN/2p4l6Ei+Sno7W5q+UsKdVWq5Ens0w=="],
+
+    "@rolldown/binding-darwin-x64": ["@rolldown/binding-darwin-x64@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-darwin-x64/-/binding-darwin-x64-1.1.0.tgz", { "os": "darwin", "cpu": "x64" }, "sha512-p/8cXUTK4Sob604e+xxPhVSbDFf29E6J0l/xESM9rdCfn3aDai3nEs6TnMHUsdD5aNlFz0+gDbiGlozLKGa2YA=="],
+
+    "@rolldown/binding-freebsd-x64": ["@rolldown/binding-freebsd-x64@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-freebsd-x64/-/binding-freebsd-x64-1.1.0.tgz", { "os": "freebsd", "cpu": "x64" }, "sha512-KbtOSlVv6fElujiZWMcC3aQYhEwLVVf073RcwlSmpGQvIsKZFUqc0ef4sjUuurRwfbiI6JJXji9DQn+86hawmQ=="],
+
+    "@rolldown/binding-linux-arm-gnueabihf": ["@rolldown/binding-linux-arm-gnueabihf@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-linux-arm-gnueabihf/-/binding-linux-arm-gnueabihf-1.1.0.tgz", { "os": "linux", "cpu": "arm" }, "sha512-9fZ9i0o0/MQaw7om6Z6TsT7tfCk0jtbEFtC+aPqZL5RNsGWNcHvn6EHgL3dAprjq+AZzPTAQjg2JtpJaMt+6pg=="],
+
+    "@rolldown/binding-linux-arm64-gnu": ["@rolldown/binding-linux-arm64-gnu@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-linux-arm64-gnu/-/binding-linux-arm64-gnu-1.1.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-+tog7T66i+yFyIuuAnjL6xmW182W/qTBOUt6BtQ6lBIM1Eikh/fSMz4HGgvuCp5uU0zuIVWng7kDYthjCMOHcg=="],
+
+    "@rolldown/binding-linux-arm64-musl": ["@rolldown/binding-linux-arm64-musl@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-linux-arm64-musl/-/binding-linux-arm64-musl-1.1.0.tgz", { "os": "linux", "cpu": "arm64" }, "sha512-4b7yruLIIj/oZ3GpcLOvxcLCLDMraohn3IhQfN2hBP4w9UekG0DTIajWguJosRGfySf/+h/NwRUiMKoCpxCrqQ=="],
+
+    "@rolldown/binding-linux-ppc64-gnu": ["@rolldown/binding-linux-ppc64-gnu@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-linux-ppc64-gnu/-/binding-linux-ppc64-gnu-1.1.0.tgz", { "os": "linux", "cpu": "ppc64" }, "sha512-QRDOVZd0bhQ5jLsUsCC3dUxDWdTSVY9WMznowZgCGOrZfLLgctWpelhUASEiBwsXfat/JwYnVd1EaxMhqyT+UQ=="],
+
+    "@rolldown/binding-linux-s390x-gnu": ["@rolldown/binding-linux-s390x-gnu@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-linux-s390x-gnu/-/binding-linux-s390x-gnu-1.1.0.tgz", { "os": "linux", "cpu": "s390x" }, "sha512-ypxT+Hq76NFG7woFbNbySnGEajFuYuIXeKz/jfCU+lXUoxfi3zLE6OG/ZQNeK3RpZSYJlAe2bokpsQ046CaieQ=="],
+
+    "@rolldown/binding-linux-x64-gnu": ["@rolldown/binding-linux-x64-gnu@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-linux-x64-gnu/-/binding-linux-x64-gnu-1.1.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-IdovCmfROFmpTLahdecTDFL74aLERVYN68F/mLZjfVh6LfoplPfI6deyHNMTcVujbokDV5k05XrFO22zfv+qjg=="],
+
+    "@rolldown/binding-linux-x64-musl": ["@rolldown/binding-linux-x64-musl@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-linux-x64-musl/-/binding-linux-x64-musl-1.1.0.tgz", { "os": "linux", "cpu": "x64" }, "sha512-pcA8xlFp2tyk9T2R6Fi/rPe3bQ1MA+sSMDNUU5Ogu80GHOatkE4P8YCreGAvZErm5Ho2YRXnyvNrWiRncfVysQ=="],
+
+    "@rolldown/binding-openharmony-arm64": ["@rolldown/binding-openharmony-arm64@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-openharmony-arm64/-/binding-openharmony-arm64-1.1.0.tgz", { "os": "none", "cpu": "arm64" }, "sha512-4+fexHayrLCWpriPh4c6dNvL4an34DEZCG7zOM/FD5QNF6h8DT+bDXzyB/kfC8lDJbaFb7jKShtnjDQFXVQEjg=="],
+
+    "@rolldown/binding-wasm32-wasi": ["@rolldown/binding-wasm32-wasi@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-wasm32-wasi/-/binding-wasm32-wasi-1.1.0.tgz", { "dependencies": { "@emnapi/core": "1.10.0", "@emnapi/runtime": "1.10.0", "@napi-rs/wasm-runtime": "^1.1.4" }, "cpu": "none" }, "sha512-SbL++MNmOw6QamrwIGDMSSfM4ceTzFr+RjbOExJSLLBinScU4WI5OdA413h1qwPw2yH7lVF1+H4svQ+6mSXKTQ=="],
+
+    "@rolldown/binding-win32-arm64-msvc": ["@rolldown/binding-win32-arm64-msvc@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-win32-arm64-msvc/-/binding-win32-arm64-msvc-1.1.0.tgz", { "os": "win32", "cpu": "arm64" }, "sha512-+xTE6XC7wBgk0VKRXGG+QAnyW5S9b8vfsFpiMjf0waQTmSQSU8onsH/beyZ8X4aXVveJnotiy7VDjLOaW8bTrg=="],
+
+    "@rolldown/binding-win32-x64-msvc": ["@rolldown/binding-win32-x64-msvc@1.1.0", "https://registry.better-npm.dev/@rolldown/binding-win32-x64-msvc/-/binding-win32-x64-msvc-1.1.0.tgz", { "os": "win32", "cpu": "x64" }, "sha512-Ogji1TQNqH3ACLnYr+1Ns1nyrJ0CO2P585u9Hsh02pXvtFiFpgtgT2b3P4PnCOU86VVCvqtAeCN4OftMT8KU4w=="],
+
+    "@rolldown/pluginutils": ["@rolldown/pluginutils@1.0.1", "https://registry.better-npm.dev/@rolldown/pluginutils/-/pluginutils-1.0.1.tgz", {}, "sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw=="],
+
+    "@solana/codecs": ["@solana/codecs@6.9.0", "https://registry.better-npm.dev/@solana/codecs/-/codecs-6.9.0.tgz", { "dependencies": { "@solana/codecs-core": "6.9.0", "@solana/codecs-data-structures": "6.9.0", "@solana/codecs-numbers": "6.9.0", "@solana/codecs-strings": "6.9.0", "@solana/fixed-points": "6.9.0", "@solana/options": "6.9.0" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"] }, "sha512-oWOybKa1PTGI1D/FyrvGKralADM1jmVZC2AtgEo+4JTKG0+i1p9ZbwNY2UcJqdYsDMDaGHAx0LMAid9LDCxXTQ=="],
+
+    "@solana/codecs-core": ["@solana/codecs-core@6.9.0", "https://registry.better-npm.dev/@solana/codecs-core/-/codecs-core-6.9.0.tgz", { "dependencies": { "@solana/errors": "6.9.0" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"] }, "sha512-F2BmLecG/1nTtnjyD509NsEc254pxJKa2bpvotymv1lL1WfEn3zchcZ9SMIiLyL4G6J8b9F3OKIq2YSZho2AOQ=="],
+
+    "@solana/codecs-data-structures": ["@solana/codecs-data-structures@6.9.0", "https://registry.better-npm.dev/@solana/codecs-data-structures/-/codecs-data-structures-6.9.0.tgz", { "dependencies": { "@solana/codecs-core": "6.9.0", "@solana/codecs-numbers": "6.9.0", "@solana/errors": "6.9.0" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"] }, "sha512-f7GYtiHafvJDhqiwzUUSr/6AYSK4DCw6quPmA80NZGtkNiFa+g6LoJy2wbC0wp2dxvCwNpxf6x3ILCYRutAvvg=="],
+
+    "@solana/codecs-numbers": ["@solana/codecs-numbers@6.9.0", "https://registry.better-npm.dev/@solana/codecs-numbers/-/codecs-numbers-6.9.0.tgz", { "dependencies": { "@solana/codecs-core": "6.9.0", "@solana/errors": "6.9.0" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"] }, "sha512-XMI0FOHV2h7yPAllxWCX8z+J1msidNjXzN1mRjH5KR6C+vfzyKa2xWHve0bNSV/bjVAhqqhc7dQCpBKuF4+ScQ=="],
+
+    "@solana/codecs-strings": ["@solana/codecs-strings@6.9.0", "https://registry.better-npm.dev/@solana/codecs-strings/-/codecs-strings-6.9.0.tgz", { "dependencies": { "@solana/codecs-core": "6.9.0", "@solana/codecs-numbers": "6.9.0", "@solana/errors": "6.9.0" }, "peerDependencies": { "fastestsmallesttextencoderdecoder": "^1.0.22", "typescript": ">=5.4.0" }, "optionalPeers": ["fastestsmallesttextencoderdecoder", "typescript"] }, "sha512-PTqYQxMsmdfEEq29bV1AnALD4FjFEsSxOj1fYNqooOSTEQEpUoYEQtsd55/kBsnIKltXbvYwXYXBusm19n1sQA=="],
+
+    "@solana/errors": ["@solana/errors@6.9.0", "https://registry.better-npm.dev/@solana/errors/-/errors-6.9.0.tgz", { "dependencies": { "chalk": "5.6.2", "commander": "14.0.3" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"], "bin": { "errors": "bin/cli.mjs" } }, "sha512-7i+b07KMnkbHvFlz7uWade3jvyc22UmVm8o9taxPK8YV3JNM/NkS8oQFvMac2MIaLPAlEs7I8MHyVLUal1yY4g=="],
+
+    "@solana/fixed-points": ["@solana/fixed-points@6.9.0", "https://registry.better-npm.dev/@solana/fixed-points/-/fixed-points-6.9.0.tgz", { "dependencies": { "@solana/codecs-core": "6.9.0", "@solana/errors": "6.9.0" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"] }, "sha512-0K7mbYC4jdAZFlXqXjpNanmEyZxk7K9NtXDLc1zuhGuxwH8J9guvohwdw2V7TQ9bfjCYsprY3Tp2kUVQpECGmA=="],
+
+    "@solana/options": ["@solana/options@6.9.0", "https://registry.better-npm.dev/@solana/options/-/options-6.9.0.tgz", { "dependencies": { "@solana/codecs-core": "6.9.0", "@solana/codecs-data-structures": "6.9.0", "@solana/codecs-numbers": "6.9.0", "@solana/codecs-strings": "6.9.0", "@solana/errors": "6.9.0" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"] }, "sha512-H5ZRWNzzLMwHU/fRU9aVx+3TaMN4gDNCUYxsZxq0h7mqiwxFy6mpy95xPsfdldthCHDYtYnUTxe2sBatGbNHig=="],
+
+    "@tybys/wasm-util": ["@tybys/wasm-util@0.10.2", "https://registry.better-npm.dev/@tybys/wasm-util/-/wasm-util-0.10.2.tgz", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg=="],
+
+    "@types/estree": ["@types/estree@1.0.9", "https://registry.better-npm.dev/@types/estree/-/estree-1.0.9.tgz", {}, "sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg=="],
+
+    "@types/jsesc": ["@types/jsesc@2.5.1", "https://registry.better-npm.dev/@types/jsesc/-/jsesc-2.5.1.tgz", {}, "sha512-9VN+6yxLOPLOav+7PwjZbxiID2bVaeq0ED4qSQmdQTdjnXJSaCVKTR58t15oqH1H5t8Ng2ZX1SabJVoN9Q34bw=="],
+
+    "@types/node": ["@types/node@25.9.2", "https://registry.better-npm.dev/@types/node/-/node-25.9.2.tgz", { "dependencies": { "undici-types": ">=7.24.0 <7.24.7" } }, "sha512-G05zqtJhcDLb8uslf5EjCxXg9G1KQxiV8OS0R26IC//Eoyitzqe8z37I7cqvnZlrlSfgocQRfSn/AHBZJJFyGw=="],
+
+    "ast-kit": ["ast-kit@3.0.0-beta.1", "https://registry.better-npm.dev/ast-kit/-/ast-kit-3.0.0-beta.1.tgz", { "dependencies": { "@babel/parser": "^8.0.0-beta.4", "estree-walker": "^3.0.3", "pathe": "^2.0.3" } }, "sha512-trmleAnZ2PxN/loHWVhhx1qeOHSRXq4TDsBBxq3GqeJitfk3+jTQ+v/C1km/KYq9M7wKqCewMh+/NAvVH7m+bw=="],
+
+    "base-x": ["base-x@5.0.1", "https://registry.better-npm.dev/base-x/-/base-x-5.0.1.tgz", {}, "sha512-M7uio8Zt++eg3jPj+rHMfCC+IuygQHHCOU+IYsVtik6FWjuYpVt/+MRKcgsAMHh8mMFAwnB+Bs+mTrFiXjMzKg=="],
+
+    "birpc": ["birpc@4.0.0", "https://registry.better-npm.dev/birpc/-/birpc-4.0.0.tgz", {}, "sha512-LShSxJP0KTmd101b6DRyGBj57LZxSDYWKitQNW/mi8GRMvZb078Uf9+pveax1DrVL89vm7mWe+TovdI/UDOuPw=="],
+
+    "bs58": ["bs58@6.0.0", "https://registry.better-npm.dev/bs58/-/bs58-6.0.0.tgz", { "dependencies": { "base-x": "^5.0.0" } }, "sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw=="],
+
+    "bun-types": ["bun-types@1.3.14", "https://registry.better-npm.dev/bun-types/-/bun-types-1.3.14.tgz", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
+
+    "chalk": ["chalk@5.6.2", "https://registry.better-npm.dev/chalk/-/chalk-5.6.2.tgz", {}, "sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA=="],
+
+    "commander": ["commander@15.0.0", "", {}, "sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg=="],
+
+    "dts-resolver": ["dts-resolver@3.0.0", "https://registry.better-npm.dev/dts-resolver/-/dts-resolver-3.0.0.tgz", { "peerDependencies": { "oxc-resolver": ">=11.0.0" }, "optionalPeers": ["oxc-resolver"] }, "sha512-1T1f+z+4tl9XD+m+0HBgWoL/nm0bOIffyWaUuUSBlFg/86IWvfx+wjNaO/ybU0AJzG9/Mi5hBUgGV6zCmWEN7Q=="],
+
+    "estree-walker": ["estree-walker@3.0.3", "https://registry.better-npm.dev/estree-walker/-/estree-walker-3.0.3.tgz", { "dependencies": { "@types/estree": "^1.0.0" } }, "sha512-7RUKfXgSMMkzt6ZuXmqapOurLGPPfgj6l9uRZ7lRGolvk0y2yocc35LdcxKC5PQZdn2DMqioAQ2NoWcrTKmm6g=="],
+
+    "get-tsconfig": ["get-tsconfig@5.0.0-beta.5", "https://registry.better-npm.dev/get-tsconfig/-/get-tsconfig-5.0.0-beta.5.tgz", { "dependencies": { "resolve-pkg-maps": "^1.0.0" } }, "sha512-/6gFNr0N04nob252sTQxyFLi3eKFRqIg1I87YcqAMT1i6SQrSF6KujUEQrtrjMV0H/eejTCltLdDSTEMzHbnsQ=="],
+
+    "jiti": ["jiti@2.7.0", "https://registry.better-npm.dev/jiti/-/jiti-2.7.0.tgz", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ=="],
+
+    "jsesc": ["jsesc@3.1.0", "https://registry.better-npm.dev/jsesc/-/jsesc-3.1.0.tgz", { "bin": { "jsesc": "bin/jsesc" } }, "sha512-/sM3dO2FOzXjKQhJuo0Q173wf2KOo8t4I8vHy6lF9poUp7bKT0/NHE8fPX23PwfhnykfqnC2xRxOnVw5XuGIaA=="],
+
+    "obug": ["obug@2.1.2", "https://registry.better-npm.dev/obug/-/obug-2.1.2.tgz", {}, "sha512-AWGB9WFcRXOQs48Z/udjI5ZcZMHXwX8XPByNpOydgcGsDLIzjGizhoMWJyKAWze7AVW/2W1i+/gPX4YtKe5cyg=="],
+
+    "pathe": ["pathe@2.0.3", "https://registry.better-npm.dev/pathe/-/pathe-2.0.3.tgz", {}, "sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w=="],
+
+    "resolve-pkg-maps": ["resolve-pkg-maps@1.0.0", "https://registry.better-npm.dev/resolve-pkg-maps/-/resolve-pkg-maps-1.0.0.tgz", {}, "sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw=="],
+
+    "rolldown": ["rolldown@1.1.0", "https://registry.better-npm.dev/rolldown/-/rolldown-1.1.0.tgz", { "dependencies": { "@oxc-project/types": "=0.134.0", "@rolldown/pluginutils": "^1.0.0" }, "optionalDependencies": { "@rolldown/binding-android-arm64": "1.1.0", "@rolldown/binding-darwin-arm64": "1.1.0", "@rolldown/binding-darwin-x64": "1.1.0", "@rolldown/binding-freebsd-x64": "1.1.0", "@rolldown/binding-linux-arm-gnueabihf": "1.1.0", "@rolldown/binding-linux-arm64-gnu": "1.1.0", "@rolldown/binding-linux-arm64-musl": "1.1.0", "@rolldown/binding-linux-ppc64-gnu": "1.1.0", "@rolldown/binding-linux-s390x-gnu": "1.1.0", "@rolldown/binding-linux-x64-gnu": "1.1.0", "@rolldown/binding-linux-x64-musl": "1.1.0", "@rolldown/binding-openharmony-arm64": "1.1.0", "@rolldown/binding-wasm32-wasi": "1.1.0", "@rolldown/binding-win32-arm64-msvc": "1.1.0", "@rolldown/binding-win32-x64-msvc": "1.1.0" }, "bin": { "rolldown": "./bin/cli.mjs" } }, "sha512-zpMvlJhs5PkXRTtKc0CaLBVI9AR/VDiJFpM+kx//hgToEca7FgMlGjaRIisXBcb19T76LswgmKECSQ96hjWr5A=="],
+
+    "rolldown-plugin-dts": ["rolldown-plugin-dts@0.25.2", "https://registry.better-npm.dev/rolldown-plugin-dts/-/rolldown-plugin-dts-0.25.2.tgz", { "dependencies": { "@babel/generator": "8.0.0-rc.6", "@babel/helper-validator-identifier": "8.0.0-rc.6", "@babel/parser": "8.0.0-rc.6", "ast-kit": "^3.0.0-beta.1", "birpc": "^4.0.0", "dts-resolver": "^3.0.0", "get-tsconfig": "5.0.0-beta.5", "obug": "^2.1.1" }, "peerDependencies": { "@ts-macro/tsc": "^0.3.6", "@typescript/native-preview": ">=7.0.0-dev.20260325.1", "rolldown": "^1.0.0", "typescript": "^5.0.0 || ^6.0.0", "vue-tsc": "~3.2.0" }, "optionalPeers": ["@ts-macro/tsc", "@typescript/native-preview", "typescript", "vue-tsc"] }, "sha512-nMhN/R+vmR8GM45ZW1FWMSjRTSDDn/6w4GTf8RNrEFCBdl8B1kySWrU1ixPtbwzXoRlcO+R/S88VgXuJQwfdDg=="],
+
+    "tslib": ["tslib@2.8.1", "https://registry.better-npm.dev/tslib/-/tslib-2.8.1.tgz", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
+
+    "typescript": ["typescript@6.0.3", "https://registry.better-npm.dev/typescript/-/typescript-6.0.3.tgz", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
+
+    "undici-types": ["undici-types@7.24.6", "https://registry.better-npm.dev/undici-types/-/undici-types-7.24.6.tgz", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
+
+    "@solana/errors/commander": ["commander@14.0.3", "https://registry.better-npm.dev/commander/-/commander-14.0.3.tgz", {}, "sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw=="],
+  }
+}
