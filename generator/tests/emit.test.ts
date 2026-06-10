@@ -31,7 +31,8 @@ test("emits requested artifacts", async () => {
   const manifest = await generateDopplerArtifacts(config, {
     bytecodeFile,
     assemblyFile: join(dir, "out", "doppler.s"),
-    tsSdkDir: join(dir, "out", "ts"),
+    web3jsSdkDir: join(dir, "out", "web3js"),
+    kitSdkDir: join(dir, "out", "kit"),
     rustSdkDir: join(dir, "out", "rust"),
   });
 
@@ -40,6 +41,8 @@ test("emits requested artifacts", async () => {
   expect(existsSync(bytecodeFile)).toBe(true);
   expect(existsSync(join(dir, "out", "doppler.s"))).toBe(true);
   expect(existsSync(join(dir, "out", "manifest.json"))).toBe(true);
-  expect(existsSync(join(dir, "out", "ts", "serializers.ts"))).toBe(true);
-  expect(existsSync(join(dir, "out", "rust", "src/lib.rs"))).toBe(true);
+  expect(existsSync(join(dir, "out", "core", "src", "serializers.ts"))).toBe(true);
+  expect(existsSync(join(dir, "out", "web3js", "src", "doppler.ts"))).toBe(true);
+  expect(existsSync(join(dir, "out", "kit", "src", "doppler.ts"))).toBe(true);
+  expect(existsSync(join(dir, "out", "rust", "src", "lib.rs"))).toBe(true);
 });

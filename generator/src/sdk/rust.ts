@@ -1,31 +1,57 @@
 import type { DopplerGeneratorConfig } from "../config.js";
+import { decodeSolanaPublicKey } from "../public-key.js";
 import type { LayoutField } from "../layout.js";
 import type { ScalarType } from "../schema.js";
+import { readTemplate } from "./templates.js";
 
 export type RustSdkFiles = Record<string, string>;
 
-export function renderRustSdk(config: DopplerGeneratorConfig): RustSdkFiles {
+export async function renderRustSdk(config: DopplerGeneratorConfig): Promise<RustSdkFiles> {
   const typeName = toPascalCase(config.name);
+  const [accounts, transaction] = await Promise.all([
+    readTemplate("rust", "src", "accounts.rs"),
+    readTemplate("rust", "src", "transaction.rs"),
+  ]);
 
   return {
-    "Cargo.toml": [
-      "[package]",
-      `name = "${config.packageName}-sdk"`,
-      'version = "0.1.0"',
-      'edition = "2021"',
-      "",
-    ].join("\n"),
+    "Cargo.toml": renderCargoToml(config.packageName),
     "src/lib.rs": renderRustLib(config, typeName),
+    "src/accounts.rs": accounts,
+    "src/constants.rs": renderRustConstants(config.programId),
+    "src/transaction.rs": transaction,
   };
+}
+
+function renderCargoToml(packageName: string): string {
+  return [
+    "[package]",
+    `name = "${packageName}-sdk"`,
+    'version = "0.1.0"',
+    'edition = "2021"',
+    "",
+    "[dependencies]",
+    'solana-compute-budget-interface = "2.2.2"',
+    'solana-hash = "2.3.0"',
+    'solana-instruction = "2.3.0"',
+    'solana-keypair = "2.3.0"',
+    'solana-pubkey = "2.3.0"',
+    'solana-signer = "2.2.1"',
+    'solana-transaction = { version = "2.3.0", features = ["bincode"] }',
+    "",
+  ].join("\n");
 }
 
 function renderRustLib(config: DopplerGeneratorConfig, typeName: string): string {
   return [
-    `pub const PROGRAM_ID: &str = ${JSON.stringify(config.programId)};`,
-    `pub const ADMIN: &str = ${JSON.stringify(config.admin)};`,
-    `pub const PAYLOAD_SIZE: usize = ${config.layout.payloadSize};`,
+    "mod accounts;",
+    "mod constants;",
+    "pub mod transaction;",
     "",
-    "#[derive(Clone, Debug, PartialEq, Eq)]",
+    `pub use accounts::{Oracle, UpdateInstruction};`,
+    "pub use constants::ID;",
+    "",
+    "#[repr(C)]",
+    "#[derive(Clone, Copy, Debug, PartialEq, Eq)]",
     `pub struct ${typeName}Payload {`,
     ...config.layout.fields.map((field) => `    pub ${field.name}: ${rustFieldType(field)},`),
     "}",
@@ -46,7 +72,49 @@ function renderRustLib(config: DopplerGeneratorConfig, typeName: string): string
     "    }",
     "}",
     "",
+    `pub const PAYLOAD_SIZE: usize = ${config.layout.payloadSize};`,
+    `pub const PROGRAM_ID: &str = ${JSON.stringify(config.programId)};`,
+    `pub const ADMIN: &str = ${JSON.stringify(config.admin)};`,
+    "",
   ].join("\n");
+}
+
+function renderRustConstants(programId: string): string {
+  const bytes = decodeSolanaPublicKey(programId);
+  const formattedBytes = formatRustByteArray(bytes);
+
+  return [
+    "use solana_pubkey::Pubkey;",
+    "",
+    `// ${programId}`,
+    "pub const ID: Pubkey = Pubkey::new_from_array([",
+    formattedBytes,
+    "]);",
+    "",
+    "pub(crate) const SEQUENCE_CHECK_CU: u32 = 5;",
+    "pub(crate) const ADMIN_VERIFICATION_CU: u32 = 6;",
+    "pub(crate) const PAYLOAD_WRITE_CU: u32 = 6;",
+    "",
+    "pub(crate) const COMPUTE_BUDGET_IX_CU: u32 = 150;",
+    "pub(crate) const COMPUTE_BUDGET_UNIT_PRICE_SIZE: u32 = 9;",
+    "pub(crate) const COMPUTE_BUDGET_UNIT_LIMIT_SIZE: u32 = 5;",
+    "pub(crate) const COMPUTE_BUDGET_DATA_LIMIT_SIZE: u32 = 5;",
+    "pub(crate) const COMPUTE_BUDGET_PROGRAM_SIZE: u32 = 22;",
+    "pub(crate) const ORACLE_PROGRAM_SIZE: u32 = 36;",
+    "",
+  ].join("\n");
+}
+
+function formatRustByteArray(bytes: Uint8Array): string {
+  const lines: string[] = [];
+  for (let index = 0; index < bytes.length; index += 8) {
+    const chunk = [...bytes.subarray(index, index + 8)].map(
+      (byte) => `0x${byte.toString(16).padStart(2, "0")}`,
+    );
+    const suffix = index + 8 < bytes.length ? "," : "";
+    lines.push(`    ${chunk.join(", ")}${suffix}`);
+  }
+  return lines.join("\n");
 }
 
 function rustFieldType(field: LayoutField): string {

@@ -10,7 +10,8 @@ import type { ConfigOverrides, SbpfArch } from "./config.js";
 type GenerateArgs = {
   schemaFile: string;
   bytecodeFile?: string;
-  tsSdkDir?: string;
+  web3jsSdkDir?: string;
+  kitSdkDir?: string;
   rustSdkDir?: string;
   manifestFile?: string;
   assemblyFile?: string;
@@ -46,7 +47,7 @@ export function createCommand(): Command {
       `
 Examples:
   $ doppler-generator init price-feed
-  $ doppler-generator generate ./price-feed.payload.ts --ts-sdk ./generated/price-feed/ts
+  $ doppler-generator generate ./price-feed.payload.ts --web3js-sdk ./generated/price-feed/web3js
 `,
     );
 
@@ -55,7 +56,8 @@ Examples:
     .description("Generate compiled Doppler bytecode and optional SDK files")
     .argument("<schema-file>", "Path to TypeScript, JavaScript, or JSON payload schema/config")
     .option("--bytecode <file>", "Output filepath for compiled Doppler bytecode. Defaults to ./<name>.so")
-    .option("--ts-sdk <directory>", "Output directory for generated TypeScript SDK")
+    .option("--web3js-sdk <directory>", "Output directory for generated @solana/web3.js SDK")
+    .option("--kit-sdk <directory>", "Output directory for generated @solana/kit SDK")
     .option("--rust-sdk <directory>", "Output directory for generated Rust SDK")
     .option("--manifest <file>", "Output filepath for manifest JSON")
     .option("--assembly <file>", "Output filepath for generated assembly source")
@@ -108,7 +110,8 @@ async function runGenerate(args: GenerateArgs): Promise<void> {
   const config = createGeneratorConfig(loaded, overrides);
   const manifest = await generateDopplerArtifacts(config, {
     bytecodeFile,
-    ...(args.tsSdkDir ? { tsSdkDir: args.tsSdkDir } : {}),
+    ...(args.web3jsSdkDir ? { web3jsSdkDir: args.web3jsSdkDir } : {}),
+    ...(args.kitSdkDir ? { kitSdkDir: args.kitSdkDir } : {}),
     ...(args.rustSdkDir ? { rustSdkDir: args.rustSdkDir } : {}),
     ...(args.manifestFile ? { manifestFile: args.manifestFile } : {}),
     ...(args.assemblyFile ? { assemblyFile: args.assemblyFile } : {}),
@@ -180,7 +183,8 @@ async function writeFileEnsuringDir(path: string, content: string): Promise<void
 
 type GenerateCommandOptions = {
   bytecode?: string;
-  tsSdk?: string;
+  web3jsSdk?: string;
+  kitSdk?: string;
   rustSdk?: string;
   manifest?: string;
   assembly?: string;
@@ -202,7 +206,8 @@ function toGenerateArgs(schemaFile: string, options: GenerateCommandOptions): Ge
   return {
     schemaFile,
     ...(options.bytecode ? { bytecodeFile: options.bytecode } : {}),
-    ...(options.tsSdk ? { tsSdkDir: options.tsSdk } : {}),
+    ...(options.web3jsSdk ? { web3jsSdkDir: options.web3jsSdk } : {}),
+    ...(options.kitSdk ? { kitSdkDir: options.kitSdk } : {}),
     ...(options.rustSdk ? { rustSdkDir: options.rustSdk } : {}),
     ...(options.manifest ? { manifestFile: options.manifest } : {}),
     ...(options.assembly ? { assemblyFile: options.assembly } : {}),

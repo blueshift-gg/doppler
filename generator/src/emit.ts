@@ -5,13 +5,19 @@ import type { DopplerGeneratorConfig } from "./config.js";
 import { renderDopplerAssembly } from "./assembly.js";
 import { compileAssemblyToBytecode } from "./bytecode.js";
 import { renderRustSdk } from "./sdk/rust.js";
-import { renderTypeScriptSdk } from "./sdk/typescript.js";
+import {
+  renderCoreSdk,
+  renderKitSdk,
+  renderTypeScriptWorkspaceFiles,
+  renderWeb3jsSdk,
+} from "./sdk/typescript.js";
 
 export type GenerateOptions = {
   bytecodeFile: string;
   manifestFile?: string;
   assemblyFile?: string;
-  tsSdkDir?: string;
+  web3jsSdkDir?: string;
+  kitSdkDir?: string;
   rustSdkDir?: string;
 };
 
@@ -41,12 +47,23 @@ export async function generateDopplerArtifacts(
     await writeFileEnsuringDir(options.assemblyFile, assembly);
   }
 
-  if (options.tsSdkDir) {
-    await writeFiles(options.tsSdkDir, renderTypeScriptSdk(config));
+  const typescriptSdkDir = options.web3jsSdkDir ?? options.kitSdkDir;
+  if (typescriptSdkDir) {
+    const workspaceDir = dirname(typescriptSdkDir);
+    await writeFiles(workspaceDir, renderTypeScriptWorkspaceFiles());
+    await writeFiles(join(workspaceDir, "core"), await renderCoreSdk(config));
+  }
+
+  if (options.web3jsSdkDir) {
+    await writeFiles(options.web3jsSdkDir, await renderWeb3jsSdk(config));
+  }
+
+  if (options.kitSdkDir) {
+    await writeFiles(options.kitSdkDir, await renderKitSdk(config));
   }
 
   if (options.rustSdkDir) {
-    await writeFiles(options.rustSdkDir, renderRustSdk(config));
+    await writeFiles(options.rustSdkDir, await renderRustSdk(config));
   }
 
   const manifest: GeneratedManifest = {

@@ -9,7 +9,8 @@ npx @blueshift-gg/doppler-generator \
   generate \
   ./doppler.payload.ts \
   --assembly ./generated/sol-usdc-feed/asm/doppler.s \
-  --ts-sdk ./generated/sol-usdc-feed/ts \
+  --web3js-sdk ./generated/sol-usdc-feed/web3js \
+  --kit-sdk ./generated/sol-usdc-feed/kit \
   --rust-sdk ./generated/sol-usdc-feed/rust
 ```
 
@@ -46,7 +47,8 @@ Useful flags:
 ```txt
 <schema-file>                  Required. Path to TypeScript, JavaScript, or JSON payload schema/config.
 --bytecode <file>              Optional. Output filepath for compiled Doppler bytecode. Defaults to ./<name>.so.
---ts-sdk <directory>           Optional. Output directory for generated TypeScript SDK.
+--web3js-sdk <directory>       Optional. Output directory for generated @solana/web3.js SDK.
+--kit-sdk <directory>          Optional. Output directory for generated @solana/kit SDK.
 --rust-sdk <directory>         Optional. Output directory for generated Rust SDK.
 --manifest <file>              Optional. Output filepath for manifest JSON.
 --assembly <file>              Optional. Output filepath for generated assembly source.
@@ -103,8 +105,10 @@ The generator can emit:
 doppler.so       Compiled Solana program ELF bytecode.
 doppler.s        Generated sBPF assembly source, if --assembly is provided.
 manifest.json    Program ID, admin, arch, payload size, schema hash, and ELF hash.
-ts/              Generated TypeScript payload types and serializer, if --ts-sdk is provided.
-rust/            Generated Rust payload type and explicit byte serializer, if --rust-sdk is provided.
+core/            Generated core SDK (payload types, serializers, oracle helpers). Emitted when either TS SDK flag is used.
+web3js/          Generated @solana/web3.js client SDK, if --web3js-sdk is provided.
+kit/             Generated @solana/kit client SDK, if --kit-sdk is provided.
+rust/            Generated Rust SDK matching doppler-sdk layout, if --rust-sdk is provided.
 ```
 
 The current Doppler program does not embed the program ID in bytecode. Program ID is written to the manifest and generated SDK constants. The bytecode embeds the admin address and payload size.

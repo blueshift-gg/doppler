@@ -41,7 +41,8 @@ npx @blueshift-gg/doppler-generator \
   generate \
   ./doppler.payload.ts \
   --bytecode ./generated/sol-usdc-feed/doppler.so \
-  --ts-sdk ./generated/sol-usdc-feed/ts \
+  --web3js-sdk ./generated/sol-usdc-feed/web3js \
+  --kit-sdk ./generated/sol-usdc-feed/kit \
   --rust-sdk ./generated/sol-usdc-feed/rust
 ```
 
