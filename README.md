@@ -485,6 +485,10 @@ A: However you like, but if you use Solana's `create_account_with_seed` instruct
 **Q: What's the maximum update frequency?**
 A: Limited only by Solana's throughput. With 21 CUs, you can update as fast as you land.
 
+## Contributing
+
+When updating runtime SDK code under `sdk/`, mirror the same changes into `generator/templates/` so generated SDKs stay in sync. See [`.agents/skills/doppler-sdk-mirror/SKILL.md`](.agents/skills/doppler-sdk-mirror/SKILL.md) for the file mapping and template rules.
+
 ## Support
 
 For issues, questions, or contributions:
