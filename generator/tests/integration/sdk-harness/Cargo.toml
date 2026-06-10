@@ -1,7 +1,7 @@
 [package]
 name = "doppler-integration-sdk"
-version = "0.1.0"
-edition = "2021"
+version = { workspace = true }
+edition = { workspace = true }
 publish = false
 
 [dependencies]
@@ -11,6 +11,6 @@ solana-instruction = { workspace = true }
 solana-keypair = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-signer = { workspace = true }
-solana-transaction = { workspace = true, features = ["bincode"] }
+solana-transaction = { workspace = true }
 
 [build-dependencies]

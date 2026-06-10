@@ -121,4 +121,4 @@ Rust integration tests under `tests/integration` generate bytecode and a Rust SD
 bun run test:integration
 ```
 
-The fixture uses `arch: "v0"` because the current LiteSVM version still rejects the v3 ELF output from `@blueshift-gg/sbpf-assembler` at deploy time. Generated artifacts stay under `target/` and are not written into the source tree.
+The fixture uses `arch: "v0"` for bytecode generation. The integration test enables `enable_sbpf_v3_deployment_and_execution` in LiteSVM and deploys via `add_program_with_loader` with `bpf_loader_upgradeable` (loader v3). That feature flag affects runtime execution, not generator output — only the schema's `arch` field controls bytecode. v3 bytecode from `@blueshift-gg/sbpf-assembler` still fails to load (`InvalidAccountData`), so the fixture stays on v0. Generated artifacts stay under `target/` and are not written into the source tree.
