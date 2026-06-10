@@ -8,7 +8,6 @@ Generate a custom Doppler program bytecode artifact and matching SDK files from 
 npx @blueshift-gg/doppler-generator \
   generate \
   ./doppler.payload.ts \
-  --bytecode ./generated/sol-usdc-feed/doppler.so \
   --assembly ./generated/sol-usdc-feed/asm/doppler.s \
   --ts-sdk ./generated/sol-usdc-feed/ts \
   --rust-sdk ./generated/sol-usdc-feed/rust
@@ -46,7 +45,7 @@ Useful flags:
 
 ```txt
 <schema-file>                  Required. Path to TypeScript, JavaScript, or JSON payload schema/config.
---bytecode <file>              Required. Output filepath for compiled Doppler bytecode.
+--bytecode <file>              Optional. Output filepath for compiled Doppler bytecode. Defaults to ./<name>.so.
 --ts-sdk <directory>           Optional. Output directory for generated TypeScript SDK.
 --rust-sdk <directory>         Optional. Output directory for generated Rust SDK.
 --manifest <file>              Optional. Output filepath for manifest JSON.

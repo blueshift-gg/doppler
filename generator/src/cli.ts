@@ -9,7 +9,7 @@ import type { ConfigOverrides, SbpfArch } from "./config.js";
 
 type GenerateArgs = {
   schemaFile: string;
-  bytecodeFile: string;
+  bytecodeFile?: string;
   tsSdkDir?: string;
   rustSdkDir?: string;
   manifestFile?: string;
@@ -46,7 +46,7 @@ export function createCommand(): Command {
       `
 Examples:
   $ doppler-generator init price-feed
-  $ doppler-generator generate ./price-feed.payload.ts --bytecode ./generated/price-feed/doppler.so --ts-sdk ./generated/price-feed/ts
+  $ doppler-generator generate ./price-feed.payload.ts --ts-sdk ./generated/price-feed/ts
 `,
     );
 
@@ -54,7 +54,7 @@ Examples:
     .command("generate")
     .description("Generate compiled Doppler bytecode and optional SDK files")
     .argument("<schema-file>", "Path to TypeScript, JavaScript, or JSON payload schema/config")
-    .requiredOption("--bytecode <file>", "Output filepath for compiled Doppler bytecode")
+    .option("--bytecode <file>", "Output filepath for compiled Doppler bytecode. Defaults to ./<name>.so")
     .option("--ts-sdk <directory>", "Output directory for generated TypeScript SDK")
     .option("--rust-sdk <directory>", "Output directory for generated Rust SDK")
     .option("--manifest <file>", "Output filepath for manifest JSON")
@@ -91,6 +91,7 @@ async function runGenerate(args: GenerateArgs): Promise<void> {
   const loaded = await loadGeneratorConfigInput(args.schemaFile);
 
   const slug = slugify(args.overrides.name ?? loaded.name ?? "doppler");
+  const bytecodeFile = args.bytecodeFile ?? `./${slug}.so`;
   const generatedKeypairs: GeneratedKeypair[] = [];
   const overrides: ConfigOverrides = {
     ...args.overrides,
@@ -106,7 +107,7 @@ async function runGenerate(args: GenerateArgs): Promise<void> {
 
   const config = createGeneratorConfig(loaded, overrides);
   const manifest = await generateDopplerArtifacts(config, {
-    bytecodeFile: args.bytecodeFile,
+    bytecodeFile,
     ...(args.tsSdkDir ? { tsSdkDir: args.tsSdkDir } : {}),
     ...(args.rustSdkDir ? { rustSdkDir: args.rustSdkDir } : {}),
     ...(args.manifestFile ? { manifestFile: args.manifestFile } : {}),
@@ -116,7 +117,7 @@ async function runGenerate(args: GenerateArgs): Promise<void> {
   console.log(
     `Generated ${manifest.name} (${manifest.arch}, ${manifest.payloadSize} byte payload)`,
   );
-  console.log(`Compiled bytecode: ${args.bytecodeFile}`);
+  console.log(`Compiled bytecode: ${bytecodeFile}`);
   printGeneratedKeypairs(generatedKeypairs);
 }
 
@@ -178,7 +179,7 @@ async function writeFileEnsuringDir(path: string, content: string): Promise<void
 }
 
 type GenerateCommandOptions = {
-  bytecode: string;
+  bytecode?: string;
   tsSdk?: string;
   rustSdk?: string;
   manifest?: string;
@@ -200,7 +201,7 @@ function toGenerateArgs(schemaFile: string, options: GenerateCommandOptions): Ge
 
   return {
     schemaFile,
-    bytecodeFile: options.bytecode,
+    ...(options.bytecode ? { bytecodeFile: options.bytecode } : {}),
     ...(options.tsSdk ? { tsSdkDir: options.tsSdk } : {}),
     ...(options.rustSdk ? { rustSdkDir: options.rustSdk } : {}),
     ...(options.manifest ? { manifestFile: options.manifest } : {}),
