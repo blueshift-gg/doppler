@@ -44,7 +44,7 @@ export class Doppler {
     config: DopplerKitConfig,
   ) {
     this.programId = config.programId;
-    this.admin = config.admin ?? signer.address;
+    this.admin = config.admin;
     this.sendAndConfirmTransaction = sendAndConfirmTransactionFactory({
       rpc,
       rpcSubscriptions,

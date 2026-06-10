@@ -23,6 +23,7 @@ const signer = Keypair.generate();
 
 const client = new Doppler(connection, signer, {
   programId: PROGRAM_ID,
+  admin: signer.publicKey,
 });
 
 const oracle = await client.fetchOracle(oracleAddress, new PriceFeedSerializer());

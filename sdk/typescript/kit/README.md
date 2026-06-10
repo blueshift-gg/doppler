@@ -24,6 +24,7 @@ const signer = await createKeyPairSignerFromBytes(secretKeyBytes);
 
 const client = new Doppler(rpc, signer, {
   programId: PROGRAM_ID,
+  admin: signer.address,
 });
 
 const oracle = await client.fetchOracle(oracleAddress, new PriceFeedSerializer());

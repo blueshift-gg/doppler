@@ -25,7 +25,7 @@ export class Doppler {
     config: DopplerWeb3Config,
   ) {
     this.programId = config.programId;
-    this.admin = config.admin ?? signer.publicKey;
+    this.admin = config.admin;
   }
 
   /** Create a transaction builder configured for this client. */
