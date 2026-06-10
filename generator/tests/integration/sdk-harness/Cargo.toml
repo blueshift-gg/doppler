@@ -1,0 +1,16 @@
+[package]
+name = "doppler-integration-sdk"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+solana-compute-budget-interface = { workspace = true }
+solana-hash = { workspace = true }
+solana-instruction = { workspace = true }
+solana-keypair = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-signer = { workspace = true }
+solana-transaction = { workspace = true, features = ["bincode"] }
+
+[build-dependencies]

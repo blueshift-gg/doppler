@@ -1,0 +1,15 @@
+[package]
+name = "doppler-generator-integration"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+litesvm = { workspace = true }
+doppler-integration-sdk = { path = "sdk-harness" }
+solana-account = { workspace = true }
+solana-keypair = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-signer = { workspace = true }
+solana-system-interface = { workspace = true, features = ["bincode"] }
+solana-transaction = { workspace = true, features = ["bincode"] }

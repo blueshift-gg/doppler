@@ -1,6 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["doppler", "examples", "program", "sdk"]
+members = [
+    "doppler",
+    "examples",
+    "generator/tests/integration",
+    "generator/tests/integration/sdk-harness",
+    "program",
+    "sdk/rust",
+]
 
 [workspace.package]
 repository = "https://github.com/blueshift-gg/doppler"
@@ -13,6 +20,7 @@ version = "0.1.0"
 doppler = { path = "./doppler" }
 doppler-program = { path = "./program" }
 doppler-sdk = { path = "./sdk/rust" }
+litesvm = "0.7.1"
 mollusk-svm = { version = "0.5.1" }
 mollusk-svm-bencher = { version = "0.5.1" }
 serde = { version = "1.0.219" }

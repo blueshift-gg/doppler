@@ -17,7 +17,8 @@
     "build": "rolldown -c --clean-dir",
     "cli": "bun run build && node dist/cli.js",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tests/tsconfig.json --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "test:integration": "cargo test -p doppler-generator-integration"
   },
   "dependencies": {
     "@blueshift-gg/sbpf-assembler": "^0.1.9",
