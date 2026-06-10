@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { Command, InvalidArgumentError } from "commander";
 import { Keypair } from "@solana/web3.js";
 import { createGeneratorConfig, loadGeneratorConfigInput } from "./config.js";
@@ -121,7 +121,30 @@ async function runGenerate(args: GenerateArgs): Promise<void> {
     `Generated ${manifest.name} (${manifest.arch}, ${manifest.payloadSize} byte payload)`,
   );
   console.log(`Compiled bytecode: ${bytecodeFile}`);
+  printGeneratedOutputs(args);
   printGeneratedKeypairs(generatedKeypairs);
+}
+
+function printGeneratedOutputs(args: GenerateArgs): void {
+  if (args.assemblyFile) {
+    console.log(`Assembly source: ${args.assemblyFile}`);
+  }
+
+  if (args.manifestFile) {
+    console.log(`Manifest: ${args.manifestFile}`);
+  }
+
+  if (args.web3jsSdkDir) {
+    console.log(`Web3.js SDK: ${args.web3jsSdkDir}`);
+  }
+
+  if (args.kitSdkDir) {
+    console.log(`Kit SDK: ${args.kitSdkDir}`);
+  }
+
+  if (args.rustSdkDir) {
+    console.log(`Rust SDK: ${args.rustSdkDir}`);
+  }
 }
 
 async function runInit(name: string, options: InitOptions): Promise<void> {

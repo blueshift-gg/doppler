@@ -52,6 +52,45 @@ test("init writes schema and generated keypair files", async () => {
   expect(programKeypair).toHaveLength(64);
 });
 
+test("generate logs optional SDK output directories", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "doppler-generator-cli-"));
+  tempDirs.push(dir);
+
+  const schemaFile = "delta.payload.ts";
+  await Bun.write(
+    join(dir, schemaFile),
+    `export default {
+  name: "delta",
+  programId: "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
+  admin: "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
+  payload: { price: "u64" },
+} as const;
+`,
+  );
+
+  const result = await runCli(
+    [
+      "generate",
+      schemaFile,
+      "--web3js-sdk",
+      "sdk/web3js",
+      "--kit-sdk",
+      "sdk/kit",
+      "--rust-sdk",
+      "sdk/rust",
+    ],
+    {
+      cwd: dir,
+      cli: join(new URL("..", import.meta.url).pathname, "src/cli.ts"),
+    },
+  );
+
+  expect(result.exitCode).toBe(0);
+  expect(result.stdout).toContain("Web3.js SDK: sdk/web3js");
+  expect(result.stdout).toContain("Kit SDK: sdk/kit");
+  expect(result.stdout).toContain("Rust SDK: sdk/rust");
+});
+
 test("generate writes keypair files when schema omits program ID and admin", async () => {
   const dir = await mkdtemp(join(tmpdir(), "doppler-generator-cli-"));
   tempDirs.push(dir);
