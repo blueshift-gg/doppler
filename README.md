@@ -38,6 +38,7 @@ Doppler includes a TypeScript generator under `generator/` for producing custom 
 
 ```sh
 npx @blueshift-gg/doppler-generator \
+  generate \
   ./doppler.payload.ts \
   --bytecode ./generated/sol-usdc-feed/doppler.so \
   --ts-sdk ./generated/sol-usdc-feed/ts \

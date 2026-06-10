@@ -22,6 +22,7 @@
   "dependencies": {
     "@blueshift-gg/sbpf-assembler": "^0.1.9",
     "@solana/codecs": "^6.9.0",
+    "@solana/web3.js": "3.0.0-rc.1",
     "bs58": "^6.0.0",
     "commander": "^15.0.0",
     "jiti": "^2.7.0"

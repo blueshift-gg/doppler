@@ -39,7 +39,14 @@ export async function loadGeneratorConfig(
   schemaFile: string,
   overrides: ConfigOverrides = {},
 ): Promise<DopplerGeneratorConfig> {
-  const loaded = await loadConfigFile(schemaFile);
+  const loaded = await loadGeneratorConfigInput(schemaFile);
+  return createGeneratorConfig(loaded, overrides);
+}
+
+export function createGeneratorConfig(
+  loaded: DopplerGeneratorConfigInput,
+  overrides: ConfigOverrides = {},
+): DopplerGeneratorConfig {
   const input = { ...loaded, ...withoutUndefined(overrides) };
 
   if (!input.payload) {
@@ -90,7 +97,9 @@ export function normalizePackageName(name: string): string {
     .toLowerCase();
 }
 
-async function loadConfigFile(schemaFile: string): Promise<DopplerGeneratorConfigInput> {
+export async function loadGeneratorConfigInput(
+  schemaFile: string,
+): Promise<DopplerGeneratorConfigInput> {
   const absolutePath = resolve(schemaFile);
   const extension = extname(absolutePath);
 

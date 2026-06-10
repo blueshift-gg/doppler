@@ -6,6 +6,7 @@ Generate a custom Doppler program bytecode artifact and matching SDK files from 
 
 ```sh
 npx @blueshift-gg/doppler-generator \
+  generate \
   ./doppler.payload.ts \
   --bytecode ./generated/sol-usdc-feed/doppler.so \
   --assembly ./generated/sol-usdc-feed/asm/doppler.s \
@@ -14,6 +15,32 @@ npx @blueshift-gg/doppler-generator \
 ```
 
 The published CLI is Node-compatible and can be invoked with `npx`, `yarn dlx`, `pnpm dlx`, or `bunx`.
+Running the CLI without a command prints help by default.
+
+## Init
+
+Create a starter payload schema:
+
+```sh
+npx @blueshift-gg/doppler-generator init price-feed
+```
+
+If `--program-id` or `--admin` are omitted, `init` generates standard Solana JSON keypair files and prints their filepaths:
+
+```txt
+Created schema: /path/price-feed.payload.ts
+Generated program keypair: /path/keys/price-feed-program-keypair.json (...)
+Generated admin keypair: /path/keys/price-feed-admin-keypair.json (...)
+```
+
+Useful flags:
+
+```txt
+--out <file>                 Schema output filepath.
+--keys-dir <directory>       Directory for generated keypair files. Defaults to ./keys.
+--program-id <address>       Use this program ID instead of generating a program keypair.
+--admin <address>            Use this admin address instead of generating an admin keypair.
+```
 
 ## Arguments
 
@@ -28,9 +55,11 @@ The published CLI is Node-compatible and can be invoked with `npx`, `yarn dlx`, 
 --program-id <address>         Optional if schema file includes programId.
 --admin <address>              Optional if schema file includes admin.
 --name <name>                  Optional if schema file includes name.
+--keys-dir <directory>         Directory for generated keypair files. Defaults to ./keys.
 ```
 
 If `--manifest` is omitted, the generator writes `manifest.json` next to the bytecode output.
+If `programId` or `admin` are missing from the schema and CLI flags, `generate` creates standard Solana JSON keypair files and uses their public keys for the generated artifacts.
 
 ## Schema File
 

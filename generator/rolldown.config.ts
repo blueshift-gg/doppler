@@ -9,6 +9,7 @@ export default defineConfig({
   external: [
     "@blueshift-gg/sbpf-assembler",
     "@solana/codecs",
+    "@solana/web3.js",
     "bs58",
     "commander",
     "jiti",

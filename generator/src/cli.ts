@@ -1,22 +1,110 @@
 #!/usr/bin/env node
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { Command, InvalidArgumentError } from "commander";
-import { loadGeneratorConfig } from "./config.js";
+import { Keypair } from "@solana/web3.js";
+import { createGeneratorConfig, loadGeneratorConfigInput } from "./config.js";
 import { generateDopplerArtifacts } from "./emit.js";
 import type { ConfigOverrides, SbpfArch } from "./config.js";
 
-type CliArgs = {
+type GenerateArgs = {
   schemaFile: string;
   bytecodeFile: string;
   tsSdkDir?: string;
   rustSdkDir?: string;
   manifestFile?: string;
   assemblyFile?: string;
+  keysDir: string;
   overrides: ConfigOverrides;
 };
 
+type InitOptions = {
+  out?: string;
+  keysDir: string;
+  programId?: string;
+  admin?: string;
+};
+
+type GeneratedKeypair = {
+  role: "program" | "admin";
+  publicKey: string;
+  file: string;
+};
+
 async function main(): Promise<void> {
-  const args = parseCliArgs(process.argv);
-  const config = await loadGeneratorConfig(args.schemaFile, args.overrides);
+  const program = createCommand();
+  await program.parseAsync(process.argv);
+}
+
+export function createCommand(): Command {
+  const program = new Command()
+    .name("doppler-generator")
+    .description("Generate custom Doppler bytecode and SDK files from a payload schema")
+    .showHelpAfterError()
+    .addHelpText(
+      "after",
+      `
+Examples:
+  $ doppler-generator init price-feed
+  $ doppler-generator generate ./price-feed.payload.ts --bytecode ./generated/price-feed/doppler.so --ts-sdk ./generated/price-feed/ts
+`,
+    );
+
+  program
+    .command("generate")
+    .description("Generate compiled Doppler bytecode and optional SDK files")
+    .argument("<schema-file>", "Path to TypeScript, JavaScript, or JSON payload schema/config")
+    .requiredOption("--bytecode <file>", "Output filepath for compiled Doppler bytecode")
+    .option("--ts-sdk <directory>", "Output directory for generated TypeScript SDK")
+    .option("--rust-sdk <directory>", "Output directory for generated Rust SDK")
+    .option("--manifest <file>", "Output filepath for manifest JSON")
+    .option("--assembly <file>", "Output filepath for generated assembly source")
+    .option("--arch <arch>", "Target sBPF arch. Defaults to v3", parseArch)
+    .option("--program-id <address>", "Program ID override")
+    .option("--admin <address>", "Admin address override")
+    .option("--name <name>", "Generated artifact name override")
+    .option("--keys-dir <directory>", "Directory for generated keypair files", "keys")
+    .action(async (schemaFile: string, options: GenerateCommandOptions) => {
+      await runGenerate(toGenerateArgs(schemaFile, options));
+    });
+
+  program
+    .command("init")
+    .description("Create a starter payload schema and local keypair files")
+    .argument("[name]", "Payload config name", "price-feed")
+    .option("--out <file>", "Schema output filepath")
+    .option("--keys-dir <directory>", "Directory for generated keypair files", "keys")
+    .option("--program-id <address>", "Program ID to write into the schema")
+    .option("--admin <address>", "Admin address to write into the schema")
+    .action(async (name: string, options: InitOptions) => {
+      await runInit(name, options);
+    });
+
+  program.action(() => {
+    program.help();
+  });
+
+  return program;
+}
+
+async function runGenerate(args: GenerateArgs): Promise<void> {
+  const loaded = await loadGeneratorConfigInput(args.schemaFile);
+
+  const slug = slugify(args.overrides.name ?? loaded.name ?? "doppler");
+  const generatedKeypairs: GeneratedKeypair[] = [];
+  const overrides: ConfigOverrides = {
+    ...args.overrides,
+    programId:
+      args.overrides.programId ??
+      loaded.programId ??
+      (await generateKeypair("program", slug, args.keysDir, generatedKeypairs)),
+    admin:
+      args.overrides.admin ??
+      loaded.admin ??
+      (await generateKeypair("admin", slug, args.keysDir, generatedKeypairs)),
+  };
+
+  const config = createGeneratorConfig(loaded, overrides);
   const manifest = await generateDopplerArtifacts(config, {
     bytecodeFile: args.bytecodeFile,
     ...(args.tsSdkDir ? { tsSdkDir: args.tsSdkDir } : {}),
@@ -28,36 +116,81 @@ async function main(): Promise<void> {
   console.log(
     `Generated ${manifest.name} (${manifest.arch}, ${manifest.payloadSize} byte payload)`,
   );
-  console.log(`Bytecode: ${args.bytecodeFile}`);
+  console.log(`Compiled bytecode: ${args.bytecodeFile}`);
+  printGeneratedKeypairs(generatedKeypairs);
 }
 
-export function parseCliArgs(argv: string[]): CliArgs {
-  const program = createCommand();
-  program.exitOverride();
-  program.configureOutput({
-    writeErr: (message) => {
-      throw new Error(message.trim());
-    },
-  });
+async function runInit(name: string, options: InitOptions): Promise<void> {
+  const slug = slugify(name);
+  const schemaFile = resolve(options.out ?? `${slug}.payload.ts`);
+  const generatedKeypairs: GeneratedKeypair[] = [];
 
-  program.parse(argv, { from: "node" });
-  const options = program.opts<{
-    bytecode: string;
-    tsSdk?: string;
-    rustSdk?: string;
-    manifest?: string;
-    assembly?: string;
-    arch?: SbpfArch;
-    programId?: string;
-    admin?: string;
-    name?: string;
-  }>();
-  const [schemaFile] = program.args;
+  const programId = options.programId ?? (await generateKeypair("program", slug, options.keysDir, generatedKeypairs));
+  const admin = options.admin ?? (await generateKeypair("admin", slug, options.keysDir, generatedKeypairs));
 
-  if (!schemaFile) {
-    throw new Error("Missing required argument '<schema-file>'");
+  await writeFileEnsuringDir(schemaFile, renderStarterSchema(name, programId, admin));
+
+  console.log(`Created schema: ${schemaFile}`);
+  printGeneratedKeypairs(generatedKeypairs);
+}
+
+function printGeneratedKeypairs(generatedKeypairs: GeneratedKeypair[]): void {
+  for (const keypair of generatedKeypairs) {
+    console.log(
+      `Generated ${keypair.role} keypair: ${keypair.file} (${keypair.publicKey})`,
+    );
   }
+  if (generatedKeypairs.length > 0) {
+    console.log("Keep generated keypair files secure; the admin key controls oracle updates.");
+  }
+}
 
+async function generateKeypair(
+  role: "program" | "admin",
+  slug: string,
+  keysDir: string,
+  generatedKeypairs: GeneratedKeypair[],
+): Promise<string> {
+  const keypair = await Keypair.generate();
+  const file = resolve(keysDir, `${slug}-${role}-keypair.json`);
+  await writeFileEnsuringDir(file, `${JSON.stringify(Array.from(keypair.secretKey))}\n`);
+
+  const publicKey = keypair.publicKey.toBase58();
+  generatedKeypairs.push({ role, publicKey, file });
+  return publicKey;
+}
+
+function renderStarterSchema(name: string, programId: string, admin: string): string {
+  return `export default {
+  name: ${JSON.stringify(name)},
+  programId: ${JSON.stringify(programId)},
+  admin: ${JSON.stringify(admin)},
+  payload: {
+    price: "u64",
+  },
+} as const;
+`;
+}
+
+async function writeFileEnsuringDir(path: string, content: string): Promise<void> {
+  await mkdir(dirname(path), { recursive: true });
+  await writeFile(path, content);
+}
+
+type GenerateCommandOptions = {
+  bytecode: string;
+  tsSdk?: string;
+  rustSdk?: string;
+  manifest?: string;
+  assembly?: string;
+  arch?: SbpfArch;
+  programId?: string;
+  admin?: string;
+  name?: string;
+  keysDir: string;
+};
+
+function toGenerateArgs(schemaFile: string, options: GenerateCommandOptions): GenerateArgs {
   const overrides: ConfigOverrides = {
     ...(options.arch ? { arch: options.arch } : {}),
     ...(options.programId ? { programId: options.programId } : {}),
@@ -72,24 +205,9 @@ export function parseCliArgs(argv: string[]): CliArgs {
     ...(options.rustSdk ? { rustSdkDir: options.rustSdk } : {}),
     ...(options.manifest ? { manifestFile: options.manifest } : {}),
     ...(options.assembly ? { assemblyFile: options.assembly } : {}),
+    keysDir: options.keysDir,
     overrides,
   };
-}
-
-function createCommand(): Command {
-  return new Command()
-    .name("doppler-generator")
-    .description("Generate custom Doppler bytecode and SDK files from a payload schema")
-    .argument("<schema-file>", "Path to TypeScript, JavaScript, or JSON payload schema/config")
-    .requiredOption("--bytecode <file>", "Output filepath for compiled Doppler bytecode")
-    .option("--ts-sdk <directory>", "Output directory for generated TypeScript SDK")
-    .option("--rust-sdk <directory>", "Output directory for generated Rust SDK")
-    .option("--manifest <file>", "Output filepath for manifest JSON")
-    .option("--assembly <file>", "Output filepath for generated assembly source")
-    .option("--arch <arch>", "Target sBPF arch. Defaults to v3", parseArch)
-    .option("--program-id <address>", "Program ID override")
-    .option("--admin <address>", "Admin address override")
-    .option("--name <name>", "Generated artifact name override");
 }
 
 function parseArch(value: string): SbpfArch {
@@ -97,6 +215,16 @@ function parseArch(value: string): SbpfArch {
     throw new InvalidArgumentError("expected 'v0' or 'v3'");
   }
   return value;
+}
+
+function slugify(value: string): string {
+  const slug = value
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/[^A-Za-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .toLowerCase();
+  return slug || "doppler";
 }
 
 main().catch((error: unknown) => {
