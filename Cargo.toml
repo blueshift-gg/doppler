@@ -12,7 +12,7 @@ version = "0.1.0"
 [workspace.dependencies]
 doppler = { path = "./doppler" }
 doppler-program = { path = "./program" }
-doppler-sdk = { path = "./sdk" }
+doppler-sdk = { path = "./sdk/rust" }
 mollusk-svm = { version = "0.5.1" }
 mollusk-svm-bencher = { version = "0.5.1" }
 serde = { version = "1.0.219" }
