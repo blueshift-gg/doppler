@@ -14,6 +14,9 @@
     "build": "rolldown -c rolldown.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "dependencies": {
+    "@solana/codecs": "^6.9.0"
+  },
   "devDependencies": {
     "typescript": "6.0.3"
   }

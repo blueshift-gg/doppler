@@ -1,23 +1,22 @@
+import { getStructCodec, getU64Codec } from "@solana/codecs";
+
 import type { PayloadSerializer } from "./types";
+
+const u64Codec = getU64Codec();
+const priceFeedCodec = getStructCodec([["price", getU64Codec()]]);
 
 /** Built-in serializer for u64 payloads (price feeds). */
 export class U64Serializer implements PayloadSerializer<bigint> {
   serialize(payload: bigint): Uint8Array {
-    const buf = new Uint8Array(8);
-    new DataView(buf.buffer).setBigUint64(0, payload, true);
-    return buf;
+    return new Uint8Array(u64Codec.encode(payload));
   }
 
   deserialize(buffer: Uint8Array): bigint {
-    return new DataView(
-      buffer.buffer,
-      buffer.byteOffset,
-      buffer.byteLength,
-    ).getBigUint64(0, true);
+    return u64Codec.decode(buffer);
   }
 
   size(): number {
-    return 8;
+    return u64Codec.fixedSize;
   }
 }
 
@@ -28,17 +27,15 @@ export interface PriceFeed {
 
 /** Serializer for `PriceFeed` payloads. */
 export class PriceFeedSerializer implements PayloadSerializer<PriceFeed> {
-  private readonly inner = new U64Serializer();
-
   serialize(payload: PriceFeed): Uint8Array {
-    return this.inner.serialize(payload.price);
+    return new Uint8Array(priceFeedCodec.encode(payload));
   }
 
   deserialize(buffer: Uint8Array): PriceFeed {
-    return { price: this.inner.deserialize(buffer) };
+    return priceFeedCodec.decode(buffer);
   }
 
   size(): number {
-    return this.inner.size();
+    return priceFeedCodec.fixedSize;
   }
 }
