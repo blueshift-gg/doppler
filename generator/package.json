@@ -23,7 +23,9 @@
   },
   "dependencies": {
     "@blueshift-gg/sbpf-assembler": "^0.1.9",
+    "@solana-program/loader-v3": "^0.3.0",
     "@solana/codecs": "^6.9.0",
+    "@solana/kit": "^6.9.0",
     "@solana/web3.js": "3.0.0-rc.1",
     "bs58": "^6.0.0",
     "commander": "^15.0.0",
