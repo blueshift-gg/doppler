@@ -10,6 +10,15 @@ test("renders instruction offsets from payload size", () => {
   expect(assembly).toContain("lddw r3, 0xd0ab9764c9be9d08");
 });
 
+test("verifies admin signer flags with a single u16 comparison", () => {
+  const assembly = renderDopplerAssembly({ admin: ADMIN, payloadSize: 8 });
+  expect(assembly).toContain(".equ NO_DUP_SIGNER, 0x1ff");
+  expect(assembly).toContain("  ldxh r2, [r1 + ADMIN_HEADER]");
+  expect(assembly).toContain("  jne r2, NO_DUP_SIGNER, error_bad_admin");
+  expect(assembly).not.toContain("  ldxb r2, [r1 + ADMIN_HEADER]");
+  expect(assembly).not.toContain("  lddw r0, 0");
+});
+
 test("renders payload copies by largest chunks", () => {
   expect(renderPayloadCopy(31)).toEqual([
     "  ldxdw r2, [r1 + INSTRUCTION_PAYLOAD + 0]",

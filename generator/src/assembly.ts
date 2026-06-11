@@ -7,6 +7,7 @@ export type AssemblyInput = {
 
 const ADMIN_HEADER = 0x0008;
 const ADMIN_KEY = 0x0010;
+const NO_DUP_SIGNER = 0x01ff;
 const ORACLE_SEQUENCE = 0x28c0;
 const ORACLE_PAYLOAD = 0x28c8;
 const INSTRUCTION_BASE_SEQUENCE = 0x50d8;
@@ -22,20 +23,19 @@ export function renderDopplerAssembly(input: AssemblyInput): string {
   const instructionPayload = INSTRUCTION_BASE_PAYLOAD + input.payloadSize;
 
   return [
-    ".equ ADMIN_HEADER, 0x0008",
-    ".equ ADMIN_KEY, 0x0010",
-    ".equ ORACLE_SEQUENCE, 0x28c0",
-    ".equ ORACLE_PAYLOAD, 0x28c8",
+    `.equ ADMIN_HEADER, ${hex(ADMIN_HEADER)}`,
+    `.equ ADMIN_KEY, ${hex(ADMIN_KEY)}`,
+    `.equ NO_DUP_SIGNER, ${hex(NO_DUP_SIGNER)}`,
+    `.equ ORACLE_SEQUENCE, ${hex(ORACLE_SEQUENCE)}`,
+    `.equ ORACLE_PAYLOAD, ${hex(ORACLE_PAYLOAD)}`,
     `.equ INSTRUCTION_SEQUENCE, ${hex(instructionSequence)}`,
     `.equ INSTRUCTION_PAYLOAD, ${hex(instructionPayload)}`,
     "",
     ".globl entrypoint",
     "",
     "entrypoint:",
-    "  ldxb r2, [r1 + ADMIN_HEADER]",
-    "  jne r2, 0xff, error_bad_admin",
-    "  ldxb r2, [r1 + ADMIN_HEADER + 1]",
-    "  jne r2, 0x01, error_bad_admin",
+    "  ldxh r2, [r1 + ADMIN_HEADER]",
+    "  jne r2, NO_DUP_SIGNER, error_bad_admin",
     "",
     ...adminWords.flatMap((word, index) => [
       `  ldxdw r2, [r1 + ADMIN_KEY + ${index * 8}]`,
@@ -50,7 +50,6 @@ export function renderDopplerAssembly(input: AssemblyInput): string {
     "",
     ...renderPayloadCopy(input.payloadSize),
     "",
-    "  lddw r0, 0",
     "  exit",
     "",
     "error_bad_admin:",
@@ -89,6 +88,7 @@ export function renderPayloadCopy(payloadSize: number): string[] {
 export const DOPPLER_OFFSETS = {
   ADMIN_HEADER,
   ADMIN_KEY,
+  NO_DUP_SIGNER,
   ORACLE_SEQUENCE,
   ORACLE_PAYLOAD,
   INSTRUCTION_BASE_SEQUENCE,
