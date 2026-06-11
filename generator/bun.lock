@@ -8,6 +8,7 @@
         "@blueshift-gg/sbpf-assembler": "^0.1.9",
         "@solana-program/loader-v3": "^0.3.0",
         "@solana/codecs": "^6.9.0",
+        "@solana/compat": "^6.9.0",
         "@solana/kit": "^6.9.0",
         "@solana/web3.js": "3.0.0-rc.1",
         "bs58": "^6.0.0",
@@ -94,7 +95,7 @@
 
     "@solana-program/compute-budget": ["@solana-program/compute-budget@0.15.0", "https://registry.better-npm.dev/@solana-program/compute-budget/-/compute-budget-0.15.0.tgz", { "peerDependencies": { "@solana/kit": "^6.3.0" } }, "sha512-toejNdIkzpUTqLSIzP0Nofr/EFel8QpPWuTtIKzfCcjn+mXpkThHxPJaNesk251rSTiWaxDZ3WxG7RxYwTWTqA=="],
 
-    "@solana-program/loader-v3": ["@solana-program/loader-v3@0.3.0", "", { "peerDependencies": { "@solana/kit": "^6.0.0" } }, "sha512-xEMQ+JOTKCInROozoTmHJk+atFxYSuLQ+KevKxpib+2uZzXV/Z58LqF9nYLKQpZMi8sk06CUeSsa9N0Hdiha1g=="],
+    "@solana-program/loader-v3": ["@solana-program/loader-v3@0.3.0", "https://registry.better-npm.dev/@solana-program/loader-v3/-/loader-v3-0.3.0.tgz", { "peerDependencies": { "@solana/kit": "^6.0.0" } }, "sha512-xEMQ+JOTKCInROozoTmHJk+atFxYSuLQ+KevKxpib+2uZzXV/Z58LqF9nYLKQpZMi8sk06CUeSsa9N0Hdiha1g=="],
 
     "@solana-program/stake": ["@solana-program/stake@0.6.1", "https://registry.better-npm.dev/@solana-program/stake/-/stake-0.6.1.tgz", { "peerDependencies": { "@solana/kit": "^6.0" } }, "sha512-Jgo6hNnByGH7Nch+MrybYselbGLTtaq+/sUnMpf0DY7KtujM8lWmZYLg+eUaea9pyW47b6LVS3WXXE9vMdWraQ=="],
 
@@ -115,6 +116,8 @@
     "@solana/codecs-numbers": ["@solana/codecs-numbers@6.9.0", "https://registry.better-npm.dev/@solana/codecs-numbers/-/codecs-numbers-6.9.0.tgz", { "dependencies": { "@solana/codecs-core": "6.9.0", "@solana/errors": "6.9.0" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"] }, "sha512-XMI0FOHV2h7yPAllxWCX8z+J1msidNjXzN1mRjH5KR6C+vfzyKa2xWHve0bNSV/bjVAhqqhc7dQCpBKuF4+ScQ=="],
 
     "@solana/codecs-strings": ["@solana/codecs-strings@6.9.0", "https://registry.better-npm.dev/@solana/codecs-strings/-/codecs-strings-6.9.0.tgz", { "dependencies": { "@solana/codecs-core": "6.9.0", "@solana/codecs-numbers": "6.9.0", "@solana/errors": "6.9.0" }, "peerDependencies": { "fastestsmallesttextencoderdecoder": "^1.0.22", "typescript": ">=5.4.0" }, "optionalPeers": ["fastestsmallesttextencoderdecoder", "typescript"] }, "sha512-PTqYQxMsmdfEEq29bV1AnALD4FjFEsSxOj1fYNqooOSTEQEpUoYEQtsd55/kBsnIKltXbvYwXYXBusm19n1sQA=="],
+
+    "@solana/compat": ["@solana/compat@6.9.0", "", { "dependencies": { "@solana/addresses": "6.9.0", "@solana/codecs-core": "6.9.0", "@solana/errors": "6.9.0", "@solana/instructions": "6.9.0", "@solana/keys": "6.9.0", "@solana/transactions": "6.9.0" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"] }, "sha512-MnR9irKjxo9ICJ01Rh/di3ZNI/KC3X7TrtxVlkLCNgN69qwaPB/ZRo3dCb/az4NtVhbEwLjb08xKOzKr9fKZpQ=="],
 
     "@solana/errors": ["@solana/errors@6.9.0", "https://registry.better-npm.dev/@solana/errors/-/errors-6.9.0.tgz", { "dependencies": { "chalk": "5.6.2", "commander": "14.0.3" }, "peerDependencies": { "typescript": ">=5.4.0" }, "optionalPeers": ["typescript"], "bin": { "errors": "bin/cli.mjs" } }, "sha512-7i+b07KMnkbHvFlz7uWade3jvyc22UmVm8o9taxPK8YV3JNM/NkS8oQFvMac2MIaLPAlEs7I8MHyVLUal1yY4g=="],
 
