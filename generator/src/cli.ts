@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { mkdir, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { Command, InvalidArgumentError } from "commander";
 import { Keypair } from "@solana/web3.js";
 import { createGeneratorConfig, loadGeneratorConfigInput } from "./config.js";
