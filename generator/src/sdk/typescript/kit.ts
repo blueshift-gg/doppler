@@ -19,6 +19,7 @@ export async function renderKitSdk(config: DopplerGeneratorConfig): Promise<Type
     "doppler.ts",
     "index.ts",
     "instructions.ts",
+    "subscribe.ts",
     "transaction-builder.ts",
     "types.ts",
   ] as const;

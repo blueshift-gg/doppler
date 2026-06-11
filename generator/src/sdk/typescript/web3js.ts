@@ -18,6 +18,7 @@ export async function renderWeb3jsSdk(config: DopplerGeneratorConfig): Promise<T
     "compute-budget.ts",
     "doppler.ts",
     "index.ts",
+    "subscribe.ts",
     "transaction-builder.ts",
     "types.ts",
   ] as const;
