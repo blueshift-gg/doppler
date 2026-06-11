@@ -3,11 +3,23 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, expect, test } from "bun:test";
+import { createCommand } from "../src/cli";
 
 const tempDirs: string[] = [];
 
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
+});
+
+test("createCommand help lists commands in workflow order", () => {
+  const help = createCommand().helpInformation();
+  const initIndex = help.indexOf("init");
+  const generateIndex = help.indexOf("generate");
+  const deployIndex = help.indexOf("deploy");
+
+  expect(initIndex).toBeGreaterThan(-1);
+  expect(generateIndex).toBeGreaterThan(initIndex);
+  expect(deployIndex).toBeGreaterThan(generateIndex);
 });
 
 test("CLI prints help by default", async () => {
@@ -17,6 +29,15 @@ test("CLI prints help by default", async () => {
   expect(result.stdout).toContain("Usage: doppler-generator");
   expect(result.stdout).toContain("generate");
   expect(result.stdout).toContain("init");
+  expect(result.stdout).toContain("deploy");
+});
+
+test("deploy requires program keypair and admin flags", async () => {
+  const result = await runCli(["deploy", "./price-feed.so"]);
+
+  expect(result.exitCode).toBe(1);
+  expect(result.stderr).toContain("--program-keypair");
+  expect(result.stderr).toContain("--admin");
 });
 
 test("init writes schema and generated keypair files", async () => {
