@@ -23,7 +23,8 @@ function countPresentSignatures(transaction: { signatures: Array<{ signature: Ui
 
 test("buildDopplerDeployTransactions assembles loader v3 deploy transactions", async () => {
   const connection = createMockConnection();
-  const payer = (await Keypair.generate()).publicKey;
+  const payerKeypair = await Keypair.generate();
+  const payer = payerKeypair.publicKey;
   const programKeypair = await Keypair.generate();
   const bytecode = new Uint8Array([0x7f, 0x45, 0x4c, 0x46, 0x01, 0x02, 0x03]);
 
@@ -54,6 +55,8 @@ test("buildDopplerDeployTransactions assembles loader v3 deploy transactions", a
 
   expect(countPresentSignatures(bufferInit)).toBe(1);
   expect(bufferInit.compileMessage().header.numRequiredSignatures).toBe(2);
+  await bufferInit.partialSign(payerKeypair);
+  expect(countPresentSignatures(bufferInit)).toBe(2);
 });
 
 test("write transactions require two signatures when payer and upgrade authority differ", async () => {
