@@ -36,14 +36,13 @@ async function assertFileExists(path: string, label: string): Promise<void> {
   }
 }
 
-async function loadProgramIdFromKeypair(path: string): Promise<string> {
+async function loadKeypairFromFile(path: string): Promise<Keypair> {
   const secret = JSON.parse(await readFile(path, "utf8")) as number[];
   if (!Array.isArray(secret) || secret.length !== 64) {
-    throw new Error(`Invalid program keypair file: ${path}`);
+    throw new Error(`Invalid keypair file: ${path}`);
   }
 
-  const keypair = await Keypair.fromSecretKey(Uint8Array.from(secret));
-  return keypair.publicKey.toBase58();
+  return Keypair.fromSecretKey(Uint8Array.from(secret));
 }
 
 async function validateManifest(
