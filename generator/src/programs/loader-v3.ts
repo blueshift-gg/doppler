@@ -19,6 +19,9 @@ import {
 import { Address, TransactionInstruction } from "@solana/web3.js";
 import { fromWeb3Instruction, toWeb3Instruction } from "../kit-adapters/instruction.js";
 
+export const UPGRADEABLE_LOADER_BUFFER_METADATA_SIZE = 37;
+export const UPGRADEABLE_LOADER_PROGRAM_SIZE = 36;
+
 const LOADER_V3_PROGRAM_ID = new Address(LOADER_V3_PROGRAM_ADDRESS);
 
 /**
