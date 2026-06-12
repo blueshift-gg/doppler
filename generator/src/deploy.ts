@@ -1,7 +1,11 @@
-import { spawn } from "node:child_process";
 import { access, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { Keypair } from "@solana/web3.js";
+import {
+  Connection,
+  Keypair,
+  type Transaction,
+} from "@solana/web3.js";
+import { buildDopplerDeployTransactions } from "./build-deploy-transaction.js";
 import { decodeSolanaPublicKey } from "./public-key.js";
 import {
   DEFAULT_SOLANA_CONFIG_PATH,
@@ -73,33 +77,70 @@ async function validateManifest(
   }
 }
 
-async function runSolanaCommand(args: string[]): Promise<void> {
-  await new Promise<void>((resolvePromise, reject) => {
-    const proc = spawn("solana", args, { stdio: ["inherit", "pipe", "pipe"] });
-    let stdout = "";
-    let stderr = "";
+function signersForDeployTransaction(
+  index: number,
+  transactionCount: number,
+  signerKeypair: Keypair,
+  programKeypair: Keypair,
+): Keypair[] {
+  if (index === transactionCount - 1) {
+    return [signerKeypair, programKeypair];
+  }
 
-    proc.stdout.on("data", (chunk: Buffer | string) => {
-      const text = chunk.toString();
-      stdout += text;
-      process.stdout.write(text);
-    });
-    proc.stderr.on("data", (chunk: Buffer | string) => {
-      const text = chunk.toString();
-      stderr += text;
-      process.stderr.write(text);
-    });
-    proc.on("error", (error) => {
-      reject(new Error(`Failed to run solana CLI: ${error.message}`));
-    });
-    proc.on("close", (code) => {
-      if (code !== 0) {
-        reject(new Error(stderr.trim() || stdout.trim() || `solana command failed with exit code ${code}`));
-        return;
-      }
-      resolvePromise();
-    });
+  // Buffer init is already partial-signed by the ephemeral buffer keypair.
+  return [signerKeypair];
+}
+
+/**
+ * Adds any missing signatures, sends the serialized transaction, and confirms
+ * against the blockhash already attached to the transaction.
+ */
+async function partialSignSendAndConfirm(
+  connection: Connection,
+  transaction: Transaction,
+  signers: Keypair[],
+): Promise<void> {
+  if (signers.length > 0) {
+    await transaction.partialSign(...signers);
+  }
+
+  const blockhash = transaction.recentBlockhash;
+  const lastValidBlockHeight = transaction.lastValidBlockHeight;
+  if (blockhash == null || lastValidBlockHeight == null) {
+    throw new Error("Transaction is missing blockhash lifetime");
+  }
+
+  const signature = await connection.sendRawTransaction(await transaction.serialize(), {
+    skipPreflight: false,
   });
+
+  const { value } = await connection.confirmTransaction(
+    { signature, blockhash, lastValidBlockHeight },
+  );
+
+  if (value.err) {
+    throw new Error(`Transaction ${signature} failed: ${JSON.stringify(value.err)}`);
+  }
+}
+
+/** Sends and confirms transactions sequentially. */
+async function sendDeployTransactions(
+  connection: Connection,
+  transactions: Transaction[],
+  signerKeypair: Keypair,
+  programKeypair: Keypair,
+): Promise<void> {
+  for (let index = 0; index < transactions.length; index++) {
+    const transaction = transactions[index]!;
+    const signers = signersForDeployTransaction(
+      index,
+      transactions.length,
+      signerKeypair,
+      programKeypair,
+    );
+
+    await partialSignSendAndConfirm(connection, transaction, signers);
+  }
 }
 
 export async function deployDopplerProgram(options: DeployOptions): Promise<DeployResult> {
@@ -118,24 +159,24 @@ export async function deployDopplerProgram(options: DeployOptions): Promise<Depl
 
   await assertFileExists(signerKeypairPath, "Signer keypair file");
 
-  const programId = await loadProgramIdFromKeypair(programKeypairPath);
+  const [bytecode, programKeypair, signerKeypair] = await Promise.all([
+    readFile(bytecodePath).then((buffer) => new Uint8Array(buffer)),
+    loadKeypairFromFile(programKeypairPath),
+    loadKeypairFromFile(signerKeypairPath),
+  ]);
+
+  const programId = programKeypair.publicKey.toBase58();
   await validateManifest(bytecodePath, options.admin, programId);
 
-  const args = [
-    "-C",
-    configPath,
-    "program",
-    "deploy",
-    bytecodePath,
-    "--program-id",
-    programKeypairPath,
-    "--url",
-    network,
-    "--keypair",
-    signerKeypairPath,
-  ];
+  const connection = new Connection(network);
+  const { transactions } = await buildDopplerDeployTransactions({
+    connection,
+    payer: signerKeypair.publicKey,
+    programId: programKeypair.publicKey,
+    bytecode,
+  });
 
-  await runSolanaCommand(args);
+  await sendDeployTransactions(connection, transactions, signerKeypair, programKeypair);
 
   return {
     programId,
