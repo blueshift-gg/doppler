@@ -18,6 +18,7 @@ import {
   type Blockhash,
   type Keypair,
 } from "@solana/web3.js";
+
 import { setLoadedAccountsDataSizeLimit } from "./compute-budget";
 import type { Web3DopplerContext } from "./types";
 
@@ -41,11 +42,7 @@ export class TransactionBuilder {
 
   /** Create a builder from shared Doppler context. */
   static fromContext(context: Web3DopplerContext): TransactionBuilder {
-    return new TransactionBuilder(
-      context.signer,
-      context.programId,
-      context.admin,
-    );
+    return new TransactionBuilder(context.signer, context.programId, context.admin);
   }
 
   /** Append an oracle update instruction. */
@@ -54,15 +51,10 @@ export class TransactionBuilder {
     oracle: Oracle<T>,
     serializer: PayloadSerializer<T>,
   ): this {
-    const instruction = this.createUpdateInstruction(
-      oraclePubkey,
-      oracle,
-      serializer,
-    );
+    const instruction = this.createUpdateInstruction(oraclePubkey, oracle, serializer);
 
     this.computeUnits += oracleUpdateComputeUnits(serializer);
-    this.loadedAccountDataSize +=
-      oracleUpdateLoadedAccountsDataSize(serializer) * 2;
+    this.loadedAccountDataSize += oracleUpdateLoadedAccountsDataSize(serializer) * 2;
     this.oracleUpdateInstructions.push(instruction);
 
     return this;
@@ -91,9 +83,7 @@ export class TransactionBuilder {
     }
 
     instructions.push(setLoadedAccountsDataSizeLimit(loadedAccountDataSize));
-    instructions.push(
-      ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnits }),
-    );
+    instructions.push(ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnits }));
     instructions.push(...this.oracleUpdateInstructions);
 
     const transaction = new Transaction({

@@ -1,8 +1,9 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { afterEach, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
 import { createCommand } from "../src/cli";
 
 const tempDirs: string[] = [];
@@ -46,14 +47,7 @@ test("init writes schema and generated keypair files", async () => {
 
   const schemaFile = join(dir, "price-feed.payload.ts");
   const keysDir = join(dir, "keys");
-  const result = await runCli([
-    "init",
-    "price-feed",
-    "--out",
-    schemaFile,
-    "--keys-dir",
-    keysDir,
-  ]);
+  const result = await runCli(["init", "price-feed", "--out", schemaFile, "--keys-dir", keysDir]);
 
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain(`Created schema: ${schemaFile}`);
@@ -65,7 +59,7 @@ test("init writes schema and generated keypair files", async () => {
 
   const schema = await readFile(schemaFile, "utf8");
   expect(schema).toContain('name: "price-feed"');
-  expect(schema).toContain('payload: {');
+  expect(schema).toContain("payload: {");
 
   const programKeypair = JSON.parse(
     await readFile(join(keysDir, "price-feed-program-keypair.json"), "utf8"),
@@ -153,14 +147,11 @@ async function runCli(
   stderr: string;
 }> {
   const generatorDir = new URL("..", import.meta.url).pathname;
-  const command = Bun.spawn(
-    ["bun", "run", options.cli ?? "src/cli.ts", ...args],
-    {
-      cwd: options.cwd ?? generatorDir,
-      stdout: "pipe",
-      stderr: "pipe",
-    },
-  );
+  const command = Bun.spawn(["bun", "run", options.cli ?? "src/cli.ts", ...args], {
+    cwd: options.cwd ?? generatorDir,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
 
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(command.stdout).text(),

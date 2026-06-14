@@ -250,10 +250,12 @@ let priority_ix = ComputeBudgetInstruction::set_compute_unit_price(optimal_fee);
 ## Testing
 
 ### Build
+
 ```bash
 # Within root
 cargo build-sbf --manifest-path program/Cargo.toml
 ```
+
 ### Unit
 
 Run the test suite:

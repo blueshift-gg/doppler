@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
+
 import { Connection, Keypair } from "@solana/web3.js";
+
 import {
   buildDopplerDeployTransactions,
   compileDopplerBytecode,
@@ -17,7 +19,9 @@ function createMockConnection(): Connection {
   } as unknown as Connection;
 }
 
-function countPresentSignatures(transaction: { signatures: Array<{ signature: Uint8Array | null }> }) {
+function countPresentSignatures(transaction: {
+  signatures: Array<{ signature: Uint8Array | null }>;
+}) {
   return transaction.signatures.filter((entry) => entry.signature !== null).length;
 }
 

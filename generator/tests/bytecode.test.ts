@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { renderDopplerAssembly } from "../src/assembly.js";
 import { compileAssemblyToBytecode } from "../src/bytecode.js";
 

@@ -1,6 +1,5 @@
 // NOTE: Temporary until loader v3 helpers are merged upstream into web3.js
 
-import { createNoopSigner, type ReadonlyUint8Array } from "@solana/kit";
 import {
   getCloseInstruction,
   getDeployWithMaxDataLenInstruction,
@@ -16,7 +15,9 @@ import {
   parseLoaderV3Instruction,
   type ParsedLoaderV3Instruction,
 } from "@solana-program/loader-v3";
+import { createNoopSigner, type ReadonlyUint8Array } from "@solana/kit";
 import { Address, TransactionInstruction } from "@solana/web3.js";
+
 import { fromWeb3Instruction, toWeb3Instruction } from "../kit-adapters/instruction.js";
 
 export const UPGRADEABLE_LOADER_BUFFER_METADATA_SIZE = 37;
@@ -155,9 +156,7 @@ type ParsedInstructionOfType<TInstructionType extends GeneratedLoaderV3Instructi
 
 function getInstructionType(instruction: TransactionInstruction): LoaderV3InstructionType {
   checkProgramId(instruction.programId);
-  return GENERATED_TO_LEGACY_INSTRUCTION_TYPE[
-    identifyLoaderV3Instruction(instruction.data)
-  ];
+  return GENERATED_TO_LEGACY_INSTRUCTION_TYPE[identifyLoaderV3Instruction(instruction.data)];
 }
 
 function parseLoaderV3InstructionOfType<TInstructionType extends GeneratedLoaderV3Instruction>(
@@ -295,9 +294,7 @@ export class LoaderV3Instruction {
   /**
    * Decode a set authority checked instruction and retrieve the instruction params.
    */
-  static decodeSetAuthorityChecked(
-    instruction: TransactionInstruction,
-  ): SetAuthorityCheckedParams {
+  static decodeSetAuthorityChecked(instruction: TransactionInstruction): SetAuthorityCheckedParams {
     const parsedInstruction = parseLoaderV3InstructionOfType(
       instruction,
       GeneratedLoaderV3Instruction.SetAuthorityChecked,
@@ -455,9 +452,7 @@ export class LoaderV3Program {
       getCloseInstruction({
         bufferOrProgramDataAccount: params.bufferOrProgramDataAccount.toBase58(),
         destinationAccount: params.destinationAccount.toBase58(),
-        ...(params.authority
-          ? { authority: createNoopSigner(params.authority.toBase58()) }
-          : {}),
+        ...(params.authority ? { authority: createNoopSigner(params.authority.toBase58()) } : {}),
         ...(params.programAccount ? { programAccount: params.programAccount.toBase58() } : {}),
       }),
     );

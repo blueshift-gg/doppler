@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { decodeSolanaPublicKey, publicKeyToU64Words } from "../src/public-key.js";
 
 const ADMIN = "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE";

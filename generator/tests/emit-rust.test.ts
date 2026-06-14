@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
+
 import { computePayloadLayout } from "../src/layout.js";
-import { renderRustSdk } from "../src/sdk/rust.js";
 import type { PayloadSchema } from "../src/schema.js";
+import { renderRustSdk } from "../src/sdk/rust.js";
 
 test("renders Rust SDK without unsafe transmute in payload helpers", async () => {
   const payload: PayloadSchema = { price: "u64", confidence: "u32" };

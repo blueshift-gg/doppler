@@ -139,7 +139,7 @@ export function renderTypeScriptWorkspaceFiles(workspaces: string[]): TypeScript
       2,
     )}\n`,
     "rolldown.shared.ts": [
-      'import {',
+      "import {",
       "  defineConfig,",
       "  type ExternalOption,",
       "  type RolldownOptions,",
@@ -243,13 +243,9 @@ function renderTypes(payloadTypeName: string, layout: PayloadLayout): string {
     return `  ${field.name}: ${type};`;
   });
 
-  return [
-    ...genericTypes,
-    `export interface ${payloadTypeName} {`,
-    ...payloadLines,
-    "}",
-    "",
-  ].join("\n");
+  return [...genericTypes, `export interface ${payloadTypeName} {`, ...payloadLines, "}", ""].join(
+    "\n",
+  );
 }
 
 function renderConstants(config: DopplerGeneratorConfig): string {

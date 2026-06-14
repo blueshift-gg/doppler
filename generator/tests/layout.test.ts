@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { computePayloadLayout } from "../src/layout.js";
 
 test("computes packed scalar layout", () => {
@@ -9,9 +10,7 @@ test("computes packed scalar layout", () => {
 });
 
 test("computes packed mixed layout without padding", () => {
-  expect(
-    computePayloadLayout({ price: "u64", confidence: "u32", slot: "u64" }),
-  ).toEqual({
+  expect(computePayloadLayout({ price: "u64", confidence: "u32", slot: "u64" })).toEqual({
     fields: [
       { name: "price", type: "u64", length: 1, offset: 0, size: 8 },
       { name: "confidence", type: "u32", length: 1, offset: 8, size: 4 },
@@ -26,9 +25,7 @@ test("computes fixed array layout", () => {
 });
 
 test("rejects invalid schema fields", () => {
-  expect(() => computePayloadLayout({ "bad-field": "u64" })).toThrow(
-    "Invalid payload field name",
-  );
+  expect(() => computePayloadLayout({ "bad-field": "u64" })).toThrow("Invalid payload field name");
   expect(() => computePayloadLayout({ price: "string" })).toThrow("Invalid schema");
   expect(() => computePayloadLayout({ flags: { type: "u8", length: 0 } })).toThrow(
     "positive integer length",

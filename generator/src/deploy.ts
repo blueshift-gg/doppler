@@ -1,16 +1,11 @@
 import { access, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import {
-  Connection,
-  Keypair,
-  type Transaction,
-} from "@solana/web3.js";
+
+import { Connection, Keypair, type Transaction } from "@solana/web3.js";
+
 import { buildDopplerDeployTransactions } from "./build-deploy-transaction.js";
 import { decodeSolanaPublicKey } from "./public-key.js";
-import {
-  DEFAULT_SOLANA_CONFIG_PATH,
-  loadSolanaCliConfig,
-} from "./solana-config.js";
+import { DEFAULT_SOLANA_CONFIG_PATH, loadSolanaCliConfig } from "./solana-config.js";
 
 export type DeployOptions = {
   bytecodePath: string;
@@ -114,9 +109,11 @@ async function partialSignSendAndConfirm(
     skipPreflight: false,
   });
 
-  const { value } = await connection.confirmTransaction(
-    { signature, blockhash, lastValidBlockHeight },
-  );
+  const { value } = await connection.confirmTransaction({
+    signature,
+    blockhash,
+    lastValidBlockHeight,
+  });
 
   if (value.err) {
     throw new Error(`Transaction ${signature} failed: ${JSON.stringify(value.err)}`);

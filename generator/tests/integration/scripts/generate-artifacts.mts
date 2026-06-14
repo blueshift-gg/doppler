@@ -1,5 +1,6 @@
 // @ts-nocheck - build-time script outside generator/tests/tsconfig.json
 import { join } from "node:path";
+
 import { loadGeneratorConfig } from "../../../src/config.js";
 import { generateDopplerArtifacts } from "../../../src/emit.js";
 

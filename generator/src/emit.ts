@@ -1,9 +1,10 @@
-import { basename, dirname, join } from "node:path";
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
-import type { DopplerGeneratorConfig } from "./config.js";
+import { basename, dirname, join } from "node:path";
+
 import { renderDopplerAssembly } from "./assembly.js";
 import { compileAssemblyToBytecode } from "./bytecode.js";
+import type { DopplerGeneratorConfig } from "./config.js";
 import { renderRustSdk } from "./sdk/rust.js";
 import {
   renderCoreSdk,

@@ -1,12 +1,9 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { afterEach, expect, test } from "bun:test";
-import {
-  expandHomePath,
-  loadSolanaCliConfig,
-  parseSolanaCliConfig,
-} from "../src/solana-config.js";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { expandHomePath, loadSolanaCliConfig, parseSolanaCliConfig } from "../src/solana-config.js";
 
 const tempDirs: string[] = [];
 

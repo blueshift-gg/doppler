@@ -1,8 +1,4 @@
-import {
-  defineConfig,
-  type ExternalOption,
-  type RolldownOptions,
-} from "rolldown";
+import { defineConfig, type ExternalOption, type RolldownOptions } from "rolldown";
 import { dts } from "rolldown-plugin-dts";
 
 function isExternalModule(

@@ -1,14 +1,4 @@
-export const SCALAR_TYPES = [
-  "u8",
-  "u16",
-  "u32",
-  "u64",
-  "i8",
-  "i16",
-  "i32",
-  "i64",
-  "bool",
-] as const;
+export const SCALAR_TYPES = ["u8", "u16", "u32", "u64", "i8", "i16", "i32", "i64", "bool"] as const;
 
 export type ScalarType = (typeof SCALAR_TYPES)[number];
 

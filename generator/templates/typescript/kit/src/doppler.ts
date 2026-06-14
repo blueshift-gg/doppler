@@ -1,7 +1,4 @@
-import {
-  deserializeOracle,
-  oracleAccountSize,
-} from "@blueshift-gg/doppler-core";
+import { deserializeOracle, oracleAccountSize } from "@blueshift-gg/doppler-core";
 import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-core";
 import { getCreateAccountWithSeedInstruction } from "@solana-program/system";
 import {
@@ -19,23 +16,20 @@ import {
   type Address,
   type TransactionSigner,
 } from "@solana/kit";
+
 import { decodeBase64AccountData } from "./decode-base64";
 import { TransactionBuilder } from "./transaction-builder";
 import type { DopplerKitConfig } from "./types";
 
 type SolanaRpc = ReturnType<typeof createSolanaRpc>;
 type SolanaRpcSubscriptions = ReturnType<typeof createSolanaRpcSubscriptions>;
-type ConfirmableTransaction = Parameters<
-  ReturnType<typeof sendAndConfirmTransactionFactory>
->[0];
+type ConfirmableTransaction = Parameters<ReturnType<typeof sendAndConfirmTransactionFactory>>[0];
 
 /** Client for creating, updating, and reading Doppler oracle accounts. */
 export class Doppler {
   private readonly programId: Address;
   private readonly admin: Address;
-  private readonly sendAndConfirmTransaction: ReturnType<
-    typeof sendAndConfirmTransactionFactory
-  >;
+  private readonly sendAndConfirmTransaction: ReturnType<typeof sendAndConfirmTransactionFactory>;
 
   constructor(
     private readonly rpc: SolanaRpc,
@@ -78,22 +72,14 @@ export class Doppler {
   }
 
   /** Deserialize oracle account data from raw bytes. */
-  deserializeOracle<T>(
-    data: Uint8Array,
-    serializer: PayloadSerializer<T>,
-  ): Oracle<T> {
+  deserializeOracle<T>(data: Uint8Array, serializer: PayloadSerializer<T>): Oracle<T> {
     return deserializeOracle(data, serializer);
   }
 
   /** Create a program-owned oracle account derived from a seed. */
-  async createOracleAccount<T>(
-    seed: string,
-    serializer: PayloadSerializer<T>,
-  ): Promise<Address> {
+  async createOracleAccount<T>(seed: string, serializer: PayloadSerializer<T>): Promise<Address> {
     const space = oracleAccountSize(serializer);
-    const lamports = await this.rpc
-      .getMinimumBalanceForRentExemption(BigInt(space))
-      .send();
+    const lamports = await this.rpc.getMinimumBalanceForRentExemption(BigInt(space)).send();
 
     const oraclePubkey = await createAddressWithSeed({
       baseAddress: this.signer.address,
@@ -116,22 +102,16 @@ export class Doppler {
     const transactionMessage = pipe(
       createTransactionMessage({ version: 0 }),
       (message) => setTransactionMessageFeePayerSigner(this.signer, message),
-      (message) =>
-        setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, message),
-      (message) =>
-        appendTransactionMessageInstructions(
-          [createAccountInstruction],
-          message,
-        ),
+      (message) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, message),
+      (message) => appendTransactionMessageInstructions([createAccountInstruction], message),
     );
 
     const transaction = await signTransactionMessageWithSigners(
       transactionMessage as Parameters<typeof signTransactionMessageWithSigners>[0],
     );
-    await this.sendAndConfirmTransaction(
-      transaction as ConfirmableTransaction,
-      { commitment: "confirmed" },
-    );
+    await this.sendAndConfirmTransaction(transaction as ConfirmableTransaction, {
+      commitment: "confirmed",
+    });
 
     return oraclePubkey;
   }
@@ -145,25 +125,18 @@ export class Doppler {
   ): Promise<string> {
     const { value: latestBlockhash } = await this.rpc.getLatestBlockhash().send();
 
-    let builder = this.createTransactionBuilder().addOracleUpdate(
-      oraclePubkey,
-      oracle,
-      serializer,
-    );
+    let builder = this.createTransactionBuilder().addOracleUpdate(oraclePubkey, oracle, serializer);
 
     if (unitPrice !== undefined) {
       builder = builder.withUnitPrice(unitPrice);
     }
 
     const transactionMessage = builder.buildMessage(latestBlockhash);
-    const transaction = await signTransactionMessageWithSigners(
-      transactionMessage,
-    );
+    const transaction = await signTransactionMessageWithSigners(transactionMessage);
     const signature = getSignatureFromTransaction(transaction);
-    await this.sendAndConfirmTransaction(
-      transaction as ConfirmableTransaction,
-      { commitment: "confirmed" },
-    );
+    await this.sendAndConfirmTransaction(transaction as ConfirmableTransaction, {
+      commitment: "confirmed",
+    });
 
     return signature;
   }
@@ -182,11 +155,7 @@ export class Doppler {
     let builder = this.createTransactionBuilder();
 
     for (const update of updates) {
-      builder = builder.addOracleUpdate(
-        update.oraclePubkey,
-        update.oracle,
-        update.serializer,
-      );
+      builder = builder.addOracleUpdate(update.oraclePubkey, update.oracle, update.serializer);
     }
 
     if (unitPrice !== undefined) {
@@ -194,14 +163,11 @@ export class Doppler {
     }
 
     const transactionMessage = builder.buildMessage(latestBlockhash);
-    const transaction = await signTransactionMessageWithSigners(
-      transactionMessage,
-    );
+    const transaction = await signTransactionMessageWithSigners(transactionMessage);
     const signature = getSignatureFromTransaction(transaction);
-    await this.sendAndConfirmTransaction(
-      transaction as ConfirmableTransaction,
-      { commitment: "confirmed" },
-    );
+    await this.sendAndConfirmTransaction(transaction as ConfirmableTransaction, {
+      commitment: "confirmed",
+    });
 
     return signature;
   }

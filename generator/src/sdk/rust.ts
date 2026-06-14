@@ -1,6 +1,6 @@
 import type { DopplerGeneratorConfig } from "../config.js";
-import { decodeSolanaPublicKey } from "../public-key.js";
 import type { LayoutField } from "../layout.js";
+import { decodeSolanaPublicKey } from "../public-key.js";
 import type { ScalarType } from "../schema.js";
 import { readTemplate } from "./templates.js";
 

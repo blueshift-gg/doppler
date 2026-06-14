@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
+
 import { computePayloadLayout } from "../src/layout.js";
-import { renderCoreSdk } from "../src/sdk/typescript.js";
 import type { PayloadSchema } from "../src/schema.js";
+import { renderCoreSdk } from "../src/sdk/typescript.js";
 
 test("renders core TypeScript SDK files", async () => {
   const payload: PayloadSchema = { price: "u64", confidence: "u32", slot: "u64" };

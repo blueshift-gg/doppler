@@ -11,11 +11,7 @@ bun add @blueshift-gg/doppler-web3js @solana/web3.js
 ## Usage
 
 ```ts
-import {
-  Doppler,
-  PriceFeedSerializer,
-  PROGRAM_ID,
-} from "@blueshift-gg/doppler-web3js";
+import { Doppler, PriceFeedSerializer, PROGRAM_ID } from "@blueshift-gg/doppler-web3js";
 import { Connection, Keypair } from "@solana/web3.js";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com");

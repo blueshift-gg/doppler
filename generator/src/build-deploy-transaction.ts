@@ -9,6 +9,7 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
+
 import { renderDopplerAssembly } from "./assembly.js";
 import { compileAssemblyToBytecode } from "./bytecode.js";
 import {
@@ -16,7 +17,11 @@ import {
   type ConfigOverrides,
   type DopplerGeneratorConfig,
 } from "./config.js";
-import { LoaderV3Program, UPGRADEABLE_LOADER_BUFFER_METADATA_SIZE, UPGRADEABLE_LOADER_PROGRAM_SIZE } from "./programs/loader-v3.js";
+import {
+  LoaderV3Program,
+  UPGRADEABLE_LOADER_BUFFER_METADATA_SIZE,
+  UPGRADEABLE_LOADER_PROGRAM_SIZE,
+} from "./programs/loader-v3.js";
 
 type BuildDopplerDeployTransactionsBase = {
   connection: Connection;

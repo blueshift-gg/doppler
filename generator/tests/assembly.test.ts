@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+
 import { renderDopplerAssembly, renderPayloadCopy } from "../src/assembly.js";
 
 const ADMIN = "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE";

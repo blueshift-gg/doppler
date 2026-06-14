@@ -1,7 +1,4 @@
-import {
-  deserializeOracle,
-  oracleAccountSize,
-} from "@blueshift-gg/doppler-core";
+import { deserializeOracle, oracleAccountSize } from "@blueshift-gg/doppler-core";
 import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-core";
 import {
   Address,
@@ -11,6 +8,7 @@ import {
   type Connection,
   type Keypair,
 } from "@solana/web3.js";
+
 import { TransactionBuilder } from "./transaction-builder";
 import type { DopplerWeb3Config } from "./types";
 
@@ -51,28 +49,16 @@ export class Doppler {
   }
 
   /** Deserialize oracle account data from raw bytes. */
-  deserializeOracle<T>(
-    data: Uint8Array,
-    serializer: PayloadSerializer<T>,
-  ): Oracle<T> {
+  deserializeOracle<T>(data: Uint8Array, serializer: PayloadSerializer<T>): Oracle<T> {
     return deserializeOracle(data, serializer);
   }
 
   /** Create a program-owned oracle account derived from a seed. */
-  async createOracleAccount<T>(
-    seed: string,
-    serializer: PayloadSerializer<T>,
-  ): Promise<Address> {
+  async createOracleAccount<T>(seed: string, serializer: PayloadSerializer<T>): Promise<Address> {
     const space = oracleAccountSize(serializer);
-    const lamports = await this.connection.getMinimumBalanceForRentExemption(
-      space,
-    );
+    const lamports = await this.connection.getMinimumBalanceForRentExemption(space);
 
-    const oraclePubkey = await Address.createWithSeed(
-      this.signer.publicKey,
-      seed,
-      this.programId,
-    );
+    const oraclePubkey = await Address.createWithSeed(this.signer.publicKey, seed, this.programId);
 
     const createAccountInstruction = SystemProgram.createAccountWithSeed({
       fromPubkey: this.signer.publicKey,
@@ -108,20 +94,14 @@ export class Doppler {
   ): Promise<string> {
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash();
 
-    let builder = this.createTransactionBuilder().addOracleUpdate(
-      oraclePubkey,
-      oracle,
-      serializer,
-    );
+    let builder = this.createTransactionBuilder().addOracleUpdate(oraclePubkey, oracle, serializer);
 
     if (unitPrice !== undefined) {
       builder = builder.withUnitPrice(unitPrice);
     }
 
     const transaction = await builder.build(blockhash, lastValidBlockHeight);
-    return sendAndConfirmTransaction(this.connection, transaction, [
-      this.signer,
-    ]);
+    return sendAndConfirmTransaction(this.connection, transaction, [this.signer]);
   }
 
   /** Update multiple oracle accounts in one transaction. */
@@ -138,11 +118,7 @@ export class Doppler {
     let builder = this.createTransactionBuilder();
 
     for (const update of updates) {
-      builder = builder.addOracleUpdate(
-        update.oraclePubkey,
-        update.oracle,
-        update.serializer,
-      );
+      builder = builder.addOracleUpdate(update.oraclePubkey, update.oracle, update.serializer);
     }
 
     if (unitPrice !== undefined) {
@@ -150,9 +126,7 @@ export class Doppler {
     }
 
     const transaction = await builder.build(blockhash, lastValidBlockHeight);
-    return sendAndConfirmTransaction(this.connection, transaction, [
-      this.signer,
-    ]);
+    return sendAndConfirmTransaction(this.connection, transaction, [this.signer]);
   }
 
   getSigner(): Keypair {

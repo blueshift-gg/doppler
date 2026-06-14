@@ -9,7 +9,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "rolldown -c rolldown.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"

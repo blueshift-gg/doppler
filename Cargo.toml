@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
 members = [
-    "doppler",
-    "examples",
-    "generator/tests/integration",
-    "generator/tests/integration/sdk-harness",
-    "program",
-    "sdk/rust",
+  "doppler",
+  "examples",
+  "generator/tests/integration",
+  "generator/tests/integration/sdk-harness",
+  "program",
+  "sdk/rust",
 ]
 
 [workspace.package]

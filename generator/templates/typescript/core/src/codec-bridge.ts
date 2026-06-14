@@ -3,9 +3,7 @@ import { createCodec, type FixedSizeCodec } from "@solana/codecs";
 import type { PayloadSerializer } from "./types";
 
 /** Bridges a {@link PayloadSerializer} to a fixed-size Solana codec. */
-export function payloadCodecFromSerializer<T>(
-  serializer: PayloadSerializer<T>,
-): FixedSizeCodec<T> {
+export function payloadCodecFromSerializer<T>(serializer: PayloadSerializer<T>): FixedSizeCodec<T> {
   const size = serializer.size();
   return createCodec<T>({
     fixedSize: size,

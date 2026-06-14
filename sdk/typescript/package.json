@@ -1,7 +1,11 @@
 {
   "name": "@blueshift-gg/doppler",
   "private": true,
-  "workspaces": ["core", "web3js", "kit"],
+  "workspaces": [
+    "core",
+    "web3js",
+    "kit"
+  ],
   "scripts": {
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",

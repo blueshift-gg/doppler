@@ -1,11 +1,6 @@
 import { deserializeOracle } from "@blueshift-gg/doppler-core";
 import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-core";
-import type {
-  AccountInfoWithSpace,
-  Address,
-  Commitment,
-  Connection,
-} from "@solana/web3.js";
+import type { AccountInfoWithSpace, Address, Commitment, Connection } from "@solana/web3.js";
 
 export type SubscribeToOracleOptions = Readonly<{
   commitment?: Commitment;
@@ -44,7 +39,7 @@ export function subscribeToOracle<T>(
     {
       commitment,
       encoding: "base58",
-    }
+    },
   );
 
   // implement AsyncIterable to match the signature of the Kit SDK

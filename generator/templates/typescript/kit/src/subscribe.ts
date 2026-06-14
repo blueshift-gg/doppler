@@ -1,10 +1,7 @@
 import { deserializeOracle } from "@blueshift-gg/doppler-core";
 import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-core";
-import {
-  createSolanaRpcSubscriptions,
-  type Address,
-  type Commitment,
-} from "@solana/kit";
+import { createSolanaRpcSubscriptions, type Address, type Commitment } from "@solana/kit";
+
 import { decodeBase64AccountData } from "./decode-base64";
 
 type SolanaRpcSubscriptions = ReturnType<typeof createSolanaRpcSubscriptions>;

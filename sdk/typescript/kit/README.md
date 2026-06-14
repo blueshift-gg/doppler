@@ -11,11 +11,7 @@ bun add @blueshift-gg/doppler-kit @solana/kit @solana-program/compute-budget @so
 ## Usage
 
 ```ts
-import {
-  Doppler,
-  PriceFeedSerializer,
-  PROGRAM_ID,
-} from "@blueshift-gg/doppler-kit";
+import { Doppler, PriceFeedSerializer, PROGRAM_ID } from "@blueshift-gg/doppler-kit";
 import { createSolanaRpc } from "@solana/kit";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 

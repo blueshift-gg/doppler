@@ -1,11 +1,7 @@
 import { getStructCodec, getU64Codec } from "@solana/codecs";
 
 import { payloadCodecFromSerializer } from "./codec-bridge";
-import {
-  ADMIN_VERIFICATION_CU,
-  PAYLOAD_WRITE_CU,
-  SEQUENCE_CHECK_CU,
-} from "./constants";
+import { ADMIN_VERIFICATION_CU, PAYLOAD_WRITE_CU, SEQUENCE_CHECK_CU } from "./constants";
 import type { Oracle, PayloadSerializer } from "./types";
 
 function getOracleCodec<T>(serializer: PayloadSerializer<T>) {
@@ -40,20 +36,11 @@ export function oracleAccountSize<T>(serializer: PayloadSerializer<T>): number {
   return getOracleCodec(serializer).fixedSize;
 }
 
-export function oracleUpdateComputeUnits<T>(
-  serializer: PayloadSerializer<T>,
-): number {
+export function oracleUpdateComputeUnits<T>(serializer: PayloadSerializer<T>): number {
   const oracleSize = oracleAccountSize(serializer);
-  return (
-    SEQUENCE_CHECK_CU +
-    ADMIN_VERIFICATION_CU +
-    PAYLOAD_WRITE_CU +
-    Math.floor(oracleSize / 4)
-  );
+  return SEQUENCE_CHECK_CU + ADMIN_VERIFICATION_CU + PAYLOAD_WRITE_CU + Math.floor(oracleSize / 4);
 }
 
-export function oracleUpdateLoadedAccountsDataSize<T>(
-  serializer: PayloadSerializer<T>,
-): number {
+export function oracleUpdateLoadedAccountsDataSize<T>(serializer: PayloadSerializer<T>): number {
   return oracleAccountSize(serializer);
 }

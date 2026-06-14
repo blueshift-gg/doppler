@@ -26,12 +26,11 @@ import {
   type Instruction,
   type TransactionSigner,
 } from "@solana/kit";
+
 import { createOracleUpdateInstruction } from "./instructions";
 import type { KitDopplerContext } from "./types";
 
-type SignableTransactionMessage = Parameters<
-  typeof signTransactionMessageWithSigners
->[0];
+type SignableTransactionMessage = Parameters<typeof signTransactionMessageWithSigners>[0];
 
 /** Transaction builder for batched Doppler oracle updates. */
 export class TransactionBuilder {
@@ -53,11 +52,7 @@ export class TransactionBuilder {
 
   /** Create a builder from shared Doppler context. */
   static fromContext(context: KitDopplerContext): TransactionBuilder {
-    return new TransactionBuilder(
-      context.signer,
-      context.programId,
-      context.admin,
-    );
+    return new TransactionBuilder(context.signer, context.programId, context.admin);
   }
 
   /** Append an oracle update instruction. */
@@ -75,8 +70,7 @@ export class TransactionBuilder {
     );
 
     this.computeUnits += oracleUpdateComputeUnits(serializer);
-    this.loadedAccountDataSize +=
-      oracleUpdateLoadedAccountsDataSize(serializer) * 2;
+    this.loadedAccountDataSize += oracleUpdateLoadedAccountsDataSize(serializer) * 2;
     this.oracleUpdateInstructions.push(instruction);
 
     return this;
@@ -121,8 +115,7 @@ export class TransactionBuilder {
     return pipe(
       createTransactionMessage({ version: 0 }),
       (message) => setTransactionMessageFeePayerSigner(this.signer, message),
-      (message) =>
-        setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, message),
+      (message) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, message),
       (message) => appendTransactionMessageInstructions(instructions, message),
     ) as SignableTransactionMessage;
   }
