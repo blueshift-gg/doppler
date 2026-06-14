@@ -1,6 +1,7 @@
 {
   "name": "doppler",
   "private": true,
+  "type": "module",
   "workspaces": [
     "generator",
     "sdk/typescript"
