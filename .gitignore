@@ -15,3 +15,5 @@ Cargo.lock
 
 # surfpool simnet logs
 .surfpool
+
+node_modules
