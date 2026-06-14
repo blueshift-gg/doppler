@@ -127,6 +127,7 @@ The generator can emit:
 doppler.so       Compiled Solana program ELF bytecode.
 doppler.s        Generated sBPF assembly source, if --assembly is provided.
 manifest.json    Program ID, admin, arch, payload size, schema hash, and ELF hash.
+package.json     TypeScript workspace manifest. Emitted when either TS SDK flag is used.
 core/            Generated core SDK (payload types, serializers, oracle helpers). Emitted when either TS SDK flag is used.
 web3js/          Generated @solana/web3.js client SDK, if --web3js-sdk is provided.
 kit/             Generated @solana/kit client SDK, if --kit-sdk is provided.

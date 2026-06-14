@@ -101,8 +101,22 @@ export function renderRolldownConfig(external: Array<string | RegExp>): string {
   ].join("\n");
 }
 
-export function renderTypeScriptWorkspaceFiles(): TypeScriptSdkFiles {
+export function renderTypeScriptWorkspaceFiles(workspaces: string[]): TypeScriptSdkFiles {
   return {
+    "package.json": `${JSON.stringify(
+      {
+        private: true,
+        workspaces,
+        devDependencies: {
+          rolldown: "1.1.0",
+          "rolldown-plugin-dts": "0.25.2",
+          typescript: "6.0.3",
+        },
+        packageManager: "bun@1.3.14",
+      },
+      null,
+      2,
+    )}\n`,
     "tsconfig.base.json": `${JSON.stringify(
       {
         compilerOptions: {

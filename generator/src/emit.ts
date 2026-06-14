@@ -1,4 +1,4 @@
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import type { DopplerGeneratorConfig } from "./config.js";
@@ -50,7 +50,12 @@ export async function generateDopplerArtifacts(
   const typescriptSdkDir = options.web3jsSdkDir ?? options.kitSdkDir;
   if (typescriptSdkDir) {
     const workspaceDir = dirname(typescriptSdkDir);
-    await writeFiles(workspaceDir, renderTypeScriptWorkspaceFiles());
+    const workspaces = [
+      "core",
+      ...(options.web3jsSdkDir ? [basename(options.web3jsSdkDir)] : []),
+      ...(options.kitSdkDir ? [basename(options.kitSdkDir)] : []),
+    ];
+    await writeFiles(workspaceDir, renderTypeScriptWorkspaceFiles(workspaces));
     await writeFiles(join(workspaceDir, "core"), await renderCoreSdk(config));
   }
 
