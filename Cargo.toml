@@ -3,8 +3,8 @@ resolver = "2"
 members = [
   "doppler",
   "examples",
-  "generator/tests/integration",
-  "generator/tests/integration/sdk-harness",
+  "packages/cli/tests/integration",
+  "packages/cli/tests/integration/sdk-harness",
   "program",
   "sdk/rust",
 ]

@@ -32,15 +32,20 @@ solana-signer = "2.2.1"
 # Add other Solana crates as needed
 ```
 
-## Generator
+## TypeScript Packages
 
-Doppler includes a TypeScript generator under `generator/` for producing custom fixed-size payload program bytecode (deploy-ready) and SDKs:
+Doppler includes TypeScript packages under `packages/`:
+
+- `@blueshift-gg/doppler-core` for programmatic payload, manifest, SDK, bytecode, and deploy transaction APIs.
+- `@blueshift-gg/doppler-cli` for CLI generation and deployment workflows.
+
+Use the CLI to produce custom fixed-size payload program bytecode and SDKs:
 
 ```sh
-npx @blueshift-gg/doppler-generator
+npx @blueshift-gg/doppler-cli
 ```
 
-See [`generator/README.md`](./generator/README.md) for full usage.
+See [`packages/cli/README.md`](./packages/cli/README.md) for full usage.
 
 ## Program ID
 

@@ -1,0 +1,15 @@
+[package]
+name = "doppler-cli-integration"
+version = { workspace = true }
+edition = { workspace = true }
+publish = false
+
+[dev-dependencies]
+doppler-integration-sdk = { path = "sdk-harness" }
+mollusk-svm = { workspace = true }
+solana-account = { workspace = true }
+solana-clock = { workspace = true }
+solana-instruction = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-sdk-ids = { workspace = true }
+solana-system-interface = { workspace = true }

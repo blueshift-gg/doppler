@@ -1,0 +1,197 @@
+import {
+  Address,
+  type Blockhash,
+  type Commitment,
+  type Connection,
+  Keypair,
+  PACKET_DATA_SIZE,
+  SIGNATURE_LENGTH_IN_BYTES,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
+
+import { renderAssembly } from "./assembly.js";
+import { compileAssemblyToBytecode } from "./bytecode.js";
+import type { GeneratorConfig } from "./config.js";
+import {
+  LoaderV3Program,
+  UPGRADEABLE_LOADER_BUFFER_METADATA_SIZE,
+  UPGRADEABLE_LOADER_PROGRAM_SIZE,
+} from "./programs/loader-v3.js";
+
+type BuildDeployTransactionsBase = {
+  connection: Connection;
+  programId: Address;
+  payer: Address;
+  upgradeAuthority?: Address;
+  /** Maximum program data length. */
+  maxDataLen?: number;
+  commitment?: Commitment;
+};
+
+export type BuildDeployTransactionsInput = BuildDeployTransactionsBase &
+  ({ bytecode: Uint8Array } | { config: GeneratorConfig });
+
+export type DeployTransactionBundle = {
+  transactions: Transaction[];
+  programId: string;
+  programDataAddress: string;
+  maxDataLen: number;
+};
+
+/** Compile SBPF bytecode from a generator config. */
+export async function compileBytecode(config: GeneratorConfig): Promise<Uint8Array> {
+  const assembly = renderAssembly({
+    admin: config.admin,
+    payloadSize: config.layout.payloadSize,
+  });
+  return compileAssemblyToBytecode({ assemblySource: assembly, arch: config.arch });
+}
+
+/**
+ * Build unsigned Loader v3 deploy transactions for a Doppler program.
+ *
+ * Accepts precompiled bytecode or compiles from a generator config. Returns ready-to-sign transactions in the order of `initializeBuffer`, `Write`, `DeployWithMaxDataLen`.
+ */
+export async function buildDeployTransactions(
+  input: BuildDeployTransactionsInput,
+): Promise<DeployTransactionBundle> {
+  const bytecode = await resolveBytecode(input);
+  const payer = input.payer;
+  const upgradeAuthority = input.upgradeAuthority ?? payer;
+  const bufferKeypair = await Keypair.generate();
+  const programAddress = input.programId;
+  const maxDataLen = input.maxDataLen ?? Math.max(bytecode.length * 2, bytecode.length);
+  const commitment = input.commitment ?? "confirmed";
+
+  const [programDataAddress] = await Address.findProgramAddress(
+    [programAddress.toBytes()],
+    LoaderV3Program.programId,
+  );
+
+  const [{ blockhash, lastValidBlockHeight }, bufferRent, programRent] = await Promise.all([
+    input.connection.getLatestBlockhash(commitment),
+    input.connection.getMinimumBalanceForRentExemption(sizeOfBuffer(bytecode.length)),
+    input.connection.getMinimumBalanceForRentExemption(UPGRADEABLE_LOADER_PROGRAM_SIZE),
+  ]);
+
+  const lifetime = {
+    blockhash,
+    lastValidBlockHeight,
+    feePayer: payer,
+  };
+
+  const writeChunkSize = calculateMaxWriteChunkSize({
+    bufferAccount: bufferKeypair.publicKey,
+    upgradeAuthority,
+    ...lifetime,
+  });
+
+  const bufferInitTransaction = new Transaction({
+    ...lifetime,
+  }).add(
+    SystemProgram.createAccount({
+      fromPubkey: payer,
+      newAccountPubkey: bufferKeypair.publicKey,
+      lamports: bufferRent,
+      space: sizeOfBuffer(bytecode.length),
+      programId: LoaderV3Program.programId,
+    }),
+    LoaderV3Program.initializeBuffer({
+      sourceAccount: bufferKeypair.publicKey,
+      bufferAuthority: upgradeAuthority,
+    }),
+  );
+  await bufferInitTransaction.partialSign(bufferKeypair);
+
+  // Multiple Write transactions may be required when the ELF exceeds one packet-sized chunk.
+  const writeTransactions: Transaction[] = [];
+  for (let offset = 0; offset < bytecode.length; offset += writeChunkSize) {
+    const bytes = bytecode.subarray(offset, offset + writeChunkSize);
+    writeTransactions.push(
+      new Transaction({
+        ...lifetime,
+      }).add(
+        LoaderV3Program.write({
+          bufferAccount: bufferKeypair.publicKey,
+          bufferAuthority: upgradeAuthority,
+          offset,
+          bytes,
+        }),
+      ),
+    );
+  }
+
+  const deployTransaction = new Transaction({
+    ...lifetime,
+  }).add(
+    SystemProgram.createAccount({
+      fromPubkey: payer,
+      newAccountPubkey: programAddress,
+      lamports: programRent,
+      space: UPGRADEABLE_LOADER_PROGRAM_SIZE,
+      programId: LoaderV3Program.programId,
+    }),
+    LoaderV3Program.deployWithMaxDataLen({
+      payerAccount: payer,
+      programDataAccount: programDataAddress,
+      programAccount: programAddress,
+      bufferAccount: bufferKeypair.publicKey,
+      authority: upgradeAuthority,
+      maxDataLen,
+    }),
+  );
+
+  const transactions = [bufferInitTransaction, ...writeTransactions, deployTransaction];
+
+  return {
+    transactions,
+    programId: programAddress.toBase58(),
+    programDataAddress: programDataAddress.toBase58(),
+    maxDataLen,
+  };
+}
+
+async function resolveBytecode(input: BuildDeployTransactionsInput): Promise<Uint8Array> {
+  if ("bytecode" in input) {
+    return input.bytecode;
+  }
+
+  if ("config" in input) {
+    return await compileBytecode(input.config);
+  }
+
+  throw new Error("Expected deploy transaction input to include bytecode or config");
+}
+
+function sizeOfBuffer(programLen: number): number {
+  return UPGRADEABLE_LOADER_BUFFER_METADATA_SIZE + programLen;
+}
+
+/** Matches `solana program deploy`: measure an empty Write tx, then reserve 1 byte for shortvec growth. */
+function calculateMaxWriteChunkSize(params: {
+  bufferAccount: Address;
+  upgradeAuthority: Address;
+  blockhash: Blockhash;
+  lastValidBlockHeight: number | bigint;
+  feePayer: Address;
+}): number {
+  const baseline = new Transaction({
+    blockhash: params.blockhash,
+    lastValidBlockHeight: params.lastValidBlockHeight,
+    feePayer: params.feePayer,
+  }).add(
+    LoaderV3Program.write({
+      bufferAccount: params.bufferAccount,
+      bufferAuthority: params.upgradeAuthority,
+      offset: 0,
+      bytes: new Uint8Array(0),
+    }),
+  );
+
+  const messageBytes = baseline.serializeMessage();
+  const numSigners = baseline.compileMessage().header.numRequiredSignatures;
+  const txSize = messageBytes.length + numSigners * SIGNATURE_LENGTH_IN_BYTES;
+
+  return PACKET_DATA_SIZE - txSize - 1;
+}
