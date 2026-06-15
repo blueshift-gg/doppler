@@ -37,16 +37,10 @@ solana-signer = "2.2.1"
 Doppler includes a TypeScript generator under `generator/` for producing custom fixed-size payload program bytecode (deploy-ready) and SDKs:
 
 ```sh
-npx @blueshift-gg/doppler-generator \
-  generate \
-  ./doppler.payload.ts \
-  --bytecode ./generated/sol-usdc-feed/doppler.so \
-  --web3js-sdk ./generated/sol-usdc-feed/web3js \
-  --kit-sdk ./generated/sol-usdc-feed/kit \
-  --rust-sdk ./generated/sol-usdc-feed/rust
+npx @blueshift-gg/doppler-generator
 ```
 
-The generator accepts a packed little-endian payload schema, hardcoded admin address, and program ID. It emits compiled sBPF bytecode through `@blueshift-gg/sbpf-assembler`, plus optional TypeScript and Rust SDK files. See `generator/README.md` for full usage.
+See [`generator/README.md`](./generator/README.md) for full usage.
 
 ## Program ID
 

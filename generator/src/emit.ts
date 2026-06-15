@@ -3,6 +3,7 @@ import { basename, dirname, join } from "node:path";
 
 import { createDopplerArtifacts, type GeneratedManifest } from "./artifacts.js";
 import type { DopplerGeneratorConfig } from "./config-core.js";
+import type { PayloadSchema } from "./schema.js";
 import { renderRustSdk } from "./sdk/rust.js";
 import {
   renderCoreSdk,
@@ -56,10 +57,34 @@ export async function generateDopplerArtifacts(
     await writeFiles(options.rustSdkDir, await renderRustSdk(config));
   }
 
-  const manifestFile = options.manifestFile ?? join(dirname(options.bytecodeFile), "manifest.json");
+  const outputDir = dirname(options.bytecodeFile);
+  const manifestFile = options.manifestFile ?? join(outputDir, "manifest.json");
   await writeFileEnsuringDir(manifestFile, `${JSON.stringify(artifacts.manifest, null, 2)}\n`);
 
   return artifacts.manifest;
+}
+
+export function renderInitSchemaFile(payload: PayloadSchema): string {
+  const fields = formatPayloadFields(payload, 4);
+  return `export default {
+  payload: {
+${fields},
+  },
+} as const;
+`;
+}
+
+function formatPayloadFields(payload: PayloadSchema, indent: number): string {
+  const pad = " ".repeat(indent);
+  return Object.entries(payload)
+    .map(([name, field]) => {
+      if (typeof field === "string") {
+        return `${pad}${name}: ${JSON.stringify(field)}`;
+      }
+
+      return `${pad}${name}: { type: ${JSON.stringify(field.type)}, length: ${field.length} }`;
+    })
+    .join(",\n");
 }
 
 async function writeFiles(root: string, files: Record<string, string>): Promise<void> {

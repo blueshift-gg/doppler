@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { extname, resolve } from "node:path";
+import { dirname, extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { createJiti } from "jiti";
@@ -31,6 +31,15 @@ export async function loadGeneratorConfigInput(
   schemaFile: string,
 ): Promise<DopplerGeneratorConfigInput> {
   const absolutePath = resolve(schemaFile);
+  const schemaInput = await loadSchemaFileInput(absolutePath, schemaFile);
+  const manifestInput = await loadManifestConfigInput(dirname(absolutePath));
+  return { ...manifestInput, ...schemaInput };
+}
+
+async function loadSchemaFileInput(
+  absolutePath: string,
+  schemaFile: string,
+): Promise<DopplerGeneratorConfigInput> {
   const extension = extname(absolutePath);
 
   if (extension === ".json") {
@@ -67,6 +76,22 @@ export async function loadGeneratorConfigInput(
   }
 
   throw new Error(`Unsupported schema file extension '${extension}'`);
+}
+
+async function loadManifestConfigInput(directory: string): Promise<DopplerGeneratorConfigInput> {
+  const manifestPath = join(directory, "manifest.json");
+
+  try {
+    const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as Record<string, unknown>;
+    return {
+      ...(typeof manifest.name === "string" ? { name: manifest.name } : {}),
+      ...(typeof manifest.programId === "string" ? { programId: manifest.programId } : {}),
+      ...(typeof manifest.admin === "string" ? { admin: manifest.admin } : {}),
+      ...(manifest.arch === "v0" || manifest.arch === "v3" ? { arch: manifest.arch } : {}),
+    };
+  } catch {
+    return {};
+  }
 }
 
 function isGeneratorConfigInput(value: unknown): value is DopplerGeneratorConfigInput {

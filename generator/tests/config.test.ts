@@ -31,6 +31,31 @@ test("loads JSON config and defaults arch to v3", async () => {
   expect(config.layout.payloadSize).toBe(8);
 });
 
+test("loads metadata from manifest.json when schema only contains payload", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "doppler-generator-"));
+  tempDirs.push(dir);
+  const configFile = join(dir, "payload.json");
+  await writeFile(
+    configFile,
+    JSON.stringify({
+      payload: { price: "u64" },
+    }),
+  );
+  await writeFile(
+    join(dir, "manifest.json"),
+    JSON.stringify({
+      name: "sol-usdc-feed",
+      programId: "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
+      admin: "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
+    }),
+  );
+
+  const config = await loadGeneratorConfig(configFile);
+  expect(config.name).toBe("sol-usdc-feed");
+  expect(config.programId).toBe("fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm");
+  expect(config.admin).toBe("admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE");
+});
+
 test("overrides metadata from CLI options", async () => {
   const dir = await mkdtemp(join(tmpdir(), "doppler-generator-"));
   tempDirs.push(dir);
