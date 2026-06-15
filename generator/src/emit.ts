@@ -1,10 +1,8 @@
-import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 
-import { renderDopplerAssembly } from "./assembly.js";
-import { compileAssemblyToBytecode } from "./bytecode.js";
-import type { DopplerGeneratorConfig } from "./config.js";
+import { createDopplerArtifacts, type GeneratedManifest } from "./artifacts.js";
+import type { DopplerGeneratorConfig } from "./config-core.js";
 import { renderRustSdk } from "./sdk/rust.js";
 import {
   renderCoreSdk,
@@ -22,30 +20,16 @@ export type GenerateOptions = {
   rustSdkDir?: string;
 };
 
-export type GeneratedManifest = {
-  name: string;
-  programId: string;
-  admin: string;
-  arch: string;
-  payloadSize: number;
-  schemaHash: string;
-  elfSha256: string;
-};
-
 export async function generateDopplerArtifacts(
   config: DopplerGeneratorConfig,
   options: GenerateOptions,
 ): Promise<GeneratedManifest> {
-  const assembly = renderDopplerAssembly({
-    admin: config.admin,
-    payloadSize: config.layout.payloadSize,
-  });
-  const bytecode = compileAssemblyToBytecode(assembly, config.arch);
+  const artifacts = await createDopplerArtifacts(config);
 
-  await writeFileEnsuringDir(options.bytecodeFile, bytecode);
+  await writeFileEnsuringDir(options.bytecodeFile, artifacts.bytecode);
 
   if (options.assemblyFile) {
-    await writeFileEnsuringDir(options.assemblyFile, assembly);
+    await writeFileEnsuringDir(options.assemblyFile, artifacts.assembly);
   }
 
   const typescriptSdkDir = options.web3jsSdkDir ?? options.kitSdkDir;
@@ -72,20 +56,10 @@ export async function generateDopplerArtifacts(
     await writeFiles(options.rustSdkDir, await renderRustSdk(config));
   }
 
-  const manifest: GeneratedManifest = {
-    name: config.name,
-    programId: config.programId,
-    admin: config.admin,
-    arch: config.arch,
-    payloadSize: config.layout.payloadSize,
-    schemaHash: `sha256:${sha256(JSON.stringify(config.payload))}`,
-    elfSha256: `sha256:${sha256(bytecode)}`,
-  };
-
   const manifestFile = options.manifestFile ?? join(dirname(options.bytecodeFile), "manifest.json");
-  await writeFileEnsuringDir(manifestFile, `${JSON.stringify(manifest, null, 2)}\n`);
+  await writeFileEnsuringDir(manifestFile, `${JSON.stringify(artifacts.manifest, null, 2)}\n`);
 
-  return manifest;
+  return artifacts.manifest;
 }
 
 async function writeFiles(root: string, files: Record<string, string>): Promise<void> {
@@ -97,8 +71,4 @@ async function writeFiles(root: string, files: Record<string, string>): Promise<
 async function writeFileEnsuringDir(path: string, content: string | Uint8Array): Promise<void> {
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, content);
-}
-
-function sha256(content: string | Uint8Array): string {
-  return createHash("sha256").update(content).digest("hex");
 }

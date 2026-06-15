@@ -1,6 +1,6 @@
 import { assemble } from "@blueshift-gg/sbpf-assembler";
 
-import type { SbpfArch } from "./config.js";
+import type { SbpfArch } from "./config-core.js";
 
 export function compileAssemblyToBytecode(
   assemblySource: string,

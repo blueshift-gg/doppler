@@ -1,4 +1,4 @@
-import type { DopplerGeneratorConfig } from "../../config.js";
+import type { DopplerGeneratorConfig } from "../../config-core.js";
 import { readTemplate, substituteCoreImport } from "../templates.js";
 import {
   corePackageName,

@@ -1,4 +1,4 @@
-import type { DopplerGeneratorConfig } from "../../config.js";
+import type { DopplerGeneratorConfig } from "../../config-core.js";
 import type { LayoutField, PayloadLayout } from "../../layout.js";
 import type { ScalarType } from "../../schema.js";
 import { readTemplate } from "../templates.js";

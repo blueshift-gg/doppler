@@ -4,6 +4,7 @@ import { dts } from "rolldown-plugin-dts";
 export default defineConfig({
   input: {
     index: "./src/index.ts",
+    node: "./src/node.ts",
     cli: "./src/cli.ts",
   },
   external: [

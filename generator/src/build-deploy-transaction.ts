@@ -12,11 +12,7 @@ import {
 
 import { renderDopplerAssembly } from "./assembly.js";
 import { compileAssemblyToBytecode } from "./bytecode.js";
-import {
-  loadGeneratorConfig,
-  type ConfigOverrides,
-  type DopplerGeneratorConfig,
-} from "./config.js";
+import type { DopplerGeneratorConfig } from "./config-core.js";
 import {
   LoaderV3Program,
   UPGRADEABLE_LOADER_BUFFER_METADATA_SIZE,
@@ -34,11 +30,7 @@ type BuildDopplerDeployTransactionsBase = {
 };
 
 export type BuildDopplerDeployTransactionsInput = BuildDopplerDeployTransactionsBase &
-  (
-    | { bytecode: Uint8Array }
-    | { config: DopplerGeneratorConfig }
-    | { schemaFile: string; overrides?: ConfigOverrides }
-  );
+  ({ bytecode: Uint8Array } | { config: DopplerGeneratorConfig });
 
 export type DopplerDeployTransactionBundle = {
   transactions: Transaction[];
@@ -163,8 +155,7 @@ async function resolveBytecode(input: BuildDopplerDeployTransactionsInput): Prom
     return compileDopplerBytecode(input.config);
   }
 
-  const config = await loadGeneratorConfig(input.schemaFile, input.overrides ?? {});
-  return compileDopplerBytecode(config);
+  throw new Error("Expected deploy transaction input to include bytecode or config");
 }
 
 function sizeOfBuffer(programLen: number): number {
