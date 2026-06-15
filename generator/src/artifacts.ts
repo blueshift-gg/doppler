@@ -1,5 +1,5 @@
 import { renderDopplerAssembly } from "./assembly.js";
-import { compileAssemblyToBytecode } from "./bytecode.js";
+import { compileAssemblyToBytecodeAsync } from "./bytecode.js";
 import type { DopplerGeneratorConfig } from "./config-core.js";
 
 export type GeneratedManifest = {
@@ -25,7 +25,10 @@ export async function createDopplerArtifacts(
     admin: config.admin,
     payloadSize: config.layout.payloadSize,
   });
-  const bytecode = compileAssemblyToBytecode(assembly, config.arch);
+  const bytecode = await compileAssemblyToBytecodeAsync({
+    assemblySource: assembly,
+    arch: config.arch,
+  });
 
   const manifest: GeneratedManifest = {
     name: config.name,

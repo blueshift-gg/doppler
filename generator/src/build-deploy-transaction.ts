@@ -44,7 +44,7 @@ export function compileDopplerBytecode(config: DopplerGeneratorConfig): Uint8Arr
     admin: config.admin,
     payloadSize: config.layout.payloadSize,
   });
-  return compileAssemblyToBytecode(assembly, config.arch);
+  return compileAssemblyToBytecode({ assemblySource: assembly, arch: config.arch });
 }
 
 export async function buildDopplerDeployTransactions(

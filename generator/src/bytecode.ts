@@ -1,30 +1,39 @@
-import { assemble } from "@blueshift-gg/sbpf-assembler";
+import init, { assemble } from "@blueshift-gg/sbpf-assembler";
 
 import type { SbpfArch } from "./config-core.js";
 
-export function compileAssemblyToBytecode(
-  assemblySource: string,
-  arch: SbpfArch = "v3",
-): Uint8Array {
-  const archNumber = arch === "v3" ? 3 : 0;
+type CompileAssemblyToBytecode = {
+  assemblySource: string;
+  arch: SbpfArch;
+};
 
-  try {
-    return assemble(assemblySource, archNumber);
-  } catch (error) {
-    throw new Error(
-      `Failed to assemble Doppler program for arch ${arch}: ${formatAssemblerError(error)}`,
-    );
-  }
+// Browser builds of the assembler expose an async WASM initializer; Node builds are already initialized.
+const maybeInit = init as unknown;
+
+if (typeof maybeInit === "function") {
+  await (maybeInit as () => Promise<unknown>)();
 }
 
-function formatAssemblerError(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
+/**
+ * Compile an assembly source string to a bytecode Uint8Array.
+ *
+ * For browser builds, use `compileAssemblyToBytecodeAsync` instead.
+ */
+export function compileAssemblyToBytecode({
+  assemblySource,
+  arch,
+}: CompileAssemblyToBytecode): Uint8Array {
+  return assemble(assemblySource, arch === "v3" ? 3 : 0);
+}
 
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return String(error);
-  }
+/**
+ * Compile an assembly source string to a bytecode Uint8Array.
+ *
+ * For Node builds, use `compileAssemblyToBytecode` instead.
+ */
+export async function compileAssemblyToBytecodeAsync({
+  assemblySource,
+  arch,
+}: CompileAssemblyToBytecode): Promise<Uint8Array> {
+  return compileAssemblyToBytecode({ assemblySource, arch });
 }
