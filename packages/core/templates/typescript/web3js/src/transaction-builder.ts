@@ -8,8 +8,8 @@ import {
   oracleUpdateComputeUnits,
   oracleUpdateLoadedAccountsDataSize,
   serializeOracle,
-} from "@blueshift-gg/doppler-core";
-import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-core";
+} from "@blueshift-gg/doppler-common";
+import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-common";
 import {
   Address,
   ComputeBudgetProgram,

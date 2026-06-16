@@ -23,7 +23,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@blueshift-gg/doppler-core": "workspace:*",
     "@solana/kit": "^6.9.0",
     "@solana-program/compute-budget": "^0.15.0",
     "@solana-program/system": "^0.12.2",
@@ -39,5 +38,8 @@
     "typescript": {
       "optional": true
     }
+  },
+  "dependencies": {
+    "@blueshift-gg/doppler-common": "workspace:*"
   }
 }

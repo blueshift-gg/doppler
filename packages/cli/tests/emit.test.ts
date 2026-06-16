@@ -42,15 +42,31 @@ test("emits requested artifacts", async () => {
   expect(existsSync(bytecodeFile)).toBe(true);
   expect(existsSync(join(dir, "out", "doppler.s"))).toBe(true);
   expect(existsSync(join(dir, "out", "manifest.json"))).toBe(true);
-  expect(existsSync(join(dir, "out", "core", "src", "serializers.ts"))).toBe(true);
+  expect(existsSync(join(dir, "out", "common", "src", "serializers.ts"))).toBe(true);
   expect(existsSync(join(dir, "out", "web3js", "src", "doppler.ts"))).toBe(true);
   expect(existsSync(join(dir, "out", "kit", "src", "doppler.ts"))).toBe(true);
   expect(existsSync(join(dir, "out", "rust", "src", "lib.rs"))).toBe(true);
 
+  const commonPackageJson = JSON.parse(
+    await readFile(join(dir, "out", "common", "package.json"), "utf8"),
+  );
+  expect(commonPackageJson.name).toBe("price-feed-common");
+
+  const web3jsPackageJson = JSON.parse(
+    await readFile(join(dir, "out", "web3js", "package.json"), "utf8"),
+  );
+  expect(web3jsPackageJson.dependencies).toHaveProperty("price-feed-common", "file:../common");
+
+  const web3jsDopplerSource = await readFile(
+    join(dir, "out", "web3js", "src", "doppler.ts"),
+    "utf8",
+  );
+  expect(web3jsDopplerSource).toContain('from "price-feed-common"');
+
   const workspacePackageJson = JSON.parse(await readFile(join(dir, "out", "package.json"), "utf8"));
   expect(workspacePackageJson).toEqual({
     private: true,
-    workspaces: ["core", "web3js", "kit"],
+    workspaces: ["common", "web3js", "kit"],
     devDependencies: {
       rolldown: "1.1.0",
       "rolldown-plugin-dts": "0.25.2",
@@ -82,5 +98,5 @@ test("uses generated TypeScript SDK directory names in workspace package", async
   });
 
   const workspacePackageJson = JSON.parse(await readFile(join(out, "package.json"), "utf8"));
-  expect(workspacePackageJson.workspaces).toEqual(["core", "web3.js"]);
+  expect(workspacePackageJson.workspaces).toEqual(["common", "web3.js"]);
 });

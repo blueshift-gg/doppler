@@ -37,6 +37,6 @@ export async function readTemplate(...segments: string[]): Promise<string> {
   return readFile(templatePath(...segments), "utf8");
 }
 
-export function substituteCoreImport(source: string, corePackageName: string): string {
-  return source.replaceAll("@blueshift-gg/doppler-core", corePackageName);
+export function substituteCommonImport(source: string, commonPackageName: string): string {
+  return source.replaceAll("@blueshift-gg/doppler-common", commonPackageName);
 }

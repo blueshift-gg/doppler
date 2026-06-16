@@ -5,15 +5,15 @@ import { readTemplate } from "../templates.js";
 
 export type TypeScriptSdkFiles = Record<string, string>;
 
-export function corePackageName(packageName: string): string {
-  return `${packageName}-core`;
+export function commonPackageName(packageName: string): string {
+  return packageName + "-common";
 }
 
 export async function renderCoreSdk(config: GeneratorConfig): Promise<TypeScriptSdkFiles> {
   const typeName = toPascalCase(config.name);
   const payloadTypeName = `${typeName}Payload`;
   const serializerName = `${toCamelCase(config.name)}Serializer`;
-  const packageName = corePackageName(config.packageName);
+  const packageName = commonPackageName(config.packageName);
 
   const [oracle, codecBridge] = await Promise.all([
     readTemplate("typescript", "core", "src", "oracle.ts"),

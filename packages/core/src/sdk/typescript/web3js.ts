@@ -1,7 +1,7 @@
 import type { GeneratorConfig } from "../../config.js";
-import { readTemplate, substituteCoreImport } from "../templates.js";
+import { readTemplate, substituteCommonImport } from "../templates.js";
 import {
-  corePackageName,
+  commonPackageName,
   renderRolldownConfig,
   renderTsConfig,
   type TypeScriptSdkFiles,
@@ -12,7 +12,7 @@ export function web3jsPackageName(packageName: string): string {
 }
 
 export async function renderWeb3jsSdk(config: GeneratorConfig): Promise<TypeScriptSdkFiles> {
-  const coreName = corePackageName(config.packageName);
+  const coreName = commonPackageName(config.packageName);
   const packageName = web3jsPackageName(config.packageName);
   const templateFiles = [
     "compute-budget.ts",
@@ -34,7 +34,7 @@ export async function renderWeb3jsSdk(config: GeneratorConfig): Promise<TypeScri
   };
 
   for (const [index, file] of templateFiles.entries()) {
-    files[`src/${file}`] = substituteCoreImport(templates[index]!, coreName);
+    files[`src/${file}`] = substituteCommonImport(templates[index]!, coreName);
   }
 
   return files;
@@ -59,7 +59,7 @@ function renderWeb3jsPackageJson(packageName: string, coreName: string): string 
         typecheck: "tsc -p tsconfig.json --noEmit",
       },
       dependencies: {
-        [coreName]: "file:../core",
+        [coreName]: "file:../common",
       },
       devDependencies: {
         "@solana/web3.js": "3.0.0-rc.1",

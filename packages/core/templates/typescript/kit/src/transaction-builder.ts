@@ -7,8 +7,8 @@ import {
   ORACLE_PROGRAM_SIZE,
   oracleUpdateComputeUnits,
   oracleUpdateLoadedAccountsDataSize,
-} from "@blueshift-gg/doppler-core";
-import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-core";
+} from "@blueshift-gg/doppler-common";
+import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-common";
 import {
   getSetComputeUnitLimitInstruction,
   getSetComputeUnitPriceInstruction,

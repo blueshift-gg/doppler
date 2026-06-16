@@ -1,5 +1,5 @@
 {
-  "name": "@blueshift-gg/doppler-core",
+  "name": "@blueshift-gg/doppler-common",
   "private": true,
   "version": "0.1.0",
   "type": "module",

@@ -1,7 +1,7 @@
 import type { GeneratorConfig } from "../../config.js";
-import { readTemplate, substituteCoreImport } from "../templates.js";
+import { readTemplate, substituteCommonImport } from "../templates.js";
 import {
-  corePackageName,
+  commonPackageName,
   renderRolldownConfig,
   renderTsConfig,
   type TypeScriptSdkFiles,
@@ -12,7 +12,7 @@ export function kitPackageName(packageName: string): string {
 }
 
 export async function renderKitSdk(config: GeneratorConfig): Promise<TypeScriptSdkFiles> {
-  const coreName = corePackageName(config.packageName);
+  const coreName = commonPackageName(config.packageName);
   const packageName = kitPackageName(config.packageName);
   const templateFiles = [
     "decode-base64.ts",
@@ -35,7 +35,7 @@ export async function renderKitSdk(config: GeneratorConfig): Promise<TypeScriptS
   };
 
   for (const [index, file] of templateFiles.entries()) {
-    files[`src/${file}`] = substituteCoreImport(templates[index]!, coreName);
+    files[`src/${file}`] = substituteCommonImport(templates[index]!, coreName);
   }
 
   return files;
@@ -60,7 +60,7 @@ function renderKitPackageJson(packageName: string, coreName: string): string {
         typecheck: "tsc -p tsconfig.json --noEmit",
       },
       dependencies: {
-        [coreName]: "file:../core",
+        [coreName]: "file:../common",
         "@solana-program/compute-budget": "^0.15.0",
         "@solana-program/system": "^0.12.2",
       },

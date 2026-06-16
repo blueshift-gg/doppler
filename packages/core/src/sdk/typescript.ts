@@ -1,5 +1,5 @@
 export {
-  corePackageName,
+  commonPackageName,
   renderCoreSdk,
   renderRolldownConfig,
   renderTsConfig,

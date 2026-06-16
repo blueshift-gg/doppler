@@ -1,5 +1,5 @@
-import { deserializeOracle } from "@blueshift-gg/doppler-core";
-import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-core";
+import { deserializeOracle } from "@blueshift-gg/doppler-common";
+import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-common";
 import { createSolanaRpcSubscriptions, type Address, type Commitment } from "@solana/kit";
 
 import { decodeBase64AccountData } from "./decode-base64";

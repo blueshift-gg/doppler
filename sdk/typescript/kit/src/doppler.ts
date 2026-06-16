@@ -1,5 +1,5 @@
-import { deserializeOracle, oracleAccountSize } from "@blueshift-gg/doppler-core";
-import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-core";
+import { deserializeOracle, oracleAccountSize } from "@blueshift-gg/doppler-common";
+import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-common";
 import { getCreateAccountWithSeedInstruction } from "@solana-program/system";
 import {
   appendTransactionMessageInstructions,

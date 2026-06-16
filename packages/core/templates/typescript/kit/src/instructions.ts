@@ -1,5 +1,5 @@
-import { oracleAccountSize, serializeOracle } from "@blueshift-gg/doppler-core";
-import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-core";
+import { oracleAccountSize, serializeOracle } from "@blueshift-gg/doppler-common";
+import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-common";
 import { AccountRole, type Address, type Instruction } from "@solana/kit";
 
 export function createOracleUpdateInstruction<T>(

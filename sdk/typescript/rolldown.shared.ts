@@ -7,7 +7,7 @@ function isExternalModule(
   isResolved: boolean,
   externalOption: ExternalOption | undefined,
 ): boolean {
-  if (id === "@blueshift-gg/doppler-core") {
+  if (id === "@blueshift-gg/doppler-common") {
     return false;
   }
 

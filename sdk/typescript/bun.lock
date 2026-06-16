@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@blueshift-gg/doppler",
+      "name": "@blueshift-gg/doppler-sdk",
       "devDependencies": {
         "rolldown": "1.1.0",
         "rolldown-plugin-dts": "0.25.2",
@@ -11,8 +11,8 @@
         "typescript": "6.0.3",
       },
     },
-    "core": {
-      "name": "@blueshift-gg/doppler-core",
+    "common": {
+      "name": "@blueshift-gg/doppler-common",
       "version": "0.1.0",
       "dependencies": {
         "@solana/codecs": "^6.9.0",
@@ -24,8 +24,10 @@
     "kit": {
       "name": "@blueshift-gg/doppler-kit",
       "version": "0.1.0",
+      "dependencies": {
+        "@blueshift-gg/doppler-common": "workspace:*",
+      },
       "devDependencies": {
-        "@blueshift-gg/doppler-core": "workspace:*",
         "@solana-program/compute-budget": "^0.15.0",
         "@solana-program/system": "^0.12.2",
         "@solana/kit": "^6.9.0",
@@ -44,8 +46,10 @@
     "web3js": {
       "name": "@blueshift-gg/doppler-web3js",
       "version": "0.1.0",
+      "dependencies": {
+        "@blueshift-gg/doppler-common": "workspace:*",
+      },
       "devDependencies": {
-        "@blueshift-gg/doppler-core": "workspace:*",
         "@solana/web3.js": "3.0.0-rc.1",
         "typescript": "6.0.3",
       },
@@ -69,7 +73,7 @@
 
     "@babel/types": ["@babel/types@8.0.0-rc.6", "https://registry.better-npm.dev/@babel/types/-/types-8.0.0-rc.6.tgz", { "dependencies": { "@babel/helper-string-parser": "^8.0.0-rc.6", "@babel/helper-validator-identifier": "^8.0.0-rc.6" } }, "sha512-p7/ABylAYlexb31wtRdIfH9L9A0Z2T/9H6zAqzqndkY2PLkvNNc580wGhp/gGKN4Sp9sQvSkhc6Oga8/O+wTyw=="],
 
-    "@blueshift-gg/doppler-core": ["@blueshift-gg/doppler-core@workspace:core"],
+    "@blueshift-gg/doppler-common": ["@blueshift-gg/doppler-common@workspace:common"],
 
     "@blueshift-gg/doppler-kit": ["@blueshift-gg/doppler-kit@workspace:kit"],
 

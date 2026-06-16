@@ -43,12 +43,12 @@ export async function writeDopplerArtifacts(
   if (typescriptSdkDir) {
     const workspaceDir = dirname(typescriptSdkDir);
     const workspaces = [
-      "core",
+      "common",
       ...(options.web3jsSdkDir ? [basename(options.web3jsSdkDir)] : []),
       ...(options.kitSdkDir ? [basename(options.kitSdkDir)] : []),
     ];
     await writeFiles(workspaceDir, renderTypeScriptWorkspaceFiles(workspaces));
-    await writeFiles(join(workspaceDir, "core"), await renderCoreSdk(config));
+    await writeFiles(join(workspaceDir, "common"), await renderCoreSdk(config));
   }
 
   if (options.web3jsSdkDir) {
