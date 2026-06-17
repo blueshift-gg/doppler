@@ -39,15 +39,6 @@ export type DeployTransactionBundle = {
   maxDataLen: number;
 };
 
-/** Compile SBPF bytecode from a generator config. */
-export async function compileBytecode(config: GeneratorConfig): Promise<Uint8Array> {
-  const assembly = renderAssembly({
-    admin: config.admin,
-    payloadSize: config.layout.payloadSize,
-  });
-  return compileAssemblyToBytecode({ assemblySource: assembly, arch: config.arch });
-}
-
 /**
  * Build unsigned Loader v3 deploy transactions for a Doppler program.
  *
@@ -158,7 +149,12 @@ async function resolveBytecode(input: BuildDeployTransactionsInput): Promise<Uin
   }
 
   if ("config" in input) {
-    return await compileBytecode(input.config);
+    const assembly = renderAssembly({
+      admin: input.config.admin,
+      payloadSize: input.config.layout.payloadSize,
+    });
+
+    return compileAssemblyToBytecode({ assemblySource: assembly, arch: input.config.arch });
   }
 
   throw new Error("Expected deploy transaction input to include bytecode or config");
