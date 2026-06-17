@@ -2,9 +2,10 @@ import { expect, test } from "bun:test";
 
 import { Connection, Keypair } from "@solana/web3.js";
 
+import { createDopplerArtifacts } from "../src/artifacts.js";
 import { createGeneratorConfig } from "../src/config.js";
 import { LoaderV3Instruction } from "../src/programs/loader-v3.js";
-import { buildDeployTransactions, compileBytecode } from "../src/transactions.js";
+import { buildDeployTransactions } from "../src/transactions.js";
 
 function createMockConnection(): Connection {
   return {
@@ -114,14 +115,14 @@ test("buildDeployTransactions compiles bytecode from generator config", async ()
     {},
   );
 
-  const bytecode = await compileBytecode(config);
+  const { bytecode } = await createDopplerArtifacts(config);
   expect(bytecode.byteLength).toBeGreaterThan(0);
 
   const bundle = await buildDeployTransactions({
     connection: createMockConnection(),
     payer: (await Keypair.generate()).publicKey,
     programId: (await Keypair.generate()).publicKey,
-    config,
+    bytecode,
   });
 
   expect(bundle.transactions.length).toBeGreaterThanOrEqual(3);

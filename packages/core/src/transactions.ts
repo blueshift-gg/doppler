@@ -10,16 +10,13 @@ import {
   Transaction,
 } from "@solana/web3.js";
 
-import { renderAssembly } from "./assembly.js";
-import { compileAssemblyToBytecode } from "./bytecode.js";
-import type { GeneratorConfig } from "./config.js";
 import {
   LoaderV3Program,
   UPGRADEABLE_LOADER_BUFFER_METADATA_SIZE,
   UPGRADEABLE_LOADER_PROGRAM_SIZE,
 } from "./programs/loader-v3.js";
 
-type BuildDeployTransactionsBase = {
+type BuildDeployTransactionsInput = {
   connection: Connection;
   programId: Address;
   payer: Address;
@@ -27,10 +24,8 @@ type BuildDeployTransactionsBase = {
   /** Maximum program data length. */
   maxDataLen?: number;
   commitment?: Commitment;
+  bytecode: Uint8Array;
 };
-
-export type BuildDeployTransactionsInput = BuildDeployTransactionsBase &
-  ({ bytecode: Uint8Array } | { config: GeneratorConfig });
 
 export type DeployTransactionBundle = {
   transactions: Transaction[];
@@ -47,12 +42,11 @@ export type DeployTransactionBundle = {
 export async function buildDeployTransactions(
   input: BuildDeployTransactionsInput,
 ): Promise<DeployTransactionBundle> {
-  const bytecode = await resolveBytecode(input);
   const payer = input.payer;
   const upgradeAuthority = input.upgradeAuthority ?? payer;
   const bufferKeypair = await Keypair.generate();
   const programAddress = input.programId;
-  const maxDataLen = input.maxDataLen ?? Math.max(bytecode.length * 2, bytecode.length);
+  const maxDataLen = input.maxDataLen ?? Math.max(input.bytecode.length * 2, input.bytecode.length);
   const commitment = input.commitment ?? "confirmed";
 
   const [programDataAddress] = await Address.findProgramAddress(
@@ -62,7 +56,7 @@ export async function buildDeployTransactions(
 
   const [{ blockhash, lastValidBlockHeight }, bufferRent, programRent] = await Promise.all([
     input.connection.getLatestBlockhash(commitment),
-    input.connection.getMinimumBalanceForRentExemption(sizeOfBuffer(bytecode.length)),
+    input.connection.getMinimumBalanceForRentExemption(sizeOfBuffer(input.bytecode.length)),
     input.connection.getMinimumBalanceForRentExemption(UPGRADEABLE_LOADER_PROGRAM_SIZE),
   ]);
 
@@ -85,7 +79,7 @@ export async function buildDeployTransactions(
       fromPubkey: payer,
       newAccountPubkey: bufferKeypair.publicKey,
       lamports: bufferRent,
-      space: sizeOfBuffer(bytecode.length),
+      space: sizeOfBuffer(input.bytecode.length),
       programId: LoaderV3Program.programId,
     }),
     LoaderV3Program.initializeBuffer({
@@ -97,8 +91,8 @@ export async function buildDeployTransactions(
 
   // Multiple Write transactions may be required when the ELF exceeds one packet-sized chunk.
   const writeTransactions: Transaction[] = [];
-  for (let offset = 0; offset < bytecode.length; offset += writeChunkSize) {
-    const bytes = bytecode.subarray(offset, offset + writeChunkSize);
+  for (let offset = 0; offset < input.bytecode.length; offset += writeChunkSize) {
+    const bytes = input.bytecode.subarray(offset, offset + writeChunkSize);
     writeTransactions.push(
       new Transaction({
         ...lifetime,
@@ -141,23 +135,6 @@ export async function buildDeployTransactions(
     programDataAddress: programDataAddress.toBase58(),
     maxDataLen,
   };
-}
-
-async function resolveBytecode(input: BuildDeployTransactionsInput): Promise<Uint8Array> {
-  if ("bytecode" in input) {
-    return input.bytecode;
-  }
-
-  if ("config" in input) {
-    const assembly = renderAssembly({
-      admin: input.config.admin,
-      payloadSize: input.config.layout.payloadSize,
-    });
-
-    return compileAssemblyToBytecode({ assemblySource: assembly, arch: input.config.arch });
-  }
-
-  throw new Error("Expected deploy transaction input to include bytecode or config");
 }
 
 function sizeOfBuffer(programLen: number): number {
