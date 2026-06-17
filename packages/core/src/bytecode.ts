@@ -1,4 +1,4 @@
-import { assemble } from "@blueshift-gg/sbpf-assembler";
+import { assemble } from "@blueshift-gg/sbpf-assembler/node";
 
 import type { SbpfArch } from "./config.js";
 
@@ -9,8 +9,6 @@ type CompileAssemblyToBytecode = {
 
 /**
  * Compile an assembly source string to a bytecode Uint8Array.
- *
- * Async because browser builds of the assembler expose an async WASM initializer.
  */
 export async function compileAssemblyToBytecode({
   assemblySource,

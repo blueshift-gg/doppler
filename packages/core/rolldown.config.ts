@@ -6,7 +6,7 @@ export default defineConfig({
     index: "./src/index.ts",
   },
   external: [
-    "@blueshift-gg/sbpf-assembler",
+    /^@blueshift-gg\/sbpf-assembler/,
     "@solana-program/loader-v3",
     "@solana/codecs",
     "@solana/compat",
@@ -25,5 +25,5 @@ export default defineConfig({
     entryFileNames: "[name].js",
     cleanDir: true,
   },
-  platform: "neutral",
+  platform: "node",
 });

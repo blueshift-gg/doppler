@@ -36,7 +36,7 @@
       "name": "@blueshift-gg/doppler-core",
       "version": "0.1.0",
       "dependencies": {
-        "@blueshift-gg/sbpf-assembler": "^0.1.9",
+        "@blueshift-gg/sbpf-assembler": "^0.2.1",
         "@solana-program/loader-v3": "^0.3.0",
         "@solana/codecs": "^6.9.0",
         "@solana/compat": "^6.9.0",
@@ -79,7 +79,7 @@
 
     "@blueshift-gg/doppler-sdk": ["@blueshift-gg/doppler-sdk@workspace:sdk/typescript"],
 
-    "@blueshift-gg/sbpf-assembler": ["@blueshift-gg/sbpf-assembler@0.1.9", "https://registry.better-npm.dev/@blueshift-gg/sbpf-assembler/-/sbpf-assembler-0.1.9.tgz", {}, "sha512-apen7gP9egOfcuAjDsrOill27RXZbHY9dGHO4WbH/pFTYJb4FNQxhrjeaohAgRlGN/B59JIv1UfwTGWJFaPt4A=="],
+    "@blueshift-gg/sbpf-assembler": ["@blueshift-gg/sbpf-assembler@0.2.1", "", {}, "sha512-S7hC7G7DbuwzX2D4i8L2eyq8fF9nOkRy7cCeFLpd83gzaZTj/oCMb1XpoDuPBydBULn/mpm8TJ/jpXGaLKj5Cg=="],
 
     "@emnapi/core": ["@emnapi/core@1.10.0", "https://registry.better-npm.dev/@emnapi/core/-/core-1.10.0.tgz", { "dependencies": { "@emnapi/wasi-threads": "1.2.1", "tslib": "^2.4.0" } }, "sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw=="],
 
