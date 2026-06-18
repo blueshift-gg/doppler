@@ -1,4 +1,4 @@
-# Doppler Generator
+# @blueshift-gg/doppler-cli
 
 Generate a custom Doppler program bytecode artifact and matching SDK files from a fixed-size payload schema.
 

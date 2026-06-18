@@ -5,7 +5,7 @@ Doppler oracle SDK for applications using `@solana/kit`.
 ## Install
 
 ```bash
-bun add @blueshift-gg/doppler-kit @solana/kit @solana-program/compute-budget @solana-program/system
+npm install @blueshift-gg/doppler-kit @solana/kit @solana-program/compute-budget @solana-program/system
 ```
 
 ## Usage

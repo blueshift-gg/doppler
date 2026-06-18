@@ -5,7 +5,7 @@ Doppler oracle SDK for applications using `@solana/web3.js`.
 ## Install
 
 ```bash
-bun add @blueshift-gg/doppler-web3js @solana/web3.js
+npm install @blueshift-gg/doppler-web3js @solana/web3.js
 ```
 
 ## Usage
