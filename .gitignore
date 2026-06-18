@@ -17,3 +17,7 @@ Cargo.lock
 .surfpool
 
 node_modules
+
+# skills
+.agents
+skills-lock.json
