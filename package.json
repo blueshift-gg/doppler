@@ -1,5 +1,5 @@
 {
-  "name": "@blueshift-gg/doppler",
+  "name": "doppler",
   "private": true,
   "type": "module",
   "workspaces": [

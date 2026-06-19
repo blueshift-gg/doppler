@@ -1,7 +1,7 @@
 import { access, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import { buildDeployTransactions, decodeSolanaPublicKey } from "@blueshift-gg/doppler-core";
+import { buildDeployTransactions, decodeSolanaPublicKey } from "@blueshift-gg/doppler";
 import { Connection, Keypair, type Transaction } from "@solana/web3.js";
 
 import { DEFAULT_SOLANA_CONFIG_PATH, loadSolanaCliConfig } from "./solana-config.js";

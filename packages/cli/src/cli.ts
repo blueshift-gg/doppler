@@ -7,7 +7,7 @@ import {
   createGeneratorConfig,
   type ConfigOverrides,
   type SbpfArch,
-} from "@blueshift-gg/doppler-core";
+} from "@blueshift-gg/doppler";
 import { Keypair } from "@solana/web3.js";
 import { Command, InvalidArgumentError } from "commander";
 

@@ -6,7 +6,7 @@ export default defineConfig({
     cli: "./src/cli.ts",
   },
   external: [
-    "@blueshift-gg/doppler-core",
+    "@blueshift-gg/doppler",
     "@solana/web3.js",
     "commander",
     "jiti",

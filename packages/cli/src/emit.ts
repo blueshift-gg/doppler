@@ -11,7 +11,7 @@ import {
   renderRustSdk,
   renderTypeScriptWorkspaceFiles,
   renderWeb3jsSdk,
-} from "@blueshift-gg/doppler-core";
+} from "@blueshift-gg/doppler";
 
 export type GenerateOptions = {
   bytecodeFile: string;

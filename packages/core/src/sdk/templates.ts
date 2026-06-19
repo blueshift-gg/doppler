@@ -18,7 +18,7 @@ function resolvePackageRoot(): string {
       const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
         name?: string;
       };
-      if (packageJson.name === "@blueshift-gg/doppler-core") {
+      if (packageJson.name === "@blueshift-gg/doppler") {
         return dir;
       }
     }
@@ -26,7 +26,7 @@ function resolvePackageRoot(): string {
     dir = dirname(dir);
   }
 
-  throw new Error("Could not locate @blueshift-gg/doppler-core package root");
+  throw new Error("Could not locate @blueshift-gg/doppler package root");
 }
 
 export function templatePath(...segments: string[]): string {

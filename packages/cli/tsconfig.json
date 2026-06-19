@@ -14,7 +14,7 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "paths": {
-      "@blueshift-gg/doppler-core": ["../core/src/index.ts"]
+      "@blueshift-gg/doppler": ["../core/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "tests/**/*.ts"]

@@ -36,7 +36,7 @@ solana-signer = "2.2.1"
 
 Doppler includes TypeScript packages under `packages/`:
 
-- `@blueshift-gg/doppler-core` for programmatic payload, manifest, SDK, bytecode, and deploy transaction APIs.
+- `@blueshift-gg/doppler` for programmatic payload, manifest, SDK, bytecode, and deploy transaction APIs.
 - `@blueshift-gg/doppler-cli` for CLI generation and deployment workflows.
 
 Use the CLI to produce custom fixed-size payload program bytecode and SDKs:

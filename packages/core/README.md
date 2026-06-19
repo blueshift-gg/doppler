@@ -1,11 +1,11 @@
-# @blueshift-gg/doppler-core
+# @blueshift-gg/doppler
 
 Programmatic APIs for payload schema validation, bytecode generation, manifest creation, SDK rendering, and Loader v3 deploy transaction construction.
 
 ## Get Started
 
 ```sh
-npm install @blueshift-gg/doppler-core
+npm install @blueshift-gg/doppler
 ```
 
 ## Workflow
@@ -19,7 +19,7 @@ import {
   renderKitSdk,
   renderRustSdk,
   renderWeb3jsSdk,
-} from "@blueshift-gg/doppler-core";
+} from "@blueshift-gg/doppler";
 import { Connection } from "@solana/web3.js";
 
 const config = createGeneratorConfig({
