@@ -1,5 +1,5 @@
 import { deserializeOracle } from "@blueshift-gg/doppler-common";
-import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-common";
+import type { Oracle, FixedSizeCodec } from "@blueshift-gg/doppler-common";
 import { createSolanaRpcSubscriptions, type Address, type Commitment } from "@solana/kit";
 
 import { decodeBase64AccountData } from "./decode-base64";
@@ -25,7 +25,7 @@ export type OracleSubscription<T> = Readonly<{
 export async function subscribeToOracle<T>(
   rpcSubscriptions: SolanaRpcSubscriptions,
   oraclePubkey: Address,
-  serializer: PayloadSerializer<T>,
+  payloadCodec: FixedSizeCodec<T>,
   options: SubscribeToOracleOptions = {},
 ): Promise<OracleSubscription<T>> {
   const abortController = new AbortController();
@@ -39,7 +39,7 @@ export async function subscribeToOracle<T>(
     .subscribe({ abortSignal: abortController.signal });
 
   return {
-    notifications: mapOracleNotifications(accountNotifications, serializer),
+    notifications: mapOracleNotifications(accountNotifications, payloadCodec),
     unsubscribe: () => {
       abortController.abort();
     },
@@ -48,7 +48,7 @@ export async function subscribeToOracle<T>(
 
 async function* mapOracleNotifications<T>(
   notifications: AsyncIterable<AccountNotification>,
-  serializer: PayloadSerializer<T>,
+  payloadCodec: FixedSizeCodec<T>,
 ): AsyncGenerator<Oracle<T>> {
   for await (const notification of notifications) {
     const accountInfo = notification.value;
@@ -57,6 +57,6 @@ async function* mapOracleNotifications<T>(
     }
 
     const [encodedData] = accountInfo.data;
-    yield deserializeOracle(decodeBase64AccountData(encodedData), serializer);
+    yield deserializeOracle(decodeBase64AccountData(encodedData), payloadCodec);
   }
 }

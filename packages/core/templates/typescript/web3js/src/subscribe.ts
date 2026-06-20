@@ -1,5 +1,5 @@
 import { deserializeOracle } from "@blueshift-gg/doppler-common";
-import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-common";
+import type { Oracle, FixedSizeCodec } from "@blueshift-gg/doppler-common";
 import type { AccountInfoWithSpace, Address, Commitment, Connection } from "@solana/web3.js";
 
 export type SubscribeToOracleOptions = Readonly<{
@@ -15,7 +15,7 @@ export type OracleSubscription<T> = Readonly<{
 export function subscribeToOracle<T>(
   connection: Connection,
   oraclePubkey: Address,
-  serializer: PayloadSerializer<T>,
+  payloadCodec: FixedSizeCodec<T>,
   options: SubscribeToOracleOptions = {},
 ): OracleSubscription<T> {
   const { commitment = "confirmed" } = options;
@@ -26,7 +26,7 @@ export function subscribeToOracle<T>(
   const subscriptionId = connection.onAccountChange(
     oraclePubkey,
     (accountInfo: AccountInfoWithSpace<Uint8Array>) => {
-      const oracle = deserializeOracle(accountInfo.data, serializer);
+      const oracle = deserializeOracle<T>(accountInfo.data, payloadCodec);
       if (resolvePending) {
         const resolve = resolvePending;
         resolvePending = null;
@@ -36,9 +36,13 @@ export function subscribeToOracle<T>(
 
       queue.push(oracle);
     },
-    commitment,
+    {
+      commitment,
+      encoding: "base58",
+    },
   );
 
+  // implement AsyncIterable to match the signature of the Kit SDK
   const notifications: AsyncIterable<Oracle<T>> = {
     [Symbol.asyncIterator]() {
       return {

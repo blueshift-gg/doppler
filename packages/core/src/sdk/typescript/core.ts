@@ -12,13 +12,10 @@ export function commonPackageName(packageName: string): string {
 export async function renderCoreSdk(config: GeneratorConfig): Promise<TypeScriptSdkFiles> {
   const typeName = toPascalCase(config.name);
   const payloadTypeName = `${typeName}Payload`;
-  const serializerName = `${toCamelCase(config.name)}Serializer`;
+  const codecName = `${toCamelCase(config.name)}Codec`;
   const packageName = commonPackageName(config.packageName);
 
-  const [oracle, codecBridge] = await Promise.all([
-    readTemplate("typescript", "core", "src", "oracle.ts"),
-    readTemplate("typescript", "core", "src", "codec-bridge.ts"),
-  ]);
+  const oracle = await readTemplate("typescript", "core", "src", "oracle.ts");
 
   return {
     "package.json": renderCorePackageJson(packageName),
@@ -26,13 +23,12 @@ export async function renderCoreSdk(config: GeneratorConfig): Promise<TypeScript
     "rolldown.config.ts": renderRolldownConfig([]),
     "src/types.ts": renderTypes(payloadTypeName, config.layout),
     "src/constants.ts": renderConstants(config),
-    "src/serializers.ts": renderSerializers(payloadTypeName, serializerName, config.layout),
+    "src/payload-codec.ts": renderPayloadCodec(payloadTypeName, codecName, config.layout),
     "src/oracle.ts": oracle,
-    "src/codec-bridge.ts": codecBridge,
     "src/index.ts": [
       'export * from "./constants";',
       'export * from "./oracle";',
-      'export * from "./serializers";',
+      'export * from "./payload-codec";',
       'export * from "./types";',
       "",
     ].join("\n"),
@@ -212,13 +208,6 @@ function renderTypes(payloadTypeName: string, layout: PayloadLayout): string {
     "  payload: T;",
     "}",
     "",
-    "/** Serializes and deserializes custom oracle payload types. */",
-    "export interface PayloadSerializer<T> {",
-    "  serialize(payload: T): Uint8Array;",
-    "  deserialize(buffer: Uint8Array): T;",
-    "  size(): number;",
-    "}",
-    "",
     "/** Configuration shared by Doppler clients and transaction builders. */",
     "export interface DopplerConfig {",
     "  /** Doppler program address. */",
@@ -285,9 +274,9 @@ function renderConstants(config: GeneratorConfig): string {
   ].join("\n");
 }
 
-function renderSerializers(
+function renderPayloadCodec(
   payloadTypeName: string,
-  serializerName: string,
+  codecName: string,
   layout: PayloadLayout,
 ): string {
   const imports = [...new Set(layout.fields.map((field) => codecFactory(field.type)))].sort();
@@ -308,28 +297,12 @@ function renderSerializers(
       : imports;
 
   return [
-    `import { ${["getStructCodec", ...codecImports].join(", ")} } from "@solana/codecs";`,
-    `import type { PayloadSerializer } from "./types";`,
-    'import { PAYLOAD_SIZE } from "./constants";',
+    `import { ${["getStructCodec", ...codecImports].join(", ")}, type FixedSizeCodec } from "@solana/codecs";`,
     `import type { ${payloadTypeName} } from "./types";`,
     "",
-    `const payloadCodec = getStructCodec<${payloadTypeName}>([`,
+    `export const ${codecName}: FixedSizeCodec<${payloadTypeName}> = getStructCodec([`,
     codecEntries,
     "]);",
-    "",
-    `export const ${serializerName}: PayloadSerializer<${payloadTypeName}> = {`,
-    `  serialize(payload: ${payloadTypeName}): Uint8Array {`,
-    "    return new Uint8Array(payloadCodec.encode(payload));",
-    "  },",
-    "",
-    `  deserialize(buffer: Uint8Array): ${payloadTypeName} {`,
-    "    return payloadCodec.decode(buffer);",
-    "  },",
-    "",
-    "  size(): number {",
-    "    return PAYLOAD_SIZE;",
-    "  },",
-    "};",
     "",
   ].join("\n");
 }

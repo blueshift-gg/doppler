@@ -11,7 +11,8 @@ npm install @blueshift-gg/doppler-kit @solana/kit @solana-program/compute-budget
 ## Usage
 
 ```ts
-import { Doppler, PriceFeedSerializer, PROGRAM_ID } from "@blueshift-gg/doppler-kit";
+import { Doppler } from "@blueshift-gg/doppler-kit";
+import { priceFeedCodec, PROGRAM_ID } from "@blueshift-gg/doppler-common";
 import { createSolanaRpc } from "@solana/kit";
 import { createKeyPairSignerFromBytes } from "@solana/kit";
 
@@ -23,7 +24,7 @@ const client = new Doppler(rpc, signer, {
   admin: signer.address,
 });
 
-const oracle = await client.fetchOracle(oracleAddress, new PriceFeedSerializer());
+const oracle = await client.fetchOracle(oracleAddress, priceFeedCodec);
 
 await client.updateOracle(
   oracleAddress,
@@ -31,7 +32,7 @@ await client.updateOracle(
     sequence: oracle.sequence + 1n,
     payload: { price: 42_000_000n },
   },
-  new PriceFeedSerializer(),
+  priceFeedCodec,
   1_000n,
 );
 ```

@@ -18,8 +18,12 @@ test("renders common TypeScript SDK files", async () => {
 
   expect(files["src/types.ts"]).toContain("export interface SolUsdcFeedPayload");
   expect(files["src/constants.ts"]).toContain('export const ARCH = "v3";');
-  expect(files["src/serializers.ts"]).toContain("solUsdcFeedSerializer");
-  expect(files["src/serializers.ts"]).toContain("getU64Codec()");
-  expect(files["src/oracle.ts"]).toContain("deserializeOracle");
+  expect(files["src/payload-codec.ts"]).toContain(
+    "export const solUsdcFeedCodec: FixedSizeCodec<SolUsdcFeedPayload>",
+  );
+  expect(files["src/payload-codec.ts"]).toContain('["confidence", getU32Codec()]');
+  expect(files["src/oracle.ts"]).toContain("payloadCodec: FixedSizeCodec<T>");
+  expect(files["src/codec-bridge.ts"]).toBeUndefined();
+  expect(files["src/serializers.ts"]).toBeUndefined();
   expect(files["package.json"]).toContain("sol-usdc-feed-common");
 });

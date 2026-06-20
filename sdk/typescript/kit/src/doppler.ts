@@ -1,5 +1,5 @@
 import { deserializeOracle, oracleAccountSize } from "@blueshift-gg/doppler-common";
-import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-common";
+import type { Oracle, FixedSizeCodec } from "@blueshift-gg/doppler-common";
 import { getCreateAccountWithSeedInstruction } from "@solana-program/system";
 import {
   appendTransactionMessageInstructions,
@@ -57,7 +57,7 @@ export class Doppler {
   /** Fetch and deserialize an oracle account. */
   async fetchOracle<T>(
     oraclePubkey: Address,
-    serializer: PayloadSerializer<T>,
+    payloadCodec: FixedSizeCodec<T>,
   ): Promise<Oracle<T> | null> {
     const { value: accountInfo } = await this.rpc
       .getAccountInfo(oraclePubkey, { encoding: "base64" })
@@ -68,17 +68,17 @@ export class Doppler {
     }
 
     const [encodedData] = accountInfo.data;
-    return deserializeOracle(decodeBase64AccountData(encodedData), serializer);
+    return deserializeOracle(decodeBase64AccountData(encodedData), payloadCodec);
   }
 
   /** Deserialize oracle account data from raw bytes. */
-  deserializeOracle<T>(data: Uint8Array, serializer: PayloadSerializer<T>): Oracle<T> {
-    return deserializeOracle(data, serializer);
+  deserializeOracle<T>(data: Uint8Array, payloadCodec: FixedSizeCodec<T>): Oracle<T> {
+    return deserializeOracle(data, payloadCodec);
   }
 
   /** Create a program-owned oracle account derived from a seed. */
-  async createOracleAccount<T>(seed: string, serializer: PayloadSerializer<T>): Promise<Address> {
-    const space = oracleAccountSize(serializer);
+  async createOracleAccount<T>(seed: string, payloadCodec: FixedSizeCodec<T>): Promise<Address> {
+    const space = oracleAccountSize(payloadCodec);
     const lamports = await this.rpc.getMinimumBalanceForRentExemption(BigInt(space)).send();
 
     const oraclePubkey = await createAddressWithSeed({
@@ -120,12 +120,16 @@ export class Doppler {
   async updateOracle<T>(
     oraclePubkey: Address,
     oracle: Oracle<T>,
-    serializer: PayloadSerializer<T>,
+    payloadCodec: FixedSizeCodec<T>,
     unitPrice?: bigint,
   ): Promise<string> {
     const { value: latestBlockhash } = await this.rpc.getLatestBlockhash().send();
 
-    let builder = this.createTransactionBuilder().addOracleUpdate(oraclePubkey, oracle, serializer);
+    let builder = this.createTransactionBuilder().addOracleUpdate(
+      oraclePubkey,
+      oracle,
+      payloadCodec,
+    );
 
     if (unitPrice !== undefined) {
       builder = builder.withUnitPrice(unitPrice);
@@ -146,7 +150,7 @@ export class Doppler {
     updates: Array<{
       oraclePubkey: Address;
       oracle: Oracle<T>;
-      serializer: PayloadSerializer<T>;
+      payloadCodec: FixedSizeCodec<T>;
     }>,
     unitPrice?: bigint,
   ): Promise<string> {
@@ -155,7 +159,7 @@ export class Doppler {
     let builder = this.createTransactionBuilder();
 
     for (const update of updates) {
-      builder = builder.addOracleUpdate(update.oraclePubkey, update.oracle, update.serializer);
+      builder = builder.addOracleUpdate(update.oraclePubkey, update.oracle, update.payloadCodec);
     }
 
     if (unitPrice !== undefined) {

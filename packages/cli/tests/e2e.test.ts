@@ -40,7 +40,7 @@ test("generates price feed artifacts with default v3 arch", async () => {
   expect(existsSync(join(out, "doppler.so"))).toBe(true);
   expect(existsSync(join(out, "doppler.s"))).toBe(true);
   expect(existsSync(join(out, "manifest.json"))).toBe(true);
-  expect(existsSync(join(out, "common", "src", "serializers.ts"))).toBe(true);
+  expect(existsSync(join(out, "common", "src", "payload-codec.ts"))).toBe(true);
   expect(existsSync(join(out, "web3js", "src", "doppler.ts"))).toBe(true);
 });
 

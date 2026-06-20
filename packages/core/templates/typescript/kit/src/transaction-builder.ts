@@ -8,7 +8,7 @@ import {
   oracleUpdateComputeUnits,
   oracleUpdateLoadedAccountsDataSize,
 } from "@blueshift-gg/doppler-common";
-import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-common";
+import type { Oracle, FixedSizeCodec } from "@blueshift-gg/doppler-common";
 import {
   getSetComputeUnitLimitInstruction,
   getSetComputeUnitPriceInstruction,
@@ -59,18 +59,18 @@ export class TransactionBuilder {
   addOracleUpdate<T>(
     oraclePubkey: Address,
     oracle: Oracle<T>,
-    serializer: PayloadSerializer<T>,
+    payloadCodec: FixedSizeCodec<T>,
   ): this {
     const instruction = createOracleUpdateInstruction(
       this.programId,
       this.admin,
       oraclePubkey,
       oracle,
-      serializer,
+      payloadCodec,
     );
 
-    this.computeUnits += oracleUpdateComputeUnits(serializer);
-    this.loadedAccountDataSize += oracleUpdateLoadedAccountsDataSize(serializer) * 2;
+    this.computeUnits += oracleUpdateComputeUnits(payloadCodec);
+    this.loadedAccountDataSize += oracleUpdateLoadedAccountsDataSize(payloadCodec) * 2;
     this.oracleUpdateInstructions.push(instruction);
 
     return this;

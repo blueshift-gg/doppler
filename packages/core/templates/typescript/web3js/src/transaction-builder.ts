@@ -9,7 +9,7 @@ import {
   oracleUpdateLoadedAccountsDataSize,
   serializeOracle,
 } from "@blueshift-gg/doppler-common";
-import type { Oracle, PayloadSerializer } from "@blueshift-gg/doppler-common";
+import type { Oracle, FixedSizeCodec } from "@blueshift-gg/doppler-common";
 import {
   Address,
   ComputeBudgetProgram,
@@ -49,12 +49,12 @@ export class TransactionBuilder {
   addOracleUpdate<T>(
     oraclePubkey: Address,
     oracle: Oracle<T>,
-    serializer: PayloadSerializer<T>,
+    payloadCodec: FixedSizeCodec<T>,
   ): this {
-    const instruction = this.createUpdateInstruction(oraclePubkey, oracle, serializer);
+    const instruction = this.createUpdateInstruction(oraclePubkey, oracle, payloadCodec);
 
-    this.computeUnits += oracleUpdateComputeUnits(serializer);
-    this.loadedAccountDataSize += oracleUpdateLoadedAccountsDataSize(serializer) * 2;
+    this.computeUnits += oracleUpdateComputeUnits(payloadCodec);
+    this.loadedAccountDataSize += oracleUpdateLoadedAccountsDataSize(payloadCodec) * 2;
     this.oracleUpdateInstructions.push(instruction);
 
     return this;
@@ -101,7 +101,7 @@ export class TransactionBuilder {
   private createUpdateInstruction<T>(
     oraclePubkey: Address,
     oracle: Oracle<T>,
-    serializer: PayloadSerializer<T>,
+    payloadCodec: FixedSizeCodec<T>,
   ): TransactionInstruction {
     return new TransactionInstruction({
       programId: this.programId,
@@ -117,7 +117,7 @@ export class TransactionBuilder {
           isWritable: true,
         },
       ],
-      data: serializeOracle(oracle, serializer),
+      data: serializeOracle(oracle, payloadCodec),
     });
   }
 }
