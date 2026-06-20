@@ -39,7 +39,7 @@
         "@solana/codecs": "^6.9.0",
         "@solana/compat": "^6.9.0",
         "@solana/kit": "^6.9.0",
-        "@solana/web3.js": "3.0.0-rc.1",
+        "@solana/web3.js": "3.0.0-rc.2",
         "bs58": "^6.0.0",
       },
       "devDependencies": {
@@ -378,6 +378,8 @@
     "undici-types": ["undici-types@7.24.6", "https://registry.better-npm.dev/undici-types/-/undici-types-7.24.6.tgz", {}, "sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg=="],
 
     "ws": ["ws@8.21.0", "https://registry.better-npm.dev/ws/-/ws-8.21.0.tgz", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g=="],
+
+    "@blueshift-gg/doppler-core/@solana/web3.js": ["@solana/web3.js@3.0.0-rc.2", "", { "dependencies": { "@noble/curves": "^1.4.2", "@noble/hashes": "^1.4.0", "@solana-program/address-lookup-table": "^0.11.0", "@solana-program/compute-budget": "^0.15.0", "@solana-program/loader-v3": "^0.3.0", "@solana-program/stake": "^0.6.1", "@solana-program/system": "^0.12.0", "@solana/assertions": "^6.8.0", "@solana/fast-stable-stringify": "^6.8.0", "@solana/kit": "^6.8.0", "@solana/rpc-spec-types": "^6.8.0", "@solana/signers": "^6.8.0" } }, "sha512-FN0B1ltmyJnYtjbjB7UcsqLTbjEt7yQDHlguFvLYLhyhr4XJCmJr0DMI41pm18d0oAWsW6XlQTvgKCkcFdMbsw=="],
 
     "@solana/errors/commander": ["commander@14.0.3", "https://registry.better-npm.dev/commander/-/commander-14.0.3.tgz", {}, "sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw=="],
 
