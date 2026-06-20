@@ -3,11 +3,7 @@ import { dirname, extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { createGeneratorConfig } from "@blueshift-gg/doppler";
-import type {
-  ConfigOverrides,
-  GeneratorConfig,
-  GeneratorConfigInput,
-} from "@blueshift-gg/doppler";
+import type { ConfigOverrides, GeneratorConfig, GeneratorConfigInput } from "@blueshift-gg/doppler";
 import { createJiti } from "jiti";
 
 /**

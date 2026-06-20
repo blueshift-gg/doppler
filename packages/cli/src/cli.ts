@@ -3,11 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import {
-  createGeneratorConfig,
-  type ConfigOverrides,
-  type SbpfArch,
-} from "@blueshift-gg/doppler";
+import { createGeneratorConfig, type ConfigOverrides, type SbpfArch } from "@blueshift-gg/doppler";
 import { Keypair } from "@solana/web3.js";
 import { Command, InvalidArgumentError } from "commander";
 
