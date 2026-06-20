@@ -19,7 +19,6 @@ import {
   type Keypair,
 } from "@solana/web3.js";
 
-import { setLoadedAccountsDataSizeLimit } from "./compute-budget";
 import type { Web3DopplerContext } from "./types";
 
 /** Transaction builder for batched Doppler oracle updates. */
@@ -82,7 +81,11 @@ export class TransactionBuilder {
       computeUnits += COMPUTE_BUDGET_IX_CU;
     }
 
-    instructions.push(setLoadedAccountsDataSizeLimit(loadedAccountDataSize));
+    instructions.push(
+      ComputeBudgetProgram.setLoadedAccountsDataSizeLimit({
+        accountDataSizeLimit: loadedAccountDataSize,
+      }),
+    );
     instructions.push(ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnits }));
     instructions.push(...this.oracleUpdateInstructions);
 
