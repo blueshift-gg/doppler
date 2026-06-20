@@ -15,7 +15,6 @@ export async function renderWeb3jsSdk(config: GeneratorConfig): Promise<TypeScri
   const coreName = commonPackageName(config.packageName);
   const packageName = web3jsPackageName(config.packageName);
   const templateFiles = [
-    "compute-budget.ts",
     "doppler.ts",
     "index.ts",
     "subscribe.ts",
