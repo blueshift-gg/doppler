@@ -17,10 +17,7 @@ use solana_system_interface::instruction::create_account_with_seed;
 const ADMIN: Pubkey = pubkey!("admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE");
 
 fn keyed_account_for_admin(key: Pubkey) -> (Pubkey, Account) {
-    (
-        key,
-        Account::new(10_000_000_000, 0, &system_program::ID),
-    )
+    (key, Account::new(10_000_000_000, 0, &system_program::ID))
 }
 
 fn keyed_account_for_oracle<T: OraclePayload>(
@@ -54,11 +51,7 @@ fn deploy_program_then_create_and_update_oracle_using_default_payload() {
     let seed = "SOL-USDC";
 
     let mut mollusk = Mollusk::default();
-    mollusk.add_program_with_loader_and_elf(
-        &ID,
-        &bpf_loader_upgradeable::id(),
-        BYTECODE,
-    );
+    mollusk.add_program_with_loader_and_elf(&ID, &bpf_loader_upgradeable::id(), BYTECODE);
 
     let (admin, admin_account) = keyed_account_for_admin(ADMIN);
     let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeedIntegrationPayload>(
@@ -101,8 +94,13 @@ fn deploy_program_then_create_and_update_oracle_using_default_payload() {
         ],
     );
 
-    let created = result.get_account(&oracle).expect("oracle account should exist");
-    assert_eq!(created.data().len(), core::mem::size_of::<Oracle<PriceFeedIntegrationPayload>>());
+    let created = result
+        .get_account(&oracle)
+        .expect("oracle account should exist");
+    assert_eq!(
+        created.data().len(),
+        core::mem::size_of::<Oracle<PriceFeedIntegrationPayload>>()
+    );
 
     let oracle_state = Oracle::<PriceFeedIntegrationPayload>::from_bytes(created.data());
     assert_eq!(oracle_state.sequence, 1);
