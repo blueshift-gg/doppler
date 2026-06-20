@@ -24,4 +24,14 @@ const client = new Doppler(rpc, signer, {
 });
 
 const oracle = await client.fetchOracle(oracleAddress, new PriceFeedSerializer());
+
+await client.updateOracle(
+  oracleAddress,
+  {
+    sequence: oracle.sequence + 1n,
+    payload: { price: 42_000_000n },
+  },
+  new PriceFeedSerializer(),
+  1_000n,
+);
 ```
