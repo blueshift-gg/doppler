@@ -61,7 +61,7 @@ function renderWeb3jsPackageJson(packageName: string, coreName: string): string 
         [coreName]: "file:../common",
       },
       devDependencies: {
-        "@solana/web3.js": "3.0.0-rc.1",
+        "@solana/web3.js": "3.0.0-rc.2",
         typescript: "6.0.3",
       },
       peerDependencies: {

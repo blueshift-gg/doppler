@@ -23,7 +23,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@solana/web3.js": "3.0.0-rc.1",
+    "@solana/web3.js": "3.0.0-rc.2",
     "typescript": "6.0.3"
   },
   "peerDependencies": {
