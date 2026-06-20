@@ -9,7 +9,7 @@ function resolvePackageRoot(): string {
   let dir = dirname(fileURLToPath(import.meta.url));
 
   while (dir !== dirname(dir)) {
-    if (existsSync(join(dir, "templates", "typescript", "core", "src", "oracle.ts"))) {
+    if (existsSync(join(dir, "templates", "rust", "src", "accounts.rs"))) {
       return dir;
     }
 
@@ -35,8 +35,4 @@ export function templatePath(...segments: string[]): string {
 
 export async function readTemplate(...segments: string[]): Promise<string> {
   return readFile(templatePath(...segments), "utf8");
-}
-
-export function substituteCommonImport(source: string, commonPackageName: string): string {
-  return source.replaceAll("@blueshift-gg/doppler-common", commonPackageName);
 }

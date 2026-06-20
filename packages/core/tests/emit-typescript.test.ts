@@ -2,11 +2,11 @@ import { expect, test } from "bun:test";
 
 import { computePayloadLayout } from "../src/layout.js";
 import type { PayloadSchema } from "../src/schema.js";
-import { renderCoreSdk } from "../src/sdk/typescript.js";
+import { renderPayloadCodecSdk } from "../src/sdk/typescript.js";
 
-test("renders common TypeScript SDK files", async () => {
+test("renders payload codec TypeScript SDK files", () => {
   const payload: PayloadSchema = { price: "u64", confidence: "u32", slot: "u64" };
-  const files = await renderCoreSdk({
+  const files = renderPayloadCodecSdk({
     name: "SolUsdcFeed",
     packageName: "sol-usdc-feed",
     programId: "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
@@ -16,14 +16,12 @@ test("renders common TypeScript SDK files", async () => {
     layout: computePayloadLayout(payload),
   });
 
-  expect(files["src/types.ts"]).toContain("export interface SolUsdcFeedPayload");
-  expect(files["src/constants.ts"]).toContain('export const ARCH = "v3";');
-  expect(files["src/payload-codec.ts"]).toContain(
+  expect(files["src/codecs.ts"]).toContain("export interface SolUsdcFeedPayload");
+  expect(files["src/codecs.ts"]).toContain(
     "export const solUsdcFeedCodec: FixedSizeCodec<SolUsdcFeedPayload>",
   );
-  expect(files["src/payload-codec.ts"]).toContain('["confidence", getU32Codec()]');
-  expect(files["src/oracle.ts"]).toContain("payloadCodec: FixedSizeCodec<T>");
-  expect(files["src/codec-bridge.ts"]).toBeUndefined();
-  expect(files["src/serializers.ts"]).toBeUndefined();
-  expect(files["package.json"]).toContain("sol-usdc-feed-common");
+  expect(files["src/codecs.ts"]).toContain('["confidence", getU32Codec()]');
+  expect(files["src/types.ts"]).toBeUndefined();
+  expect(files["src/oracle.ts"]).toBeUndefined();
+  expect(files["package.json"]).toContain("sol-usdc-feed-codec");
 });

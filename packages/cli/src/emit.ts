@@ -1,24 +1,20 @@
 import { mkdir, writeFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import { dirname, join } from "node:path";
 
 import {
   createDopplerArtifacts,
   type GeneratorConfig,
   type GeneratedManifest,
   type PayloadSchema,
-  renderCoreSdk,
-  renderKitSdk,
+  renderPayloadCodecSdk,
   renderRustSdk,
-  renderTypeScriptWorkspaceFiles,
-  renderWeb3jsSdk,
 } from "@blueshift-gg/doppler";
 
 export type GenerateOptions = {
   bytecodeFile: string;
   manifestFile?: string;
   assemblyFile?: string;
-  web3jsSdkDir?: string;
-  kitSdkDir?: string;
+  typescriptSdkDir?: string;
   rustSdkDir?: string;
 };
 
@@ -39,24 +35,8 @@ export async function writeDopplerArtifacts(
     await writeFileEnsuringDir(options.assemblyFile, artifacts.assembly);
   }
 
-  const typescriptSdkDir = options.web3jsSdkDir ?? options.kitSdkDir;
-  if (typescriptSdkDir) {
-    const workspaceDir = dirname(typescriptSdkDir);
-    const workspaces = [
-      "common",
-      ...(options.web3jsSdkDir ? [basename(options.web3jsSdkDir)] : []),
-      ...(options.kitSdkDir ? [basename(options.kitSdkDir)] : []),
-    ];
-    await writeFiles(workspaceDir, renderTypeScriptWorkspaceFiles(workspaces));
-    await writeFiles(join(workspaceDir, "common"), await renderCoreSdk(config));
-  }
-
-  if (options.web3jsSdkDir) {
-    await writeFiles(options.web3jsSdkDir, await renderWeb3jsSdk(config));
-  }
-
-  if (options.kitSdkDir) {
-    await writeFiles(options.kitSdkDir, await renderKitSdk(config));
+  if (options.typescriptSdkDir) {
+    await writeFiles(options.typescriptSdkDir, renderPayloadCodecSdk(config));
   }
 
   if (options.rustSdkDir) {

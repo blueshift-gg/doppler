@@ -105,17 +105,7 @@ test("generate logs optional SDK output directories", async () => {
   );
 
   const result = await runCli(
-    [
-      "generate",
-      schemaFile,
-      "delta",
-      "--web3js-sdk",
-      "sdk/web3js",
-      "--kit-sdk",
-      "sdk/kit",
-      "--rust-sdk",
-      "sdk/rust",
-    ],
+    ["generate", schemaFile, "delta", "--typescript-sdk", "sdk/codec", "--rust-sdk", "sdk/rust"],
     {
       cwd: dir,
       cli: join(new URL("..", import.meta.url).pathname, "src/cli.ts"),
@@ -123,8 +113,7 @@ test("generate logs optional SDK output directories", async () => {
   );
 
   expect(result.exitCode).toBe(0);
-  expect(result.stdout).toContain("Web3.js SDK: sdk/web3js");
-  expect(result.stdout).toContain("Kit SDK: sdk/kit");
+  expect(result.stdout).toContain("TypeScript codec SDK: sdk/codec");
   expect(result.stdout).toContain("Rust SDK: sdk/rust");
 });
 

@@ -1,41 +1,36 @@
 import type { GeneratorConfig } from "../../config.js";
 import type { LayoutField, PayloadLayout } from "../../layout.js";
 import type { ScalarType } from "../../schema.js";
-import { readTemplate } from "../templates.js";
 
 export type TypeScriptSdkFiles = Record<string, string>;
 
-export function commonPackageName(packageName: string): string {
-  return packageName + "-common";
+export function codecPackageName(packageName: string): string {
+  return `${packageName}-codec`;
 }
 
-export async function renderCoreSdk(config: GeneratorConfig): Promise<TypeScriptSdkFiles> {
+/** @deprecated Use {@link codecPackageName}. */
+export function commonPackageName(packageName: string): string {
+  return codecPackageName(packageName);
+}
+
+export function renderPayloadCodecSdk(config: GeneratorConfig): TypeScriptSdkFiles {
   const typeName = toPascalCase(config.name);
   const payloadTypeName = `${typeName}Payload`;
   const codecName = `${toCamelCase(config.name)}Codec`;
-  const packageName = commonPackageName(config.packageName);
-
-  const oracle = await readTemplate("typescript", "core", "src", "oracle.ts");
+  const packageName = codecPackageName(config.packageName);
 
   return {
-    "package.json": renderCorePackageJson(packageName),
-    "tsconfig.json": renderTsConfig(),
-    "rolldown.config.ts": renderRolldownConfig([]),
-    "src/types.ts": renderTypes(payloadTypeName, config.layout),
-    "src/constants.ts": renderConstants(config),
-    "src/payload-codec.ts": renderPayloadCodec(payloadTypeName, codecName, config.layout),
-    "src/oracle.ts": oracle,
-    "src/index.ts": [
-      'export * from "./constants";',
-      'export * from "./oracle";',
-      'export * from "./payload-codec";',
-      'export * from "./types";',
-      "",
-    ].join("\n"),
+    "package.json": renderCodecPackageJson(packageName),
+    "src/codecs.ts": renderCodecsModule(payloadTypeName, codecName, config.layout, typeName),
   };
 }
 
-function renderCorePackageJson(packageName: string): string {
+/** @deprecated Use {@link renderPayloadCodecSdk}. */
+export function renderCoreSdk(config: GeneratorConfig): TypeScriptSdkFiles {
+  return renderPayloadCodecSdk(config);
+}
+
+function renderCodecPackageJson(packageName: string): string {
   return `${JSON.stringify(
     {
       name: packageName,
@@ -43,241 +38,25 @@ function renderCorePackageJson(packageName: string): string {
       type: "module",
       exports: {
         ".": {
-          types: "./src/index.ts",
-          import: "./dist/index.js",
+          types: "./src/codecs.ts",
+          import: "./src/codecs.ts",
         },
       },
-      files: ["dist"],
-      scripts: {
-        build: "rolldown -c rolldown.config.ts",
-        typecheck: "tsc -p tsconfig.json --noEmit",
-      },
+      files: ["src"],
       dependencies: {
         "@solana/codecs": "^6.9.0",
       },
-      devDependencies: {
-        typescript: "6.0.3",
-      },
     },
     null,
     2,
   )}\n`;
 }
 
-export function renderTsConfig(): string {
-  return `${JSON.stringify(
-    {
-      extends: "../tsconfig.base.json",
-      compilerOptions: {
-        rootDir: "src",
-      },
-      include: ["src/**/*.ts"],
-    },
-    null,
-    2,
-  )}\n`;
-}
-
-export function renderRolldownConfig(external: Array<string | RegExp>): string {
-  const externalLiteral =
-    external.length === 0
-      ? "[]"
-      : `[${external
-          .map((entry) => (entry instanceof RegExp ? entry.toString() : JSON.stringify(entry)))
-          .join(", ")}]`;
-
-  return [
-    'import { createLibraryConfig } from "../rolldown.shared";',
-    "",
-    "export default createLibraryConfig({",
-    '  input: "./src/index.ts",',
-    `  external: ${externalLiteral},`,
-    "});",
-    "",
-  ].join("\n");
-}
-
-export function renderTypeScriptWorkspaceFiles(workspaces: string[]): TypeScriptSdkFiles {
-  return {
-    "package.json": `${JSON.stringify(
-      {
-        private: true,
-        workspaces,
-        devDependencies: {
-          rolldown: "1.1.0",
-          "rolldown-plugin-dts": "0.25.2",
-          typescript: "6.0.3",
-        },
-        packageManager: "bun@1.3.14",
-      },
-      null,
-      2,
-    )}\n`,
-    "tsconfig.base.json": `${JSON.stringify(
-      {
-        compilerOptions: {
-          target: "ES2022",
-          module: "ESNext",
-          moduleResolution: "Bundler",
-          lib: ["ES2022", "DOM"],
-          types: [],
-          strict: true,
-          skipLibCheck: true,
-          declaration: true,
-          declarationMap: true,
-          isolatedDeclarations: true,
-          verbatimModuleSyntax: true,
-          noUncheckedIndexedAccess: true,
-          exactOptionalPropertyTypes: true,
-        },
-      },
-      null,
-      2,
-    )}\n`,
-    "rolldown.shared.ts": [
-      "import {",
-      "  defineConfig,",
-      "  type ExternalOption,",
-      "  type RolldownOptions,",
-      '} from "rolldown";',
-      'import { dts } from "rolldown-plugin-dts";',
-      "",
-      "function isExternalModule(",
-      "  id: string,",
-      "  parentId: string | undefined,",
-      "  isResolved: boolean,",
-      "  externalOption: ExternalOption | undefined,",
-      "): boolean {",
-      "  if (id.endsWith('-core')) {",
-      "    return false;",
-      "  }",
-      "",
-      "  if (externalOption === undefined) {",
-      "    return true;",
-      "  }",
-      "",
-      "  if (typeof externalOption === 'function') {",
-      "    return externalOption(id, parentId, isResolved) ?? false;",
-      "  }",
-      "",
-      "  if (typeof externalOption === 'string') {",
-      "    return id === externalOption;",
-      "  }",
-      "",
-      "  if (externalOption instanceof RegExp) {",
-      "    return externalOption.test(id);",
-      "  }",
-      "",
-      "  return externalOption.some((pattern) =>",
-      "    typeof pattern === 'string' ? id === pattern : pattern.test(id),",
-      "  );",
-      "}",
-      "",
-      "export function createLibraryConfig(options: {",
-      '  input: NonNullable<RolldownOptions["input"]>;',
-      "  external?: ExternalOption;",
-      "}): RolldownOptions {",
-      "  const { input, external: externalOption } = options;",
-      "",
-      "  return defineConfig({",
-      "    input,",
-      "    plugins: [dts()],",
-      "    external(id, parentId, isResolved) {",
-      "      return isExternalModule(id, parentId, isResolved, externalOption);",
-      "    },",
-      "    output: {",
-      '      dir: "dist",',
-      '      format: "esm",',
-      '      entryFileNames: "index.js",',
-      "    },",
-      "  });",
-      "}",
-      "",
-    ].join("\n"),
-  };
-}
-
-function renderTypes(payloadTypeName: string, layout: PayloadLayout): string {
-  const genericTypes = [
-    "/** Runtime-agnostic Solana address. */",
-    "export type Address = string;",
-    "",
-    "/** Generic oracle account layout: sequence number plus a typed payload. */",
-    "export interface Oracle<T> {",
-    "  sequence: bigint;",
-    "  payload: T;",
-    "}",
-    "",
-    "/** Configuration shared by Doppler clients and transaction builders. */",
-    "export interface DopplerConfig {",
-    "  /** Doppler program address. */",
-    "  programId: Address;",
-    "  /**",
-    "   * Admin address expected by the program. Required if updating oracles is a permissioned action.",
-    "   */",
-    "  admin?: Address;",
-    "}",
-    "",
-    "/** Shared context passed to transaction builders. */",
-    "export interface DopplerContext {",
-    "  signer: Address;",
-    "  programId: Address;",
-    "  admin: Address;",
-    "}",
-    "",
-  ];
-
-  const payloadLines = layout.fields.map((field) => {
-    const type = tsFieldType(field);
-    return `  ${field.name}: ${type};`;
-  });
-
-  return [...genericTypes, `export interface ${payloadTypeName} {`, ...payloadLines, "}", ""].join(
-    "\n",
-  );
-}
-
-function renderConstants(config: GeneratorConfig): string {
-  return [
-    "/** Compute units consumed by a sequence check. */",
-    "export const SEQUENCE_CHECK_CU = 5;",
-    "",
-    "/** Compute units consumed by admin verification. */",
-    "export const ADMIN_VERIFICATION_CU = 6;",
-    "",
-    "/** Compute units consumed by writing the payload. */",
-    "export const PAYLOAD_WRITE_CU = 6;",
-    "",
-    "/** Base compute units for a compute-budget instruction. */",
-    "export const COMPUTE_BUDGET_IX_CU = 150;",
-    "",
-    "/** Account data size for a compute-unit-price instruction. */",
-    "export const COMPUTE_BUDGET_UNIT_PRICE_SIZE = 9;",
-    "",
-    "/** Account data size for a compute-unit-limit instruction. */",
-    "export const COMPUTE_BUDGET_UNIT_LIMIT_SIZE = 5;",
-    "",
-    "/** Account data size for a loaded-accounts-data-size-limit instruction. */",
-    "export const COMPUTE_BUDGET_DATA_LIMIT_SIZE = 5;",
-    "",
-    "/** Account data size for the compute-budget program. */",
-    "export const COMPUTE_BUDGET_PROGRAM_SIZE = 22;",
-    "",
-    "/** Account data size for the oracle program. */",
-    "export const ORACLE_PROGRAM_SIZE = 36;",
-    "",
-    `export const PROGRAM_ID = ${JSON.stringify(config.programId)};`,
-    `export const ADMIN = ${JSON.stringify(config.admin)};`,
-    `export const PAYLOAD_SIZE = ${config.layout.payloadSize};`,
-    `export const ARCH = ${JSON.stringify(config.arch)};`,
-    "",
-  ].join("\n");
-}
-
-function renderPayloadCodec(
+function renderCodecsModule(
   payloadTypeName: string,
   codecName: string,
   layout: PayloadLayout,
+  feedName: string,
 ): string {
   const imports = [...new Set(layout.fields.map((field) => codecFactory(field.type)))].sort();
   const codecEntries = layout.fields
@@ -296,10 +75,20 @@ function renderPayloadCodec(
       ? [...imports, "getArrayCodec"].sort()
       : imports;
 
+  const payloadLines = layout.fields.map((field) => {
+    const type = tsFieldType(field);
+    return `  ${field.name}: ${type};`;
+  });
+
   return [
     `import { ${["getStructCodec", ...codecImports].join(", ")}, type FixedSizeCodec } from "@solana/codecs";`,
-    `import type { ${payloadTypeName} } from "./types";`,
     "",
+    `/** ${feedName} payload matching the on-chain layout. */`,
+    `export interface ${payloadTypeName} {`,
+    ...payloadLines,
+    "}",
+    "",
+    `/** Codec for ${feedName} payloads. */`,
     `export const ${codecName}: FixedSizeCodec<${payloadTypeName}> = getStructCodec([`,
     codecEntries,
     "]);",

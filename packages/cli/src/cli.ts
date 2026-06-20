@@ -16,8 +16,7 @@ type GenerateArgs = {
   schemaFile: string;
   name: string;
   bytecodeFile?: string;
-  web3jsSdkDir?: string;
-  kitSdkDir?: string;
+  typescriptSdkDir?: string;
   rustSdkDir?: string;
   manifestFile?: string;
   assemblyFile?: string;
@@ -77,8 +76,7 @@ Writes only the payload schema. Does not create keypairs or manifest.json.
       "--bytecode <file>",
       "Output filepath for compiled Doppler bytecode. Defaults to ./<name>.so",
     )
-    .option("--web3js-sdk <directory>", "Output directory for generated @solana/web3.js SDK")
-    .option("--kit-sdk <directory>", "Output directory for generated @solana/kit SDK")
+    .option("--typescript-sdk <directory>", "Output directory for generated payload codec package")
     .option("--rust-sdk <directory>", "Output directory for generated Rust SDK")
     .option(
       "--manifest <file>",
@@ -170,8 +168,7 @@ async function runGenerate(args: GenerateArgs): Promise<void> {
   const config = createGeneratorConfig(loaded, overrides);
   const manifest = await writeDopplerArtifacts(config, {
     bytecodeFile,
-    ...(args.web3jsSdkDir ? { web3jsSdkDir: args.web3jsSdkDir } : {}),
-    ...(args.kitSdkDir ? { kitSdkDir: args.kitSdkDir } : {}),
+    ...(args.typescriptSdkDir ? { typescriptSdkDir: args.typescriptSdkDir } : {}),
     ...(args.rustSdkDir ? { rustSdkDir: args.rustSdkDir } : {}),
     ...(args.manifestFile ? { manifestFile: args.manifestFile } : {}),
     ...(args.assemblyFile ? { assemblyFile: args.assemblyFile } : {}),
@@ -208,12 +205,8 @@ function printGeneratedOutputs(args: GenerateArgs): void {
     console.log(`Manifest: ${args.manifestFile}`);
   }
 
-  if (args.web3jsSdkDir) {
-    console.log(`Web3.js SDK: ${args.web3jsSdkDir}`);
-  }
-
-  if (args.kitSdkDir) {
-    console.log(`Kit SDK: ${args.kitSdkDir}`);
+  if (args.typescriptSdkDir) {
+    console.log(`TypeScript codec SDK: ${args.typescriptSdkDir}`);
   }
 
   if (args.rustSdkDir) {
@@ -252,8 +245,7 @@ async function writeFileEnsuringDir(path: string, content: string): Promise<void
 
 type GenerateCommandOptions = {
   bytecode?: string;
-  web3jsSdk?: string;
-  kitSdk?: string;
+  typescriptSdk?: string;
   rustSdk?: string;
   manifest?: string;
   assembly?: string;
@@ -278,8 +270,7 @@ function toGenerateArgs(
     schemaFile,
     name,
     ...(options.bytecode ? { bytecodeFile: options.bytecode } : {}),
-    ...(options.web3jsSdk ? { web3jsSdkDir: options.web3jsSdk } : {}),
-    ...(options.kitSdk ? { kitSdkDir: options.kitSdk } : {}),
+    ...(options.typescriptSdk ? { typescriptSdkDir: options.typescriptSdk } : {}),
     ...(options.rustSdk ? { rustSdkDir: options.rustSdk } : {}),
     ...(options.manifest ? { manifestFile: options.manifest } : {}),
     ...(options.assembly ? { assemblyFile: options.assembly } : {}),

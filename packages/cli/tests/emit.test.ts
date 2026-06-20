@@ -32,8 +32,7 @@ test("emits requested artifacts", async () => {
   const manifest = await writeDopplerArtifacts(config, {
     bytecodeFile,
     assemblyFile: join(dir, "out", "doppler.s"),
-    web3jsSdkDir: join(dir, "out", "web3js"),
-    kitSdkDir: join(dir, "out", "kit"),
+    typescriptSdkDir: join(dir, "out", "codec"),
     rustSdkDir: join(dir, "out", "rust"),
   });
 
@@ -42,41 +41,21 @@ test("emits requested artifacts", async () => {
   expect(existsSync(bytecodeFile)).toBe(true);
   expect(existsSync(join(dir, "out", "doppler.s"))).toBe(true);
   expect(existsSync(join(dir, "out", "manifest.json"))).toBe(true);
-  expect(existsSync(join(dir, "out", "common", "src", "payload-codec.ts"))).toBe(true);
-  expect(existsSync(join(dir, "out", "web3js", "src", "doppler.ts"))).toBe(true);
-  expect(existsSync(join(dir, "out", "kit", "src", "doppler.ts"))).toBe(true);
+  expect(existsSync(join(dir, "out", "codec", "src", "codecs.ts"))).toBe(true);
   expect(existsSync(join(dir, "out", "rust", "src", "lib.rs"))).toBe(true);
 
-  const commonPackageJson = JSON.parse(
-    await readFile(join(dir, "out", "common", "package.json"), "utf8"),
+  const codecPackageJson = JSON.parse(
+    await readFile(join(dir, "out", "codec", "package.json"), "utf8"),
   );
-  expect(commonPackageJson.name).toBe("price-feed-common");
+  expect(codecPackageJson.name).toBe("price-feed-codec");
+  expect(codecPackageJson.dependencies).toEqual({ "@solana/codecs": "^6.9.0" });
 
-  const web3jsPackageJson = JSON.parse(
-    await readFile(join(dir, "out", "web3js", "package.json"), "utf8"),
-  );
-  expect(web3jsPackageJson.dependencies).toHaveProperty("price-feed-common", "file:../common");
-
-  const web3jsDopplerSource = await readFile(
-    join(dir, "out", "web3js", "src", "doppler.ts"),
-    "utf8",
-  );
-  expect(web3jsDopplerSource).toContain('from "price-feed-common"');
-
-  const workspacePackageJson = JSON.parse(await readFile(join(dir, "out", "package.json"), "utf8"));
-  expect(workspacePackageJson).toEqual({
-    private: true,
-    workspaces: ["common", "web3js", "kit"],
-    devDependencies: {
-      rolldown: "1.1.0",
-      "rolldown-plugin-dts": "0.25.2",
-      typescript: "6.0.3",
-    },
-    packageManager: "bun@1.3.14",
-  });
+  const codecsSource = await readFile(join(dir, "out", "codec", "src", "codecs.ts"), "utf8");
+  expect(codecsSource).toContain("export interface PriceFeedPayload");
+  expect(codecsSource).toContain("export const priceFeedCodec");
 });
 
-test("uses generated TypeScript SDK directory names in workspace package", async () => {
+test("writes the TypeScript codec package directly to the requested directory", async () => {
   const dir = await mkdtemp(join(tmpdir(), "doppler-generator-"));
   tempDirs.push(dir);
   const configFile = join(dir, "payload.json");
@@ -91,12 +70,13 @@ test("uses generated TypeScript SDK directory names in workspace package", async
   );
 
   const config = await loadGeneratorConfig(configFile);
-  const out = join(dir, "out");
+  const out = join(dir, "out", "typescript");
   await writeDopplerArtifacts(config, {
-    bytecodeFile: join(out, "doppler.so"),
-    web3jsSdkDir: join(out, "web3.js"),
+    bytecodeFile: join(dir, "out", "doppler.so"),
+    typescriptSdkDir: out,
   });
 
-  const workspacePackageJson = JSON.parse(await readFile(join(out, "package.json"), "utf8"));
-  expect(workspacePackageJson.workspaces).toEqual(["common", "web3.js"]);
+  expect(existsSync(join(out, "package.json"))).toBe(true);
+  expect(existsSync(join(out, "src", "codecs.ts"))).toBe(true);
+  expect(existsSync(join(dir, "out", "package.json"))).toBe(false);
 });
