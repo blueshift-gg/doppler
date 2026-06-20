@@ -14,6 +14,7 @@ import {
   setTransactionMessageLifetimeUsingBlockhash,
   signTransactionMessageWithSigners,
   type Address,
+  type Commitment,
   type TransactionSigner,
 } from "@solana/kit";
 
@@ -25,6 +26,21 @@ type SolanaRpc = ReturnType<typeof createSolanaRpc>;
 type SolanaRpcSubscriptions = ReturnType<typeof createSolanaRpcSubscriptions>;
 type ConfirmableTransaction = Parameters<ReturnType<typeof sendAndConfirmTransactionFactory>>[0];
 
+type AccountNotification = Readonly<{
+  value: Readonly<{
+    data: readonly [string, string];
+  }> | null;
+}>;
+
+export type SubscribeToOracleOptions = Readonly<{
+  commitment?: Commitment;
+}>;
+
+export type OracleSubscription<T> = Readonly<{
+  notifications: AsyncIterable<Oracle<T>>;
+  unsubscribe: () => void;
+}>;
+
 /** Client for creating, updating, and reading Doppler oracle accounts. */
 export class Doppler {
   private readonly programId: Address;
@@ -33,7 +49,7 @@ export class Doppler {
 
   constructor(
     private readonly rpc: SolanaRpc,
-    rpcSubscriptions: SolanaRpcSubscriptions,
+    private readonly rpcSubscriptions: SolanaRpcSubscriptions,
     private readonly signer: TransactionSigner,
     config: DopplerKitConfig,
   ) {
@@ -74,6 +90,30 @@ export class Doppler {
   /** Deserialize oracle account data from raw bytes. */
   deserializeOracle<T>(data: Uint8Array, payloadCodec: FixedSizeCodec<T>): Oracle<T> {
     return deserializeOracle(data, payloadCodec);
+  }
+
+  /** Subscribe to live oracle account updates over WebSocket. */
+  async subscribeToOracle<T>(
+    oraclePubkey: Address,
+    payloadCodec: FixedSizeCodec<T>,
+    options: SubscribeToOracleOptions = {},
+  ): Promise<OracleSubscription<T>> {
+    const abortController = new AbortController();
+    const { commitment = "confirmed" } = options;
+
+    const accountNotifications = await this.rpcSubscriptions
+      .accountNotifications(oraclePubkey, {
+        encoding: "base64",
+        commitment,
+      })
+      .subscribe({ abortSignal: abortController.signal });
+
+    return {
+      notifications: mapOracleNotifications(accountNotifications, payloadCodec),
+      unsubscribe: () => {
+        abortController.abort();
+      },
+    };
   }
 
   /** Create a program-owned oracle account derived from a seed. */
@@ -190,5 +230,20 @@ export class Doppler {
 
   getAdmin(): Address {
     return this.admin;
+  }
+}
+
+async function* mapOracleNotifications<T>(
+  notifications: AsyncIterable<AccountNotification>,
+  payloadCodec: FixedSizeCodec<T>,
+): AsyncGenerator<Oracle<T>> {
+  for await (const notification of notifications) {
+    const accountInfo = notification.value;
+    if (!accountInfo) {
+      continue;
+    }
+
+    const [encodedData] = accountInfo.data;
+    yield deserializeOracle(decodeBase64AccountData(encodedData), payloadCodec);
   }
 }

@@ -25,6 +25,13 @@ const client = new Doppler(connection, signer, {
 
 const oracle = await client.fetchOracle(oracleAddress, priceFeedCodec);
 
+const subscription = client.subscribeToOracle(oracleAddress, priceFeedCodec);
+for await (const update of subscription.notifications) {
+  console.log(update.payload.price);
+}
+
+await subscription.unsubscribe();
+
 await client.updateOracle(
   oracleAddress,
   {

@@ -5,12 +5,22 @@ import {
   SystemProgram,
   Transaction,
   sendAndConfirmTransaction,
+  type Commitment,
   type Connection,
   type Keypair,
 } from "@solana/web3.js";
 
 import { TransactionBuilder } from "./transaction-builder";
 import type { DopplerWeb3Config } from "./types";
+
+export type SubscribeToOracleOptions = Readonly<{
+  commitment?: Commitment;
+}>;
+
+export type OracleSubscription<T> = Readonly<{
+  notifications: AsyncIterable<Oracle<T>>;
+  unsubscribe: () => Promise<void>;
+}>;
 
 /** Client for creating, updating, and reading Doppler oracle accounts. */
 export class Doppler {
@@ -51,6 +61,70 @@ export class Doppler {
   /** Deserialize oracle account data from raw bytes. */
   deserializeOracle<T>(data: Uint8Array, payloadCodec: FixedSizeCodec<T>): Oracle<T> {
     return deserializeOracle(data, payloadCodec);
+  }
+
+  /** Subscribe to live oracle account updates over WebSocket. */
+  subscribeToOracle<T>(
+    oraclePubkey: Address,
+    payloadCodec: FixedSizeCodec<T>,
+    options: SubscribeToOracleOptions = {},
+  ): OracleSubscription<T> {
+    const { commitment = "confirmed" } = options;
+    let resolvePending: ((result: IteratorResult<Oracle<T>>) => void) | null = null;
+    const queue: Oracle<T>[] = [];
+    let closed = false;
+
+    const subscriptionId = this.connection.onAccountChange(
+      oraclePubkey,
+      (accountInfo) => {
+        const oracle = deserializeOracle<T>(accountInfo.data, payloadCodec);
+        if (resolvePending) {
+          const resolve = resolvePending;
+          resolvePending = null;
+          resolve({ value: oracle, done: false });
+          return;
+        }
+
+        queue.push(oracle);
+      },
+      {
+        commitment,
+        encoding: "base58",
+      },
+    );
+
+    const notifications: AsyncIterable<Oracle<T>> = {
+      [Symbol.asyncIterator]() {
+        return {
+          next(): Promise<IteratorResult<Oracle<T>>> {
+            if (queue.length > 0) {
+              return Promise.resolve({ value: queue.shift()!, done: false });
+            }
+
+            if (closed) {
+              return Promise.resolve({ value: undefined, done: true });
+            }
+
+            return new Promise((resolve) => {
+              resolvePending = resolve;
+            });
+          },
+        };
+      },
+    };
+
+    return {
+      notifications,
+      unsubscribe: async () => {
+        closed = true;
+        if (resolvePending) {
+          resolvePending({ value: undefined, done: true });
+          resolvePending = null;
+        }
+
+        await this.connection.removeAccountChangeListener(subscriptionId);
+      },
+    };
   }
 
   /** Create a program-owned oracle account derived from a seed. */
