@@ -26,8 +26,9 @@ export function renderAssembly(input: AssemblyInput): string {
   }
 
   const adminWords = publicKeyToU64Words(input.admin).map(bigintToHexLiteral);
-  const instructionSequence = INSTRUCTION_BASE_SEQUENCE + input.payloadSize;
-  const instructionPayload = INSTRUCTION_BASE_PAYLOAD + input.payloadSize;
+  const alignedPayloadSize = alignToEightBytes(input.payloadSize);
+  const instructionSequence = INSTRUCTION_BASE_SEQUENCE + alignedPayloadSize;
+  const instructionPayload = INSTRUCTION_BASE_PAYLOAD + alignedPayloadSize;
 
   return [
     `.equ ADMIN_HEADER, ${hex(ADMIN_HEADER)}`,
@@ -105,4 +106,8 @@ export const DOPPLER_OFFSETS = {
 
 function hex(value: number): string {
   return `0x${value.toString(16)}`;
+}
+
+function alignToEightBytes(value: number): number {
+  return (value + 7) & ~7;
 }

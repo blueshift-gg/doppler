@@ -3,64 +3,63 @@ use solana_pubkey::Pubkey;
 
 use crate::constants::{ADMIN_VERIFICATION_CU, ID, PAYLOAD_WRITE_CU, SEQUENCE_CHECK_CU};
 
-#[repr(C)]
+pub trait OraclePayload: Copy {
+    const SIZE: usize;
+
+    fn to_bytes(&self, data: &mut [u8]);
+
+    fn from_bytes(data: &[u8]) -> Self;
+}
+
 #[derive(Clone, Copy, Debug)]
-pub struct Oracle<T: Sized + Copy> {
+pub struct Oracle<T: OraclePayload> {
     pub sequence: u64,
     pub payload: T,
 }
 
-impl<T: Sized + Copy> Oracle<T> {
+impl<T: OraclePayload> Oracle<T> {
+    pub const SIZE: usize = 8 + T::SIZE;
+
     pub fn to_bytes(&self) -> Vec<u8> {
-        let mut data = Vec::with_capacity(core::mem::size_of::<Self>());
-        // write sequence bytes
-        data.extend_from_slice(&self.sequence.to_le_bytes());
-        // write payload bytes
-        data.extend_from_slice(unsafe {
-            core::slice::from_raw_parts(
-                core::ptr::from_ref(&self.payload).cast::<u8>(),
-                core::mem::size_of::<T>(),
-            )
-        });
+        let mut data = vec![0; Self::SIZE];
+        data[..8].copy_from_slice(&self.sequence.to_le_bytes());
+        self.payload.to_bytes(&mut data[8..]);
         data
     }
 
     #[must_use]
     pub fn from_bytes(data: &[u8]) -> Self {
-        assert!(data.len() == core::mem::size_of::<Self>());
+        assert!(data.len() == Self::SIZE);
 
-        // read u64 sequence from first 8 bytes
         let mut seq_bytes = [0u8; 8];
         seq_bytes.copy_from_slice(&data[..8]);
         let sequence = u64::from_le_bytes(seq_bytes);
-
-        // read payload from remaining bytes
-        let payload = unsafe { *data[8..].as_ptr().cast::<T>() };
+        let payload = T::from_bytes(&data[8..]);
 
         Self { sequence, payload }
     }
 }
 
-pub struct UpdateInstruction<T: Sized + Copy> {
+pub struct UpdateInstruction<T: OraclePayload> {
     pub admin: Pubkey,
     pub oracle_pubkey: Pubkey,
     pub oracle: Oracle<T>,
 }
 
-impl<T: Sized + Copy> UpdateInstruction<T> {
+impl<T: OraclePayload> UpdateInstruction<T> {
     pub const fn compute_units(&self) -> u32 {
         SEQUENCE_CHECK_CU
             + ADMIN_VERIFICATION_CU
             + PAYLOAD_WRITE_CU
-            + (core::mem::size_of::<Oracle<T>>() / 4) as u32
+            + (Oracle::<T>::SIZE / 4) as u32
     }
 
     pub const fn loaded_accounts_data_size_limit(&self) -> u32 {
-        core::mem::size_of::<Oracle<T>>() as u32
+        Oracle::<T>::SIZE as u32
     }
 }
 
-impl<T: Sized + Copy> From<UpdateInstruction<T>> for Instruction {
+impl<T: OraclePayload> From<UpdateInstruction<T>> for Instruction {
     fn from(update: UpdateInstruction<T>) -> Self {
         let data = update.oracle.to_bytes();
 

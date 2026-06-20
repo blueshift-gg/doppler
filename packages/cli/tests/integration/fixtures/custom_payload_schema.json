@@ -1,0 +1,10 @@
+{
+  "name": "custom-oracle",
+  "programId": "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
+  "admin": "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
+  "arch": "v3",
+  "payload": {
+    "decimals": "u8",
+    "price": "u64"
+  }
+}

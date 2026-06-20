@@ -17,9 +17,12 @@ test("renders Rust SDK without unsafe transmute in payload helpers", async () =>
   });
 
   expect(files["src/lib.rs"]).toContain("pub struct SolUsdcFeedPayload");
+  expect(files["src/lib.rs"]).toContain("impl OraclePayload for SolUsdcFeedPayload");
+  expect(files["src/lib.rs"]).toContain("fn to_bytes(&self, bytes: &mut [u8])");
   expect(files["src/lib.rs"]).toContain("copy_from_slice");
   expect(files["src/lib.rs"]).not.toContain("unsafe");
   expect(files["src/accounts.rs"]).toContain("pub struct Oracle");
+  expect(files["src/accounts.rs"]).toContain("pub trait OraclePayload");
   expect(files["src/transaction.rs"]).toContain("pub struct Builder");
   expect(files["src/constants.rs"]).toContain("pub const ID: Pubkey");
 });

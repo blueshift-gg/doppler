@@ -6,7 +6,7 @@ use solana_pubkey::Pubkey;
 use solana_signer::Signer as _;
 use solana_transaction::Transaction;
 
-use crate::accounts::{Oracle, UpdateInstruction};
+use crate::accounts::{Oracle, OraclePayload, UpdateInstruction};
 use crate::constants::{
     COMPUTE_BUDGET_DATA_LIMIT_SIZE, COMPUTE_BUDGET_IX_CU, COMPUTE_BUDGET_PROGRAM_SIZE,
     COMPUTE_BUDGET_UNIT_LIMIT_SIZE, COMPUTE_BUDGET_UNIT_PRICE_SIZE, ORACLE_PROGRAM_SIZE,
@@ -36,7 +36,7 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn add_oracle_update<T: Sized + Copy>(
+    pub fn add_oracle_update<T: OraclePayload>(
         mut self,
         oracle_pubkey: Pubkey,
         oracle: Oracle<T>,

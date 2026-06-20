@@ -4,10 +4,10 @@ import { renderAssembly, renderPayloadCopy } from "../src/assembly.js";
 
 const ADMIN = "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE";
 
-test("renders instruction offsets from payload size", () => {
+test("aligns instruction offsets to the payload size", () => {
   const assembly = renderAssembly({ admin: ADMIN, payloadSize: 20 });
-  expect(assembly).toContain(".equ INSTRUCTION_SEQUENCE, 0x50ec");
-  expect(assembly).toContain(".equ INSTRUCTION_PAYLOAD, 0x50f4");
+  expect(assembly).toContain(".equ INSTRUCTION_SEQUENCE, 0x50f0");
+  expect(assembly).toContain(".equ INSTRUCTION_PAYLOAD, 0x50f8");
   expect(assembly).toContain("lddw r3, 0xd0ab9764c9be9d08");
 });
 

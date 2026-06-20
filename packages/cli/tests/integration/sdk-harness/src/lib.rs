@@ -10,9 +10,28 @@ pub mod transaction {
     include!(concat!(env!("OUT_DIR"), "/transaction.rs"));
 }
 
-pub use accounts::{Oracle, UpdateInstruction};
+pub use accounts::{Oracle, OraclePayload, UpdateInstruction};
 pub use constants::ID;
 
 include!(concat!(env!("OUT_DIR"), "/lib_body.rs"));
 
 pub const BYTECODE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/doppler.so"));
+
+pub mod custom {
+    mod accounts {
+        include!(concat!(env!("OUT_DIR"), "/custom_accounts.rs"));
+    }
+    mod constants {
+        include!(concat!(env!("OUT_DIR"), "/custom_constants.rs"));
+    }
+    pub mod transaction {
+        include!(concat!(env!("OUT_DIR"), "/custom_transaction.rs"));
+    }
+
+    pub use accounts::{Oracle, OraclePayload, UpdateInstruction};
+    pub use constants::ID;
+
+    include!(concat!(env!("OUT_DIR"), "/custom_lib_body.rs"));
+
+    pub const BYTECODE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/custom/doppler.so"));
+}
