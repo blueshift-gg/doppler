@@ -9,12 +9,10 @@ import {
   SystemProgram,
   Transaction,
 } from "@solana/web3.js";
+import { LoaderV3Program } from "@solana/web3.js";
 
-import {
-  LoaderV3Program,
-  UPGRADEABLE_LOADER_BUFFER_METADATA_SIZE,
-  UPGRADEABLE_LOADER_PROGRAM_SIZE,
-} from "./programs/loader-v3.js";
+const UPGRADEABLE_LOADER_BUFFER_METADATA_SIZE = 37;
+const UPGRADEABLE_LOADER_PROGRAM_SIZE = 36;
 
 type BuildDeployTransactionsInput = {
   connection: Connection;
@@ -123,7 +121,7 @@ export async function buildDeployTransactions(
       programAccount: programAddress,
       bufferAccount: bufferKeypair.publicKey,
       authority: upgradeAuthority,
-      maxDataLen,
+      maxDataLen: BigInt(maxDataLen),
     }),
   );
 

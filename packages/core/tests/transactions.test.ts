@@ -1,10 +1,9 @@
 import { expect, test } from "bun:test";
 
-import { Connection, Keypair } from "@solana/web3.js";
+import { Connection, Keypair, LoaderV3Instruction } from "@solana/web3.js";
 
 import { createDopplerArtifacts } from "../src/artifacts.js";
 import { createGeneratorConfig } from "../src/config.js";
-import { LoaderV3Instruction } from "../src/programs/loader-v3.js";
 import { buildDeployTransactions } from "../src/transactions.js";
 
 function createMockConnection(): Connection {

@@ -3,7 +3,6 @@ export * from "./artifacts.js";
 export * from "./bytecode.js";
 export * from "./transactions.js";
 export * from "./config.js";
-export * from "./programs/loader-v3.js";
 export * from "./layout.js";
 export * from "./public-key.js";
 export * from "./schema.js";
