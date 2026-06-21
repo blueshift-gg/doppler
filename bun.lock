@@ -7,6 +7,7 @@
       "devDependencies": {
         "oxfmt": "^0.54.0",
         "oxlint": "^1.69.0",
+        "turbo": "^2.9.17",
       },
     },
     "packages/cli": {
@@ -50,14 +51,61 @@
         "typescript": "^6.0.3",
       },
     },
-    "sdk/typescript": {
-      "name": "@blueshift-gg/doppler-sdk",
+    "sdk/typescript/common": {
+      "name": "@blueshift-gg/doppler-common",
+      "version": "0.1.0",
+      "dependencies": {
+        "@solana/codecs": "^6.9.0",
+      },
       "devDependencies": {
         "rolldown": "1.1.0",
         "rolldown-plugin-dts": "0.25.2",
-        "turbo": "^2.9.17",
         "typescript": "6.0.3",
       },
+    },
+    "sdk/typescript/kit": {
+      "name": "@blueshift-gg/doppler-kit",
+      "version": "0.1.0",
+      "dependencies": {
+        "@blueshift-gg/doppler-common": "workspace:*",
+      },
+      "devDependencies": {
+        "@solana-program/compute-budget": "^0.15.0",
+        "@solana-program/system": "^0.12.2",
+        "@solana/kit": "^6.9.0",
+        "rolldown": "1.1.0",
+        "rolldown-plugin-dts": "0.25.2",
+        "typescript": "6.0.3",
+      },
+      "peerDependencies": {
+        "@solana-program/compute-budget": "^0.15.0",
+        "@solana-program/system": "^0.12.2",
+        "@solana/kit": "^6.9.0",
+        "typescript": "^6",
+      },
+      "optionalPeers": [
+        "typescript",
+      ],
+    },
+    "sdk/typescript/web3js": {
+      "name": "@blueshift-gg/doppler-web3js",
+      "version": "0.1.0",
+      "dependencies": {
+        "@blueshift-gg/doppler-common": "workspace:*",
+      },
+      "devDependencies": {
+        "@solana/web3.js": "3.0.0-rc.2",
+        "rolldown": "1.1.0",
+        "rolldown-plugin-dts": "0.25.2",
+        "typescript": "6.0.3",
+      },
+      "peerDependencies": {
+        "@solana/web3.js": "^3.0.0",
+        "typescript": "^6",
+      },
+      "optionalPeers": [
+        "typescript",
+      ],
     },
   },
   "packages": {
@@ -75,7 +123,11 @@
 
     "@blueshift-gg/doppler-cli": ["@blueshift-gg/doppler-cli@workspace:packages/cli"],
 
-    "@blueshift-gg/doppler-sdk": ["@blueshift-gg/doppler-sdk@workspace:sdk/typescript"],
+    "@blueshift-gg/doppler-common": ["@blueshift-gg/doppler-common@workspace:sdk/typescript/common"],
+
+    "@blueshift-gg/doppler-kit": ["@blueshift-gg/doppler-kit@workspace:sdk/typescript/kit"],
+
+    "@blueshift-gg/doppler-web3js": ["@blueshift-gg/doppler-web3js@workspace:sdk/typescript/web3js"],
 
     "@blueshift-gg/sbpf-assembler": ["@blueshift-gg/sbpf-assembler@0.2.1", "https://registry.better-npm.dev/@blueshift-gg/sbpf-assembler/-/sbpf-assembler-0.2.1.tgz", {}, "sha512-S7hC7G7DbuwzX2D4i8L2eyq8fF9nOkRy7cCeFLpd83gzaZTj/oCMb1XpoDuPBydBULn/mpm8TJ/jpXGaLKj5Cg=="],
 

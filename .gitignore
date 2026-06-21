@@ -14,6 +14,7 @@ test-ledger
 .surfpool
 
 node_modules
+.turbo
 
 playground/
 

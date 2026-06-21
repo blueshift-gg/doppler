@@ -4,17 +4,21 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "sdk/typescript"
+    "sdk/typescript/*"
   ],
   "scripts": {
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt --check",
-    "fmt:fix": "oxfmt --write"
+    "fmt:fix": "oxfmt --write",
+    "sdk:build": "turbo run build --filter './sdk/typescript/*'",
+    "sdk:typecheck": "turbo run typecheck --filter './sdk/typescript/*'",
+    "sdk:check": "turbo run typecheck build --filter './sdk/typescript/*'"
   },
   "packageManager": "bun@1.3.14",
   "devDependencies": {
     "oxfmt": "^0.54.0",
-    "oxlint": "^1.69.0"
+    "oxlint": "^1.69.0",
+    "turbo": "^2.9.17"
   }
 }
