@@ -85,7 +85,7 @@ fn deploy_program_then_create_and_update_oracle_using_default_payload() {
     let result = mollusk.process_and_validate_instruction_chain(
         &[
             (&create_ix, &[Check::success()]),
-            (&update_ix, &[Check::success()]),
+            (&update_ix, &[Check::success(), Check::compute_units(21)]),
         ],
         &[
             (admin, admin_account),
