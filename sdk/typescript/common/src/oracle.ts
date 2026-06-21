@@ -63,6 +63,10 @@ export function oracleUpdateComputeBudget<T>(
   updateCount: number,
   options: OracleUpdateComputeBudgetOptions = {},
 ): OracleUpdateComputeBudget {
+  if (!Number.isInteger(updateCount) || updateCount < 0) {
+    throw new RangeError("updateCount must be a non-negative integer");
+  }
+
   let loadedAccountDataSize =
     ORACLE_PROGRAM_SIZE +
     COMPUTE_BUDGET_PROGRAM_SIZE +
