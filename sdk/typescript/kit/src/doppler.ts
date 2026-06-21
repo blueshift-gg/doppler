@@ -129,7 +129,15 @@ export class Doppler<T> {
     return { oraclePubkey, instruction };
   }
 
-  /** Build compute budget and oracle update instructions. */
+  /**
+   * Build compute budget and oracle update instructions.
+   *
+   * Returns instructions in this order:
+   * 1. `SetComputeUnitPrice` when `unitPrice` is provided
+   * 2. `SetLoadedAccountsDataSizeLimit`
+   * 3. `SetComputeUnitLimit`
+   * 4. One Doppler oracle update instruction per entry in `updates`
+   */
   createUpdateInstructions(
     updates: Array<{
       oraclePubkey: Address;
