@@ -32,11 +32,12 @@ const signer = await createKeyPairSignerFromBytes(secretKeyBytes);
 const client = new Doppler(rpc, rpcSubscriptions, {
   programId: PROGRAM_ID,
   admin: signer.address,
+  payloadCodec: priceFeedCodec,
 });
 
-const oracle = await client.fetchOracle(oracleAddress, priceFeedCodec);
+const oracle = await client.fetchOracle(oracleAddress);
 
-const subscription = await client.subscribeToOracle(oracleAddress, priceFeedCodec);
+const subscription = await client.subscribeToOracle(oracleAddress);
 for await (const update of subscription.notifications) {
   console.log(update.payload.price);
 }
@@ -51,7 +52,6 @@ const instructions = client.createUpdateInstructions(
         sequence: oracle.sequence + 1n,
         payload: { price: 42_000_000n },
       },
-      payloadCodec: priceFeedCodec,
     },
   ],
   1_000n,

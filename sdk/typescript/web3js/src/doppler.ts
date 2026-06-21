@@ -26,43 +26,42 @@ export type OracleSubscription<T> = Readonly<{
 }>;
 
 /** Client for creating, updating, and reading Doppler oracle accounts. */
-export class Doppler {
+export class Doppler<T> {
   private readonly programId: Address;
   private readonly admin: Address;
+  private readonly payloadCodec: FixedSizeCodec<T>;
 
   constructor(
     private readonly connection: Connection,
-    config: DopplerConfig,
+    config: DopplerConfig<T>,
   ) {
     this.programId = config.programId;
     this.admin = config.admin;
+    this.payloadCodec = config.payloadCodec;
   }
 
   /** Fetch and deserialize an oracle account. */
-  async fetchOracle<T>(
-    oraclePubkey: Address,
-    payloadCodec: FixedSizeCodec<T>,
-  ): Promise<Oracle<T> | null> {
+  async fetchOracle(oraclePubkey: Address): Promise<Oracle<T> | null> {
     const accountInfo = await this.connection.getAccountInfo(oraclePubkey);
     if (!accountInfo?.data) {
       return null;
     }
 
-    return deserializeOracle(accountInfo.data, payloadCodec);
+    return deserializeOracle(accountInfo.data, this.payloadCodec);
   }
 
   /** Deserialize oracle account data from raw bytes. */
-  deserializeOracle<T>(data: Uint8Array, payloadCodec: FixedSizeCodec<T>): Oracle<T> {
-    return deserializeOracle(data, payloadCodec);
+  deserializeOracle(data: Uint8Array): Oracle<T> {
+    return deserializeOracle(data, this.payloadCodec);
   }
 
   /** Subscribe to live oracle account updates over WebSocket. */
-  subscribeToOracle<T>(
+  subscribeToOracle(
     oraclePubkey: Address,
-    payloadCodec: FixedSizeCodec<T>,
     options: SubscribeToOracleOptions = {},
   ): OracleSubscription<T> {
     const { commitment = "confirmed" } = options;
+    const payloadCodec = this.payloadCodec;
     let resolvePending: ((result: IteratorResult<Oracle<T>>) => void) | null = null;
     const queue: Oracle<T>[] = [];
     let closed = false;
@@ -121,12 +120,11 @@ export class Doppler {
   }
 
   /** Build an instruction that initializes a oracle account derived from a seed. */
-  async createOracleAccount<T>(
+  async createOracleAccount(
     seed: string,
-    payloadCodec: FixedSizeCodec<T>,
     payer: Address,
   ): Promise<{ oraclePubkey: Address; instruction: TransactionInstruction }> {
-    const space = oracleAccountSize(payloadCodec);
+    const space = oracleAccountSize(this.payloadCodec);
     const lamports = await this.connection.getMinimumBalanceForRentExemption(space);
 
     const oraclePubkey = await Address.createWithSeed(payer, seed, this.programId);
@@ -145,19 +143,17 @@ export class Doppler {
   }
 
   /** Build compute budget and oracle update instructions. */
-  createUpdateInstructions<T>(
+  createUpdateInstructions(
     updates: Array<{
       oraclePubkey: Address;
       oracle: Oracle<T>;
-      payloadCodec: FixedSizeCodec<T>;
     }>,
     unitPrice?: bigint,
   ): TransactionInstruction[] {
-    const payloadCodecs = updates.map((update) => update.payloadCodec) as FixedSizeCodec<unknown>[];
     const budget =
       unitPrice === undefined
-        ? oracleUpdateComputeBudget(payloadCodecs)
-        : oracleUpdateComputeBudget(payloadCodecs, { unitPrice });
+        ? oracleUpdateComputeBudget(this.payloadCodec, updates.length)
+        : oracleUpdateComputeBudget(this.payloadCodec, updates.length, { unitPrice });
 
     const instructions: TransactionInstruction[] = [];
 
@@ -192,7 +188,7 @@ export class Doppler {
               isWritable: true,
             },
           ],
-          data: serializeOracle(update.oracle, update.payloadCodec),
+          data: serializeOracle(update.oracle, this.payloadCodec),
         }),
       );
     }

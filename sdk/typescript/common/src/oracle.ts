@@ -58,8 +58,9 @@ export type OracleUpdateComputeBudgetOptions = Readonly<{
 }>;
 
 /** Compute budget limits for one or more oracle update instructions. */
-export function oracleUpdateComputeBudget(
-  payloadCodecs: readonly FixedSizeCodec<unknown>[],
+export function oracleUpdateComputeBudget<T>(
+  payloadCodec: FixedSizeCodec<T>,
+  updateCount: number,
   options: OracleUpdateComputeBudgetOptions = {},
 ): OracleUpdateComputeBudget {
   let loadedAccountDataSize =
@@ -70,7 +71,7 @@ export function oracleUpdateComputeBudget(
     2;
   let computeUnits = COMPUTE_BUDGET_IX_CU * 2;
 
-  for (const payloadCodec of payloadCodecs) {
+  for (let index = 0; index < updateCount; index++) {
     computeUnits += oracleUpdateComputeUnits(payloadCodec);
     loadedAccountDataSize += oracleUpdateLoadedAccountsDataSize(payloadCodec) * 2;
   }
