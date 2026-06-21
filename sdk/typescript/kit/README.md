@@ -5,14 +5,14 @@ Doppler oracle SDK for applications using `@solana/kit`.
 ## Install
 
 ```bash
-npm install @blueshift-gg/doppler-kit @solana/kit @solana-program/compute-budget @solana-program/system
+npm install @blueshift-gg/doppler-kit @blueshift-gg/doppler-common @solana/kit @solana-program/compute-budget @solana-program/system
 ```
 
 ## Usage
 
 ```ts
 import { Doppler } from "@blueshift-gg/doppler-kit";
-import { priceFeedCodec, PROGRAM_ID } from "@blueshift-gg/doppler-common";
+import { priceFeedCodec } from "@blueshift-gg/doppler-common";
 import {
   appendTransactionMessageInstructions,
   createKeyPairSignerFromBytes,
@@ -28,28 +28,25 @@ import {
 const rpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
 const rpcSubscriptions = createSolanaRpcSubscriptions("wss://api.mainnet-beta.solana.com");
 const signer = await createKeyPairSignerFromBytes(secretKeyBytes);
+const programId = "11111111111111111111111111111111";
 
 const client = new Doppler(rpc, rpcSubscriptions, {
-  programId: PROGRAM_ID,
+  programId,
   admin: signer.address,
   payloadCodec: priceFeedCodec,
 });
 
-const oracle = await client.fetchOracle(oracleAddress);
+const { oraclePubkey, instruction: createInstruction } = await client.createOracleAccount(
+  "my-oracle",
+  signer,
+);
 
-const subscription = await client.subscribeToOracle(oracleAddress);
-for await (const update of subscription.notifications) {
-  console.log(update.payload.price);
-}
-
-subscription.unsubscribe();
-
-const instructions = client.createUpdateInstructions(
+const updateInstructions = client.createUpdateInstructions(
   [
     {
-      oraclePubkey: oracleAddress,
+      oraclePubkey,
       oracle: {
-        sequence: oracle.sequence + 1n,
+        sequence: 1n,
         payload: { price: 42_000_000n },
       },
     },
@@ -62,8 +59,17 @@ const transactionMessage = pipe(
   createTransactionMessage({ version: 0 }),
   (message) => setTransactionMessageFeePayerSigner(signer, message),
   (message) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, message),
-  (message) => appendTransactionMessageInstructions(instructions, message),
+  (message) => appendTransactionMessageInstructions([createInstruction, ...updateInstructions], message),
 );
 
-const transaction = await signTransactionMessageWithSigners(transactionMessage);
+await signTransactionMessageWithSigners(transactionMessage);
+
+const oracle = await client.fetchOracle(oraclePubkey);
+
+const subscription = await client.subscribeToOracle(oraclePubkey);
+for await (const update of subscription.notifications) {
+  console.log(update.payload.price);
+}
+
+subscription.unsubscribe();
 ```
