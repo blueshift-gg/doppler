@@ -109,6 +109,8 @@ fn deploy_program_then_create_and_update_oracle_using_default_payload() {
 
 #[test]
 fn deploy_program_then_create_and_update_oracle_using_custom_payload() {
+    use doppler_integration_sdk::sol_memcpy::PAYLOAD_SIZE as MEMCPY_PAYLOAD_SIZE;
+
     let seed = "SOL-USDC-CUSTOM";
 
     let mut mollusk = Mollusk::default();
@@ -122,7 +124,13 @@ fn deploy_program_then_create_and_update_oracle_using_custom_payload() {
     let oracle = Pubkey::create_with_seed(&admin, seed, &CUSTOM_ID).expect("oracle PDA");
     let account_size = CustomOracle::<CustomOraclePayload>::SIZE;
     assert_eq!(account_size, 8 + CUSTOM_PAYLOAD_SIZE);
-    assert_eq!(account_size, 17);
+    assert_eq!(CUSTOM_PAYLOAD_SIZE, 48);
+    assert!(
+        CUSTOM_PAYLOAD_SIZE > MEMCPY_PAYLOAD_SIZE,
+        "48 bytes packs into six 8-byte copy pairs, while the sol_memcpy fixture \
+         uses {MEMCPY_PAYLOAD_SIZE} bytes with a trailing u32/u16/u8 tail that \
+         greedy chunking expands to eight pairs"
+    );
     let lamports = mollusk.sysvars.rent.minimum_balance(account_size);
     let (system, system_account) = keyed_account_for_system_program();
 
@@ -142,8 +150,15 @@ fn deploy_program_then_create_and_update_oracle_using_custom_payload() {
         oracle: CustomOracle::<CustomOraclePayload> {
             sequence: 1,
             payload: CustomOraclePayload {
-                decimals: 9,
-                price: 1_100_000,
+                bid: 10_500_000,
+                ask: 10_550_000,
+                mid: 10_525_000,
+                leg_a: 1,
+                leg_b: 2,
+                leg_c: 3,
+                leg_d: 4,
+                leg_e: 5,
+                leg_f: 6,
             },
         },
     }
@@ -168,8 +183,15 @@ fn deploy_program_then_create_and_update_oracle_using_custom_payload() {
 
     let oracle_state = CustomOracle::<CustomOraclePayload>::from_bytes(created.data());
     assert_eq!(oracle_state.sequence, 1);
-    assert_eq!(oracle_state.payload.decimals, 9);
-    assert_eq!(oracle_state.payload.price, 1_100_000);
+    assert_eq!(oracle_state.payload.bid, 10_500_000);
+    assert_eq!(oracle_state.payload.ask, 10_550_000);
+    assert_eq!(oracle_state.payload.mid, 10_525_000);
+    assert_eq!(oracle_state.payload.leg_a, 1);
+    assert_eq!(oracle_state.payload.leg_b, 2);
+    assert_eq!(oracle_state.payload.leg_c, 3);
+    assert_eq!(oracle_state.payload.leg_d, 4);
+    assert_eq!(oracle_state.payload.leg_e, 5);
+    assert_eq!(oracle_state.payload.leg_f, 6);
 }
 
 #[test]
