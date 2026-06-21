@@ -96,19 +96,19 @@ The generated payload layout is packed and little-endian. There is no Rust `repr
 
 ## Public API
 
-| Module               | Responsibility                                                             |
-| -------------------- | -------------------------------------------------------------------------- |
-| `schema`             | Payload field types, normalization, and validation.                        |
-| `layout`             | Packed offset and size calculation for payload fields.                     |
-| `config`             | `createGeneratorConfig` and package-name helpers.                          |
-| `assembly`           | sBPF assembly source rendering from admin and payload size.                |
-| `bytecode`           | Assembly-to-ELF compilation via `@blueshift-gg/sbpf-assembler`.            |
-| `artifacts`          | `createDopplerArtifacts` — assembly, bytecode, and manifest in memory.     |
-| `sdk/typescript`     | `renderPayloadCodecSdk` for generated payload codec packages.              |
-| `sdk/rust`           | `renderRustSdk` matching the `doppler-sdk` layout.                         |
-| `transactions`       | `buildDeployTransactions` for unsigned Loader v3 deploy bundles.           |
-| `programs/loader-v3` | Loader v3 instruction builders used by deploy transactions.                |
-| `public-key`         | Solana address decoding and assembly literal helpers.                      |
+| Module               | Responsibility                                                         |
+| -------------------- | ---------------------------------------------------------------------- |
+| `schema`             | Payload field types, normalization, and validation.                    |
+| `layout`             | Packed offset and size calculation for payload fields.                 |
+| `config`             | `createGeneratorConfig` and package-name helpers.                      |
+| `assembly`           | sBPF assembly source rendering from admin and payload size.            |
+| `bytecode`           | Assembly-to-ELF compilation via `@blueshift-gg/sbpf-assembler`.        |
+| `artifacts`          | `createDopplerArtifacts` — assembly, bytecode, and manifest in memory. |
+| `sdk/typescript`     | `renderPayloadCodecSdk` for generated payload codec packages.          |
+| `sdk/rust`           | `renderRustSdk` matching the `doppler-sdk` layout.                     |
+| `transactions`       | `buildDeployTransactions` for unsigned Loader v3 deploy bundles.       |
+| `programs/loader-v3` | Loader v3 instruction builders used by deploy transactions.            |
+| `public-key`         | Solana address decoding and assembly literal helpers.                  |
 
 The current Doppler program does not embed the program ID in bytecode. Program ID is written to the manifest. The bytecode embeds the admin address and payload size.
 

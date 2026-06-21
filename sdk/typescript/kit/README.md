@@ -59,7 +59,8 @@ const transactionMessage = pipe(
   createTransactionMessage({ version: 0 }),
   (message) => setTransactionMessageFeePayerSigner(signer, message),
   (message) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, message),
-  (message) => appendTransactionMessageInstructions([createInstruction, ...updateInstructions], message),
+  (message) =>
+    appendTransactionMessageInstructions([createInstruction, ...updateInstructions], message),
 );
 
 await signTransactionMessageWithSigners(transactionMessage);
