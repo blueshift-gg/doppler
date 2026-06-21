@@ -1,7 +1,7 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "types": ["bun-types", "node"]
+    "types": ["bun", "node"]
   },
   "include": ["*.ts", "../src/**/*.ts"]
 }
