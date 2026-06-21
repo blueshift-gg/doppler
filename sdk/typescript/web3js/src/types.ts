@@ -1,14 +1,7 @@
-import type { Address, Keypair } from "@solana/web3.js";
+import type { Address } from "@solana/web3.js";
 
-/** Configuration for the web3.js Doppler client. */
-export interface DopplerWeb3Config {
-  programId: Address;
-  admin: Address;
-}
-
-/** Shared context for web3.js transaction builders. */
-export interface Web3DopplerContext {
-  signer: Keypair;
+/** Configuration for the Doppler client. */
+export interface DopplerConfig {
   programId: Address;
   admin: Address;
 }

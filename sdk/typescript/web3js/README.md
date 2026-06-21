@@ -13,12 +13,12 @@ npm install @blueshift-gg/doppler-web3js @solana/web3.js
 ```ts
 import { Doppler } from "@blueshift-gg/doppler-web3js";
 import { priceFeedCodec, PROGRAM_ID } from "@blueshift-gg/doppler-common";
-import { Connection, Keypair } from "@solana/web3.js";
+import { Connection, Keypair, Transaction } from "@solana/web3.js";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com");
 const signer = Keypair.fromSecretKey(secretKeyBytes);
 
-const client = new Doppler(connection, signer, {
+const client = new Doppler(connection, {
   programId: PROGRAM_ID,
   admin: signer.publicKey,
 });
@@ -32,13 +32,27 @@ for await (const update of subscription.notifications) {
 
 await subscription.unsubscribe();
 
-await client.updateOracle(
-  oracleAddress,
-  {
-    sequence: oracle.sequence + 1n,
-    payload: { price: 42_000_000n },
-  },
-  priceFeedCodec,
+const instructions = client.createUpdateInstructions(
+  [
+    {
+      oraclePubkey: oracleAddress,
+      oracle: {
+        sequence: oracle.sequence + 1n,
+        payload: { price: 42_000_000n },
+      },
+      payloadCodec: priceFeedCodec,
+    },
+  ],
   1_000n,
 );
+
+const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+const transaction = new Transaction({
+  feePayer: signer.publicKey,
+  blockhash,
+  lastValidBlockHeight,
+}).add(...instructions);
+
+await transaction.sign(signer);
+await connection.sendRawTransaction(await transaction.serialize());
 ```

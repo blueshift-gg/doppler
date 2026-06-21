@@ -1,6 +1,16 @@
 import { getStructCodec, getU64Codec, type FixedSizeCodec } from "@solana/codecs";
 
-import { ADMIN_VERIFICATION_CU, PAYLOAD_WRITE_CU, SEQUENCE_CHECK_CU } from "./constants";
+import {
+  ADMIN_VERIFICATION_CU,
+  COMPUTE_BUDGET_DATA_LIMIT_SIZE,
+  COMPUTE_BUDGET_IX_CU,
+  COMPUTE_BUDGET_PROGRAM_SIZE,
+  COMPUTE_BUDGET_UNIT_LIMIT_SIZE,
+  COMPUTE_BUDGET_UNIT_PRICE_SIZE,
+  ORACLE_PROGRAM_SIZE,
+  PAYLOAD_WRITE_CU,
+  SEQUENCE_CHECK_CU,
+} from "./constants";
 import type { Oracle } from "./types";
 
 function getOracleCodec<T>(payloadCodec: FixedSizeCodec<T>) {
@@ -36,4 +46,39 @@ export function oracleUpdateComputeUnits<T>(payloadCodec: FixedSizeCodec<T>): nu
 
 export function oracleUpdateLoadedAccountsDataSize<T>(payloadCodec: FixedSizeCodec<T>): number {
   return oracleAccountSize(payloadCodec);
+}
+
+export type OracleUpdateComputeBudget = Readonly<{
+  computeUnits: number;
+  loadedAccountDataSize: number;
+}>;
+
+export type OracleUpdateComputeBudgetOptions = Readonly<{
+  unitPrice?: bigint;
+}>;
+
+/** Compute budget limits for one or more oracle update instructions. */
+export function oracleUpdateComputeBudget(
+  payloadCodecs: readonly FixedSizeCodec<unknown>[],
+  options: OracleUpdateComputeBudgetOptions = {},
+): OracleUpdateComputeBudget {
+  let loadedAccountDataSize =
+    ORACLE_PROGRAM_SIZE +
+    COMPUTE_BUDGET_PROGRAM_SIZE +
+    COMPUTE_BUDGET_UNIT_LIMIT_SIZE +
+    COMPUTE_BUDGET_DATA_LIMIT_SIZE +
+    2;
+  let computeUnits = COMPUTE_BUDGET_IX_CU * 2;
+
+  for (const payloadCodec of payloadCodecs) {
+    computeUnits += oracleUpdateComputeUnits(payloadCodec);
+    loadedAccountDataSize += oracleUpdateLoadedAccountsDataSize(payloadCodec) * 2;
+  }
+
+  if (options.unitPrice !== undefined) {
+    loadedAccountDataSize += COMPUTE_BUDGET_UNIT_PRICE_SIZE;
+    computeUnits += COMPUTE_BUDGET_IX_CU;
+  }
+
+  return { computeUnits, loadedAccountDataSize };
 }

@@ -1,17 +1,20 @@
-import { deserializeOracle, oracleAccountSize } from "@blueshift-gg/doppler-common";
+import {
+  deserializeOracle,
+  oracleAccountSize,
+  oracleUpdateComputeBudget,
+  serializeOracle,
+} from "@blueshift-gg/doppler-common";
 import type { Oracle, FixedSizeCodec } from "@blueshift-gg/doppler-common";
 import {
   Address,
+  ComputeBudgetProgram,
   SystemProgram,
-  Transaction,
-  sendAndConfirmTransaction,
+  TransactionInstruction,
   type Commitment,
   type Connection,
-  type Keypair,
 } from "@solana/web3.js";
 
-import { TransactionBuilder } from "./transaction-builder";
-import type { DopplerWeb3Config } from "./types";
+import type { DopplerConfig } from "./types";
 
 export type SubscribeToOracleOptions = Readonly<{
   commitment?: Commitment;
@@ -29,20 +32,10 @@ export class Doppler {
 
   constructor(
     private readonly connection: Connection,
-    private readonly signer: Keypair,
-    config: DopplerWeb3Config,
+    config: DopplerConfig,
   ) {
     this.programId = config.programId;
     this.admin = config.admin;
-  }
-
-  /** Create a transaction builder configured for this client. */
-  createTransactionBuilder(): TransactionBuilder {
-    return TransactionBuilder.fromContext({
-      signer: this.signer,
-      programId: this.programId,
-      admin: this.admin,
-    });
   }
 
   /** Fetch and deserialize an oracle account. */
@@ -127,88 +120,84 @@ export class Doppler {
     };
   }
 
-  /** Create a program-owned oracle account derived from a seed. */
-  async createOracleAccount<T>(seed: string, payloadCodec: FixedSizeCodec<T>): Promise<Address> {
+  /** Build an instruction that initializes a oracle account derived from a seed. */
+  async createOracleAccount<T>(
+    seed: string,
+    payloadCodec: FixedSizeCodec<T>,
+    payer: Address,
+  ): Promise<{ oraclePubkey: Address; instruction: TransactionInstruction }> {
     const space = oracleAccountSize(payloadCodec);
     const lamports = await this.connection.getMinimumBalanceForRentExemption(space);
 
-    const oraclePubkey = await Address.createWithSeed(this.signer.publicKey, seed, this.programId);
+    const oraclePubkey = await Address.createWithSeed(payer, seed, this.programId);
 
-    const createAccountInstruction = SystemProgram.createAccountWithSeed({
-      fromPubkey: this.signer.publicKey,
+    const instruction = SystemProgram.createAccountWithSeed({
+      fromPubkey: payer,
       newAccountPubkey: oraclePubkey,
-      basePubkey: this.signer.publicKey,
+      basePubkey: payer,
       seed,
       lamports,
       space,
       programId: this.programId,
     });
 
-    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash();
-    const transaction = new Transaction({
-      feePayer: this.signer.publicKey,
-      blockhash,
-      lastValidBlockHeight,
-    });
-
-    transaction.add(createAccountInstruction);
-    await transaction.sign(this.signer);
-
-    await sendAndConfirmTransaction(this.connection, transaction, [this.signer]);
-
-    return oraclePubkey;
+    return { oraclePubkey, instruction };
   }
 
-  /** Update a single oracle account. */
-  async updateOracle<T>(
-    oraclePubkey: Address,
-    oracle: Oracle<T>,
-    payloadCodec: FixedSizeCodec<T>,
-    unitPrice?: bigint,
-  ): Promise<string> {
-    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash();
-
-    let builder = this.createTransactionBuilder().addOracleUpdate(
-      oraclePubkey,
-      oracle,
-      payloadCodec,
-    );
-
-    if (unitPrice !== undefined) {
-      builder = builder.withUnitPrice(unitPrice);
-    }
-
-    const transaction = await builder.build(blockhash, lastValidBlockHeight);
-    return sendAndConfirmTransaction(this.connection, transaction, [this.signer]);
-  }
-
-  /** Update multiple oracle accounts in one transaction. */
-  async updateMultipleOracles<T>(
+  /** Build compute budget and oracle update instructions. */
+  createUpdateInstructions<T>(
     updates: Array<{
       oraclePubkey: Address;
       oracle: Oracle<T>;
       payloadCodec: FixedSizeCodec<T>;
     }>,
     unitPrice?: bigint,
-  ): Promise<string> {
-    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash();
+  ): TransactionInstruction[] {
+    const payloadCodecs = updates.map((update) => update.payloadCodec) as FixedSizeCodec<unknown>[];
+    const budget =
+      unitPrice === undefined
+        ? oracleUpdateComputeBudget(payloadCodecs)
+        : oracleUpdateComputeBudget(payloadCodecs, { unitPrice });
 
-    let builder = this.createTransactionBuilder();
-
-    for (const update of updates) {
-      builder = builder.addOracleUpdate(update.oraclePubkey, update.oracle, update.payloadCodec);
-    }
+    const instructions: TransactionInstruction[] = [];
 
     if (unitPrice !== undefined) {
-      builder = builder.withUnitPrice(unitPrice);
+      instructions.push(
+        ComputeBudgetProgram.setComputeUnitPrice({
+          microLamports: unitPrice,
+        }),
+      );
     }
 
-    const transaction = await builder.build(blockhash, lastValidBlockHeight);
-    return sendAndConfirmTransaction(this.connection, transaction, [this.signer]);
-  }
+    instructions.push(
+      ComputeBudgetProgram.setLoadedAccountsDataSizeLimit({
+        accountDataSizeLimit: budget.loadedAccountDataSize,
+      }),
+      ComputeBudgetProgram.setComputeUnitLimit({ units: budget.computeUnits }),
+    );
 
-  getSigner(): Keypair {
-    return this.signer;
+    for (const update of updates) {
+      instructions.push(
+        new TransactionInstruction({
+          programId: this.programId,
+          keys: [
+            {
+              pubkey: this.admin,
+              isSigner: true,
+              isWritable: false,
+            },
+            {
+              pubkey: update.oraclePubkey,
+              isSigner: false,
+              isWritable: true,
+            },
+          ],
+          data: serializeOracle(update.oracle, update.payloadCodec),
+        }),
+      );
+    }
+
+    return instructions;
   }
 
   getConnection(): Connection {

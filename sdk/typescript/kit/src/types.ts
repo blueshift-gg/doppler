@@ -1,14 +1,7 @@
-import type { Address, TransactionSigner } from "@solana/kit";
+import type { Address } from "@solana/kit";
 
-/** Configuration for the Kit Doppler client. */
-export interface DopplerKitConfig {
-  programId: Address;
-  admin: Address;
-}
-
-/** Shared context for Kit transaction builders. */
-export interface KitDopplerContext {
-  signer: TransactionSigner;
+/** Configuration for the Doppler client. */
+export interface DopplerConfig {
   programId: Address;
   admin: Address;
 }

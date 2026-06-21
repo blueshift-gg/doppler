@@ -13,13 +13,23 @@ npm install @blueshift-gg/doppler-kit @solana/kit @solana-program/compute-budget
 ```ts
 import { Doppler } from "@blueshift-gg/doppler-kit";
 import { priceFeedCodec, PROGRAM_ID } from "@blueshift-gg/doppler-common";
-import { createSolanaRpc } from "@solana/kit";
-import { createKeyPairSignerFromBytes } from "@solana/kit";
+import {
+  appendTransactionMessageInstructions,
+  createKeyPairSignerFromBytes,
+  createSolanaRpc,
+  createSolanaRpcSubscriptions,
+  createTransactionMessage,
+  pipe,
+  setTransactionMessageFeePayerSigner,
+  setTransactionMessageLifetimeUsingBlockhash,
+  signTransactionMessageWithSigners,
+} from "@solana/kit";
 
 const rpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
+const rpcSubscriptions = createSolanaRpcSubscriptions("wss://api.mainnet-beta.solana.com");
 const signer = await createKeyPairSignerFromBytes(secretKeyBytes);
 
-const client = new Doppler(rpc, signer, {
+const client = new Doppler(rpc, rpcSubscriptions, {
   programId: PROGRAM_ID,
   admin: signer.address,
 });
@@ -33,13 +43,27 @@ for await (const update of subscription.notifications) {
 
 subscription.unsubscribe();
 
-await client.updateOracle(
-  oracleAddress,
-  {
-    sequence: oracle.sequence + 1n,
-    payload: { price: 42_000_000n },
-  },
-  priceFeedCodec,
+const instructions = client.createUpdateInstructions(
+  [
+    {
+      oraclePubkey: oracleAddress,
+      oracle: {
+        sequence: oracle.sequence + 1n,
+        payload: { price: 42_000_000n },
+      },
+      payloadCodec: priceFeedCodec,
+    },
+  ],
   1_000n,
 );
+
+const { value: latestBlockhash } = await rpc.getLatestBlockhash().send();
+const transactionMessage = pipe(
+  createTransactionMessage({ version: 0 }),
+  (message) => setTransactionMessageFeePayerSigner(signer, message),
+  (message) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, message),
+  (message) => appendTransactionMessageInstructions(instructions, message),
+);
+
+const transaction = await signTransactionMessageWithSigners(transactionMessage);
 ```
