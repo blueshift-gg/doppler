@@ -99,7 +99,7 @@ fn deploy_program_then_create_and_update_oracle_using_default_payload() {
         .expect("oracle account should exist");
     assert_eq!(
         created.data().len(),
-        core::mem::size_of::<Oracle<PriceFeedIntegrationPayload>>()
+        Oracle::<PriceFeedIntegrationPayload>::SIZE
     );
 
     let oracle_state = Oracle::<PriceFeedIntegrationPayload>::from_bytes(created.data());
