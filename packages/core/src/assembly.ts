@@ -13,6 +13,9 @@ const ORACLE_PAYLOAD = 0x28c8;
 const INSTRUCTION_BASE_SEQUENCE = 0x50d8;
 const INSTRUCTION_BASE_PAYLOAD = 0x50e0;
 
+/** Use `sol_memcpy_` syscall when unrolled load/store pairs would exceed this count. */
+export const MEMCPY_COPY_PAIR_THRESHOLD = 6;
+
 /**
  * Render SBPF assembly source for a Doppler oracle program.
  *
@@ -29,6 +32,7 @@ export function renderAssembly(input: AssemblyInput): string {
   const alignedPayloadSize = alignToEightBytes(input.payloadSize);
   const instructionSequence = INSTRUCTION_BASE_SEQUENCE + alignedPayloadSize;
   const instructionPayload = INSTRUCTION_BASE_PAYLOAD + alignedPayloadSize;
+  const instructionDataLen = instructionSequence - 8;
 
   return [
     `.equ ADMIN_HEADER, ${hex(ADMIN_HEADER)}`,
@@ -38,6 +42,9 @@ export function renderAssembly(input: AssemblyInput): string {
     `.equ ORACLE_PAYLOAD, ${hex(ORACLE_PAYLOAD)}`,
     `.equ INSTRUCTION_SEQUENCE, ${hex(instructionSequence)}`,
     `.equ INSTRUCTION_PAYLOAD, ${hex(instructionPayload)}`,
+    `.equ INSTRUCTION_DATA_LEN, ${hex(instructionDataLen)}`,
+    "",
+    ".extern sol_memcpy_",
     "",
     ".globl entrypoint",
     "",
@@ -54,9 +61,8 @@ export function renderAssembly(input: AssemblyInput): string {
     "  ldxdw r2, [r1 + ORACLE_SEQUENCE]",
     "  ldxdw r3, [r1 + INSTRUCTION_SEQUENCE]",
     "  jge r2, r3, error_stale_sequence",
-    "  stxdw [r1 + ORACLE_SEQUENCE], r3",
     "",
-    ...renderPayloadCopy(input.payloadSize),
+    ...renderPayloadWrite(input.payloadSize),
     "",
     "  exit",
     "",
@@ -69,6 +75,60 @@ export function renderAssembly(input: AssemblyInput): string {
     "  exit",
     "",
   ].join("\n");
+}
+
+/**
+ * Count load/store pairs needed to copy `payloadSize` bytes with the chunk strategy.
+ *
+ * Uses the same greedy decomposition as {@link renderPayloadCopy}: consume the payload
+ * from the current offset in descending chunk sizes (8, 4, 2, then 1 byte), emitting
+ * one load/store pair per chunk. Each pair corresponds to one `ldx*`/`stx*` instruction
+ * pair in the generated assembly.
+ *
+ * Examples:
+ * - `48` → `6` pairs (`6 × 8` bytes)
+ * - `47` → `8` pairs (`5 × 8 + 4 + 2 + 1`)
+ * - `49` → `7` pairs (`6 × 8 + 1`)
+ */
+export function countPayloadCopyPairs(payloadSize: number): number {
+  let offset = 0;
+  let pairs = 0;
+
+  for (const chunkSize of [8, 4, 2, 1]) {
+    while (offset + chunkSize <= payloadSize) {
+      pairs += 1;
+      offset += chunkSize;
+    }
+  }
+
+  return pairs;
+}
+
+export function shouldUseSolMemcpy(payloadSize: number): boolean {
+  return countPayloadCopyPairs(payloadSize) > MEMCPY_COPY_PAIR_THRESHOLD;
+}
+
+function renderPayloadWrite(payloadSize: number): string[] {
+  if (shouldUseSolMemcpy(payloadSize)) {
+    return renderMemcpyCopy(payloadSize);
+  }
+
+  return ["  stxdw [r1 + ORACLE_SEQUENCE], r3", ...renderPayloadCopy(payloadSize)];
+}
+
+/** Copy sequence and payload from instruction data into the oracle account via `sol_memcpy_`. */
+export function renderMemcpyCopy(payloadSize: number): string[] {
+  const copyLen = 8 + payloadSize;
+
+  return [
+    "  mov64 r5, r1",
+    "  add64 r5, ORACLE_SEQUENCE",
+    "  add64 r1, INSTRUCTION_SEQUENCE",
+    "  mov64 r2, r1",
+    "  mov64 r1, r5",
+    `  mov64 r3, ${copyLen}`,
+    "  call sol_memcpy_",
+  ];
 }
 
 /** Emit load/store instruction pairs that copy `payloadSize` bytes into the oracle account. */

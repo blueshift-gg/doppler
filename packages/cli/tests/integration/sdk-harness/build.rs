@@ -16,44 +16,47 @@ fn main() {
     let core_dir = cli_dir.parent().expect("packages directory").join("core");
     let schema = integration_dir.join("fixtures/schema.json");
     let custom_schema = integration_dir.join("fixtures/custom_payload_schema.json");
+    let sol_memcpy_schema = integration_dir.join("fixtures/sol_memcpy_payload_schema.json");
     let script = integration_dir.join("scripts/generate-artifacts.mts");
 
     println!("cargo:rerun-if-changed={}", schema.display());
     println!("cargo:rerun-if-changed={}", custom_schema.display());
+    println!("cargo:rerun-if-changed={}", sol_memcpy_schema.display());
     println!("cargo:rerun-if-changed={}", script.display());
     rerun_if_changed(&cli_dir.join("src"));
     rerun_if_changed(&core_dir.join("src"));
     rerun_if_changed(&core_dir.join("templates/rust"));
 
     generate_artifacts(&script, &cli_dir, &out_dir, &schema);
+    copy_generated_sdk(&out_dir, &out_dir.join("rust-sdk/src"), "");
+
     let custom_out_dir = out_dir.join("custom");
     generate_artifacts(&script, &cli_dir, &custom_out_dir, &custom_schema);
+    copy_generated_sdk(&out_dir, &custom_out_dir.join("rust-sdk/src"), "custom_");
 
-    let rust_sdk_src = out_dir.join("rust-sdk/src");
+    let sol_memcpy_out_dir = out_dir.join("sol_memcpy");
+    generate_artifacts(&script, &cli_dir, &sol_memcpy_out_dir, &sol_memcpy_schema);
+    copy_generated_sdk(
+        &out_dir,
+        &sol_memcpy_out_dir.join("rust-sdk/src"),
+        "sol_memcpy_",
+    );
+}
+
+fn copy_generated_sdk(out_dir: &Path, rust_sdk_src: &Path, prefix: &str) {
     for file in ["accounts.rs", "constants.rs", "transaction.rs"] {
-        fs::copy(rust_sdk_src.join(file), out_dir.join(file))
-            .unwrap_or_else(|error| panic!("failed to copy generated {file}: {error}"));
+        fs::copy(
+            rust_sdk_src.join(file),
+            out_dir.join(format!("{prefix}{file}")),
+        )
+        .unwrap_or_else(|error| panic!("failed to copy generated {prefix}{file}: {error}"));
     }
 
     let lib_rs =
         fs::read_to_string(rust_sdk_src.join("lib.rs")).expect("failed to read generated lib.rs");
     let lib_body = strip_generated_module_declarations(&lib_rs);
-    fs::write(out_dir.join("lib_body.rs"), lib_body).expect("failed to write lib_body.rs");
-
-    let custom_rust_sdk_src = custom_out_dir.join("rust-sdk/src");
-    for file in ["accounts.rs", "constants.rs", "transaction.rs"] {
-        fs::copy(
-            custom_rust_sdk_src.join(file),
-            out_dir.join(format!("custom_{file}")),
-        )
-        .unwrap_or_else(|error| panic!("failed to copy generated custom {file}: {error}"));
-    }
-
-    let custom_lib_rs = fs::read_to_string(custom_rust_sdk_src.join("lib.rs"))
-        .expect("failed to read generated custom lib.rs");
-    let custom_lib_body = strip_generated_module_declarations(&custom_lib_rs);
-    fs::write(out_dir.join("custom_lib_body.rs"), custom_lib_body)
-        .expect("failed to write custom lib_body.rs");
+    fs::write(out_dir.join(format!("{prefix}lib_body.rs")), lib_body)
+        .expect("failed to write generated lib body");
 }
 
 fn generate_artifacts(script: &Path, cli_dir: &Path, out_dir: &Path, schema: &Path) {

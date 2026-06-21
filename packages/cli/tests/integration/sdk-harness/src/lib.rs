@@ -35,3 +35,22 @@ pub mod custom {
 
     pub const BYTECODE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/custom/doppler.so"));
 }
+
+pub mod sol_memcpy {
+    mod accounts {
+        include!(concat!(env!("OUT_DIR"), "/sol_memcpy_accounts.rs"));
+    }
+    mod constants {
+        include!(concat!(env!("OUT_DIR"), "/sol_memcpy_constants.rs"));
+    }
+    pub mod transaction {
+        include!(concat!(env!("OUT_DIR"), "/sol_memcpy_transaction.rs"));
+    }
+
+    pub use accounts::{Oracle, OraclePayload, UpdateInstruction};
+    pub use constants::ID;
+
+    include!(concat!(env!("OUT_DIR"), "/sol_memcpy_lib_body.rs"));
+
+    pub const BYTECODE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/sol_memcpy/doppler.so"));
+}

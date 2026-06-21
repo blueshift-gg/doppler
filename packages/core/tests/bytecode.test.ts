@@ -10,3 +10,9 @@ test("compiles generated assembly into ELF bytecode", async () => {
   const bytecode = await compileAssemblyToBytecode({ assemblySource: assembly, arch: "v3" });
   expect(bytecode.slice(0, 4)).toEqual(new Uint8Array([0x7f, 0x45, 0x4c, 0x46]));
 });
+
+test("compiles sol_memcpy assembly path into ELF bytecode", async () => {
+  const assembly = renderAssembly({ admin: ADMIN, payloadSize: 49 });
+  const bytecode = await compileAssemblyToBytecode({ assemblySource: assembly, arch: "v3" });
+  expect(bytecode.slice(0, 4)).toEqual(new Uint8Array([0x7f, 0x45, 0x4c, 0x46]));
+});
