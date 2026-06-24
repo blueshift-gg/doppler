@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, extname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { createGeneratorConfig } from "@blueshift-gg/doppler";
+import { createGeneratorConfig, isSbpfArch } from "@blueshift-gg/doppler";
 import type { ConfigOverrides, GeneratorConfig, GeneratorConfigInput } from "@blueshift-gg/doppler";
 import { createJiti } from "jiti";
 
@@ -78,7 +78,7 @@ async function loadManifestConfigInput(directory: string): Promise<GeneratorConf
       ...(typeof manifest.name === "string" ? { name: manifest.name } : {}),
       ...(typeof manifest.programId === "string" ? { programId: manifest.programId } : {}),
       ...(typeof manifest.admin === "string" ? { admin: manifest.admin } : {}),
-      ...(manifest.arch === "v0" || manifest.arch === "v3" ? { arch: manifest.arch } : {}),
+      ...(isSbpfArch(manifest.arch) ? { arch: manifest.arch } : {}),
     };
   } catch {
     return {};

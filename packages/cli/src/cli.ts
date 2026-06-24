@@ -3,7 +3,13 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createGeneratorConfig, type ConfigOverrides, type SbpfArch } from "@blueshift-gg/doppler";
+import {
+  createGeneratorConfig,
+  isSbpfArch,
+  SBPF_ARCH_VERSIONS,
+  type ConfigOverrides,
+  type SbpfArch,
+} from "@blueshift-gg/doppler";
 import { Keypair } from "@solana/web3.js";
 import { Command, InvalidArgumentError } from "commander";
 
@@ -280,8 +286,8 @@ function toGenerateArgs(
 }
 
 function parseArch(value: string): SbpfArch {
-  if (value !== "v0" && value !== "v3") {
-    throw new InvalidArgumentError("expected 'v0' or 'v3'");
+  if (!isSbpfArch(value)) {
+    throw new InvalidArgumentError(`expected one of: ${SBPF_ARCH_VERSIONS.join(", ")}`);
   }
   return value;
 }

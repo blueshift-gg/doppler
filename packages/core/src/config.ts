@@ -2,8 +2,30 @@ import { computePayloadLayout } from "./layout.js";
 import type { PayloadLayout } from "./layout.js";
 import type { PayloadSchema } from "./schema.js";
 
-// https://github.com/blueshift-gg/sbpf/blob/master/crates/assembler/src/lib.rs#L44
-export type SbpfArch = "v0" | "v3";
+/**
+ * Supported sBPF arch versions.
+ * Reference: https://github.com/blueshift-gg/sbpf/blob/0223df0e7ba622d4956b4ecf3cf2397f6945b76b/crates/assembler/src/lib.rs#L44
+ */
+export const SBPF_ARCH_VERSIONS = ["v0", "v3"] as const;
+
+/** Public sBPF arch identifiers, derived from {@link SBPF_ARCH_VERSIONS}. */
+export type SbpfArch = (typeof SBPF_ARCH_VERSIONS)[number];
+
+/**
+ * Numeric SBPF assembler version for each arch.
+ * Reference: https://github.com/blueshift-gg/sbpf/blob/0223df0e7ba622d4956b4ecf3cf2397f6945b76b/crates/assembler/src/lib.rs#L55
+ */
+export const SBPF_ASSEMBLER_VERSIONS: Record<SbpfArch, number> = {
+  v0: 0,
+  v3: 3,
+};
+
+export const DEFAULT_SBPF_ARCH: SbpfArch = "v3";
+
+/** Type guard for {@link SbpfArch}, derived from {@link SBPF_ARCH_VERSIONS}. */
+export function isSbpfArch(value: unknown): value is SbpfArch {
+  return typeof value === "string" && SBPF_ARCH_VERSIONS.includes(value as SbpfArch);
+}
 
 export type GeneratorConfigInput = {
   name?: string;
@@ -60,9 +82,11 @@ export function createGeneratorConfig(
     throw new Error("Generator config requires an admin address");
   }
 
-  const arch = input.arch ?? "v3";
-  if (arch !== "v0" && arch !== "v3") {
-    throw new Error(`Invalid arch '${String(arch)}'. Expected 'v0' or 'v3'`);
+  const arch = input.arch ?? DEFAULT_SBPF_ARCH;
+  if (!isSbpfArch(arch)) {
+    throw new Error(
+      `Invalid arch '${String(arch)}'. Expected one of: ${SBPF_ARCH_VERSIONS.join(", ")}`,
+    );
   }
 
   const layout = computePayloadLayout(input.payload);

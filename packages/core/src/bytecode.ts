@@ -1,6 +1,6 @@
 import { assemble } from "@blueshift-gg/sbpf-assembler/node";
 
-import type { SbpfArch } from "./config.js";
+import { SBPF_ASSEMBLER_VERSIONS, type SbpfArch } from "./config.js";
 
 type CompileAssemblyToBytecode = {
   assemblySource: string;
@@ -14,5 +14,5 @@ export async function compileAssemblyToBytecode({
   assemblySource,
   arch,
 }: CompileAssemblyToBytecode): Promise<Uint8Array> {
-  return assemble(assemblySource, arch === "v3" ? 3 : 0);
+  return assemble(assemblySource, SBPF_ASSEMBLER_VERSIONS[arch]);
 }
