@@ -37,59 +37,55 @@ export function isScalarType(value: unknown): value is ScalarType {
 }
 
 /**
- * Validate a payload schema object and normalize each field to a scalar type and length.
+ * Validate a payload schema object and normalize each field to `{ name, type, length }`.
  *
- * Scalar fields become length `1`; array fields must declare a positive integer `length`.
+ * Each field accepts one of two shapes:
+ * - `"u32"` — scalar shorthand (length = 1)
+ * - `{ type: "u32", length: 10 }` — array descriptor
  */
 export function normalizePayloadSchema(schema: unknown): NormalizedField[] {
-  if (!isRecord(schema) || Array.isArray(schema)) {
+  if (!isRecord(schema)) {
     throw new Error("Payload schema must be an object");
   }
 
-  const fields: NormalizedField[] = [];
-  for (const [name, field] of Object.entries(schema)) {
-    if (!FIELD_NAME_PATTERN.test(name)) {
-      throw new Error(`Invalid payload field name: ${name}`);
-    }
+  const entries = Object.entries(schema);
 
-    if (isScalarType(field)) {
-      fields.push({ name, type: field, length: 1 });
-      continue;
-    }
-
-    if (!isRecord(field) || Array.isArray(field)) {
-      throw new Error(`Invalid schema for field '${name}'`);
-    }
-
-    if (!isScalarType(field.type)) {
-      throw new Error(`Invalid scalar type for field '${name}'`);
-    }
-
-    const length = field.length;
-    if (typeof length !== "number" || !Number.isInteger(length) || length <= 0) {
-      throw new Error(`Array field '${name}' must have a positive integer length`);
-    }
-
-    fields.push({ name, type: field.type, length });
-  }
-
-  if (fields.length === 0) {
+  if (entries.length === 0) {
     throw new Error("Payload schema must contain at least one field");
   }
 
-  return fields;
+  return entries.map(([name, field]) => normalizeField(name, field));
 }
 
-/** Convert normalized fields back into the shorthand payload schema object shape. */
-export function normalizedSchemaObject(fields: NormalizedField[]): PayloadSchema {
-  return Object.fromEntries(
-    fields.map((field) => [
-      field.name,
-      field.length === 1 ? field.type : { type: field.type, length: field.length },
-    ]),
-  );
+function normalizeField(name: string, field: unknown): NormalizedField {
+  if (!FIELD_NAME_PATTERN.test(name)) {
+    throw new Error(`Invalid payload field name: ${name}`);
+  }
+
+  let type: unknown;
+  let length: unknown;
+
+  if (typeof field === "string") {
+    type = field;
+    length = 1;
+  } else if (isRecord(field)) {
+    type = field.type;
+    length = field.length;
+  } else {
+    throw new Error(`Invalid schema for field '${name}'`);
+  }
+
+  if (!isScalarType(type)) {
+    throw new Error(`Invalid scalar type '${String(type)}' for field '${name}'`);
+  }
+
+  if (typeof length !== "number" || !Number.isInteger(length) || length <= 0) {
+    throw new Error(`Field '${name}' length must be a positive integer`);
+  }
+
+  return { name, type, length };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -1,6 +1,5 @@
 import { computePayloadLayout } from "./layout.js";
 import type { PayloadLayout } from "./layout.js";
-import { normalizedSchemaObject, normalizePayloadSchema } from "./schema.js";
 import type { PayloadSchema } from "./schema.js";
 
 // https://github.com/blueshift-gg/sbpf/blob/master/crates/assembler/src/lib.rs#L44
@@ -67,9 +66,7 @@ export function createGeneratorConfig(
     throw new Error(`Invalid arch '${String(arch)}'. Expected 'v0' or 'v3'`);
   }
 
-  const normalizedFields = normalizePayloadSchema(input.payload);
-  const payload = normalizedSchemaObject(normalizedFields);
-  const layout = computePayloadLayout(payload);
+  const layout = computePayloadLayout(input.payload);
 
   return {
     name,
@@ -77,7 +74,7 @@ export function createGeneratorConfig(
     programId,
     admin,
     arch,
-    payload,
+    payload: input.payload,
     layout,
   };
 }

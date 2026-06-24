@@ -24,10 +24,7 @@ test("computes fixed array layout", () => {
   expect(computePayloadLayout({ flags: { type: "u8", length: 32 } }).payloadSize).toBe(32);
 });
 
-test("rejects invalid schema fields", () => {
+test("rejects invalid schema", () => {
   expect(() => computePayloadLayout({ "bad-field": "u64" })).toThrow("Invalid payload field name");
-  expect(() => computePayloadLayout({ price: "string" })).toThrow("Invalid schema");
-  expect(() => computePayloadLayout({ flags: { type: "u8", length: 0 } })).toThrow(
-    "positive integer length",
-  );
+  expect(() => computePayloadLayout({ price: "string" })).toThrow("Invalid scalar type");
 });

@@ -1,20 +1,16 @@
 import { expect, test } from "bun:test";
 
-import { computePayloadLayout } from "../src/layout.js";
-import type { PayloadSchema } from "../src/schema.js";
+import { createGeneratorConfig } from "../src/config.js";
 import { renderRustSdk } from "../src/sdk/rust.js";
 
 test("renders Rust SDK without unsafe transmute in payload helpers", async () => {
-  const payload: PayloadSchema = { price: "u64", confidence: "u32" };
-  const files = await renderRustSdk({
+  const config = createGeneratorConfig({
     name: "SolUsdcFeed",
-    packageName: "sol-usdc-feed",
     programId: "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
     admin: "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
-    arch: "v3",
-    payload,
-    layout: computePayloadLayout(payload),
+    payload: { price: "u64", confidence: "u32" },
   });
+  const files = await renderRustSdk(config);
 
   expect(files["src/lib.rs"]).toContain("pub struct SolUsdcFeedPayload");
   expect(files["src/lib.rs"]).toContain("impl OraclePayload for SolUsdcFeedPayload");

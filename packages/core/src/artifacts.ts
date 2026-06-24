@@ -40,7 +40,7 @@ export async function createDopplerArtifacts(config: GeneratorConfig): Promise<D
     admin: config.admin,
     arch: config.arch,
     payloadSize: config.layout.payloadSize,
-    schemaHash: `sha256:${await sha256(JSON.stringify(config.payload))}`,
+    schemaHash: `sha256:${await sha256(JSON.stringify(config.layout.fields))}`,
     elfSha256: `sha256:${await sha256(bytecode)}`,
   };
 

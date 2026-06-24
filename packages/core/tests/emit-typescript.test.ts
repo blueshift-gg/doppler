@@ -1,20 +1,16 @@
 import { expect, test } from "bun:test";
 
-import { computePayloadLayout } from "../src/layout.js";
-import type { PayloadSchema } from "../src/schema.js";
+import { createGeneratorConfig } from "../src/config.js";
 import { renderPayloadCodecSdk } from "../src/sdk/typescript.js";
 
 test("renders payload codec TypeScript SDK files", () => {
-  const payload: PayloadSchema = { price: "u64", confidence: "u32", slot: "u64" };
-  const files = renderPayloadCodecSdk({
+  const config = createGeneratorConfig({
     name: "SolUsdcFeed",
-    packageName: "sol-usdc-feed",
     programId: "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
     admin: "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
-    arch: "v3",
-    payload,
-    layout: computePayloadLayout(payload),
+    payload: { price: "u64", confidence: "u32", slot: "u64" },
   });
+  const files = renderPayloadCodecSdk(config);
 
   expect(files["src/codecs.ts"]).toContain("export interface SolUsdcFeedPayload");
   expect(files["src/codecs.ts"]).toContain(
