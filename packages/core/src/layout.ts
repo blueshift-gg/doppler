@@ -1,5 +1,4 @@
-import { SCALAR_SIZES, normalizePayloadSchema } from "./schema.js";
-import type { NormalizedField } from "./schema.js";
+import { SCALAR_SIZES, normalizePayloadSchema, type NormalizedField } from "./schema.js";
 
 export type LayoutField = NormalizedField & {
   offset: number;
@@ -14,18 +13,15 @@ export type PayloadLayout = {
 /** Assign contiguous byte offsets to each field in a normalized payload schema. */
 export function computePayloadLayout(schema: unknown): PayloadLayout {
   const fields = normalizePayloadSchema(schema);
+
+  const layoutFields: LayoutField[] = [];
   let offset = 0;
 
-  const layoutFields = fields.map((field) => {
+  for (const field of fields) {
     const size = SCALAR_SIZES[field.type] * field.length;
-    const layoutField: LayoutField = {
-      ...field,
-      offset,
-      size,
-    };
+    layoutFields.push({ ...field, offset, size });
     offset += size;
-    return layoutField;
-  });
+  }
 
   return {
     fields: layoutFields,
