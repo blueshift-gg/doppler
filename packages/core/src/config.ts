@@ -26,7 +26,6 @@ export type GeneratorConfig = {
   programId: string;
   admin: string;
   arch: SbpfArch;
-  payload: PayloadSchema;
   layout: PayloadLayout;
 };
 
@@ -74,7 +73,6 @@ export function createGeneratorConfig(
     programId,
     admin,
     arch,
-    payload: input.payload,
     layout,
   };
 }
