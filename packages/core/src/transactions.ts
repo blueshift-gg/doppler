@@ -22,7 +22,7 @@ type BuildDeployTransactionsInput = {
   /** Maximum program data length. */
   maxDataLen?: number;
   commitment?: Commitment;
-  bytecode: Uint8Array;
+  binary: Uint8Array;
 };
 
 export type DeployTransactionBundle = {
@@ -35,7 +35,7 @@ export type DeployTransactionBundle = {
 /**
  * Build unsigned Loader v3 deploy transactions for a Doppler program.
  *
- * Accepts precompiled bytecode or compiles from a generator config. Returns ready-to-sign transactions in the order of `initializeBuffer`, `Write`, `DeployWithMaxDataLen`.
+ * Accepts a precompiled program binary. Returns ready-to-sign transactions in the order of `initializeBuffer`, `Write`, `DeployWithMaxDataLen`.
  */
 export async function buildDeployTransactions(
   input: BuildDeployTransactionsInput,
@@ -44,7 +44,7 @@ export async function buildDeployTransactions(
   const upgradeAuthority = input.upgradeAuthority ?? payer;
   const bufferKeypair = await Keypair.generate();
   const programAddress = input.programId;
-  const maxDataLen = input.maxDataLen ?? Math.max(input.bytecode.length * 2, input.bytecode.length);
+  const maxDataLen = input.maxDataLen ?? Math.max(input.binary.length * 2, input.binary.length);
   const commitment = input.commitment ?? "confirmed";
 
   const [programDataAddress] = await Address.findProgramAddress(
@@ -54,7 +54,7 @@ export async function buildDeployTransactions(
 
   const [{ blockhash, lastValidBlockHeight }, bufferRent, programRent] = await Promise.all([
     input.connection.getLatestBlockhash(commitment),
-    input.connection.getMinimumBalanceForRentExemption(sizeOfBuffer(input.bytecode.length)),
+    input.connection.getMinimumBalanceForRentExemption(sizeOfBuffer(input.binary.length)),
     input.connection.getMinimumBalanceForRentExemption(UPGRADEABLE_LOADER_PROGRAM_SIZE),
   ]);
 
@@ -77,7 +77,7 @@ export async function buildDeployTransactions(
       fromPubkey: payer,
       newAccountPubkey: bufferKeypair.publicKey,
       lamports: bufferRent,
-      space: sizeOfBuffer(input.bytecode.length),
+      space: sizeOfBuffer(input.binary.length),
       programId: LoaderV3Program.programId,
     }),
     LoaderV3Program.initializeBuffer({
@@ -89,8 +89,8 @@ export async function buildDeployTransactions(
 
   // Multiple Write transactions may be required when the ELF exceeds one packet-sized chunk.
   const writeTransactions: Transaction[] = [];
-  for (let offset = 0; offset < input.bytecode.length; offset += writeChunkSize) {
-    const bytes = input.bytecode.subarray(offset, offset + writeChunkSize);
+  for (let offset = 0; offset < input.binary.length; offset += writeChunkSize) {
+    const bytes = input.binary.subarray(offset, offset + writeChunkSize);
     writeTransactions.push(
       new Transaction({
         ...lifetime,

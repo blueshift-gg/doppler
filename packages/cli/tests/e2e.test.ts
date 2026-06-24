@@ -30,7 +30,7 @@ test("generates price feed artifacts with default v3 arch", async () => {
   const config = await loadGeneratorConfig(configFile);
   const out = join(dir, "generated");
   const manifest = await writeDopplerArtifacts(config, {
-    bytecodeFile: join(out, "doppler.so"),
+    binaryFile: join(out, "doppler.so"),
     assemblyFile: join(out, "doppler.s"),
     typescriptSdkDir: join(out, "codec"),
   });
@@ -60,7 +60,7 @@ test("supports explicit v0 arch", async () => {
 
   const config = await loadGeneratorConfig(configFile);
   const manifest = await writeDopplerArtifacts(config, {
-    bytecodeFile: join(dir, "doppler.so"),
+    binaryFile: join(dir, "doppler.so"),
   });
 
   expect(manifest.arch).toBe("v0");

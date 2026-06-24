@@ -1,6 +1,6 @@
 import { bigintToHexLiteral, publicKeyToU64Words } from "./public-key.js";
 
-export type AssemblyInput = {
+export type OracleProgramInput = {
   admin: string;
   payloadSize: number;
 };
@@ -17,13 +17,13 @@ const INSTRUCTION_BASE_PAYLOAD = 0x50e0;
 export const MEMCPY_COPY_PAIR_THRESHOLD = 6;
 
 /**
- * Render SBPF assembly source for a Doppler oracle program.
+ * Generate SBPF assembly source for a Doppler oracle program.
  *
  * - Validates the admin signer
  * - Enforces monotonic sequence numbers
  * - Copies the instruction payload into the oracle account
  */
-export function renderAssembly(input: AssemblyInput): string {
+export function generateOracleProgram(input: OracleProgramInput): string {
   if (!Number.isInteger(input.payloadSize) || input.payloadSize <= 0) {
     throw new Error("payloadSize must be a positive integer");
   }

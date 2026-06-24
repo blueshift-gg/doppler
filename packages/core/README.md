@@ -1,6 +1,6 @@
 # @blueshift-gg/doppler
 
-Programmatic APIs for payload schema validation, bytecode generation, manifest creation, SDK rendering, and Loader v3 deploy transaction construction.
+Programmatic APIs for payload schema validation, binary generation, manifest creation, SDK rendering, and Loader v3 deploy transaction construction.
 
 ## Get Started
 
@@ -32,7 +32,7 @@ const config = createGeneratorConfig({
   },
 });
 
-const { assembly, bytecode, manifest } = await createDopplerArtifacts(config);
+const { assembly, binary, manifest } = await createDopplerArtifacts(config);
 
 const codecFiles = renderPayloadCodecSdk(config);
 const rustFiles = await renderRustSdk(config);
@@ -42,7 +42,7 @@ const bundle = await buildDeployTransactions({
   connection,
   programId: config.programId,
   payer: "<payer-address>",
-  bytecode,
+  binary,
 });
 ```
 
@@ -96,25 +96,25 @@ The generated payload layout is packed and little-endian. There is no Rust `repr
 
 ## Public API
 
-| Module               | Responsibility                                                         |
-| -------------------- | ---------------------------------------------------------------------- |
-| `schema`             | Payload field types, normalization, and validation.                    |
-| `layout`             | Packed offset and size calculation for payload fields.                 |
-| `config`             | `createGeneratorConfig` and package-name helpers.                      |
-| `assembly`           | sBPF assembly source rendering from admin and payload size.            |
-| `bytecode`           | Assembly-to-ELF compilation via `@blueshift-gg/sbpf-assembler`.        |
-| `artifacts`          | `createDopplerArtifacts` — assembly, bytecode, and manifest in memory. |
-| `sdk/typescript`     | `renderPayloadCodecSdk` for generated payload codec packages.          |
-| `sdk/rust`           | `renderRustSdk` matching the `doppler-sdk` layout.                     |
-| `transactions`       | `buildDeployTransactions` for unsigned Loader v3 deploy bundles.       |
-| `programs/loader-v3` | Loader v3 instruction builders used by deploy transactions.            |
-| `public-key`         | Solana address decoding and assembly literal helpers.                  |
+| Module               | Responsibility                                                       |
+| -------------------- | -------------------------------------------------------------------- |
+| `schema`             | Payload field types, normalization, and validation.                  |
+| `layout`             | Packed offset and size calculation for payload fields.               |
+| `config`             | `createGeneratorConfig` and package-name helpers.                    |
+| `assembly`           | sBPF assembly source rendering from admin and payload size.          |
+| `binary`             | Assembly-to-ELF compilation via `@blueshift-gg/sbpf-assembler`.      |
+| `artifacts`          | `createDopplerArtifacts` — assembly, binary, and manifest in memory. |
+| `sdk/typescript`     | `renderPayloadCodecSdk` for generated payload codec packages.        |
+| `sdk/rust`           | `renderRustSdk` matching the `doppler-sdk` layout.                   |
+| `transactions`       | `buildDeployTransactions` for unsigned Loader v3 deploy bundles.     |
+| `programs/loader-v3` | Loader v3 instruction builders used by deploy transactions.          |
+| `public-key`         | Solana address decoding and assembly literal helpers.                |
 
-The current Doppler program does not embed the program ID in bytecode. Program ID is written to the manifest. The bytecode embeds the admin address and payload size.
+The current Doppler program does not embed the program ID in the binary. Program ID is written to the manifest. The binary embeds the admin address and payload size.
 
 ## Deploy transactions
 
-`buildDeployTransactions` accepts precompiled bytecode and returns unsigned transactions in Loader v3 order: `initializeBuffer`, `Write` chunks, then `DeployWithMaxDataLen`. Core builds transactions only; signing, sending, and confirmation are left to the caller (the CLI handles that layer).
+`buildDeployTransactions` accepts precompiled binary and returns unsigned transactions in Loader v3 order: `initializeBuffer`, `Write` chunks, then `DeployWithMaxDataLen`. Core builds transactions only; signing, sending, and confirmation are left to the caller (the CLI handles that layer).
 
 ## Tests
 
@@ -124,4 +124,4 @@ bun run typecheck
 bun run build
 ```
 
-Unit tests under `tests/` cover schema layout, assembly rendering, bytecode compilation, SDK emission, and deploy transaction construction.
+Unit tests under `tests/` cover schema layout, assembly rendering, binary compilation, SDK emission, and deploy transaction construction.

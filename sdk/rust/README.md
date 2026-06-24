@@ -47,4 +47,4 @@ let transaction = Builder::new(&admin)
     .build(recent_blockhash);
 ```
 
-`ID` is the default Doppler program ID. Custom bytecode from the generator exports the same constant in generated Rust SDKs.
+`ID` is the default Doppler program ID. Custom binary from the generator exports the same constant in generated Rust SDKs.

@@ -17,7 +17,7 @@ test("deploy rejects admin mismatch against manifest", async () => {
   const dir = await mkdtemp(join(tmpdir(), "doppler-deploy-"));
   tempDirs.push(dir);
 
-  const bytecodePath = join(dir, "price-feed.so");
+  const binaryPath = join(dir, "price-feed.so");
   const programKeypairPath = join(dir, "program-keypair.json");
   const signerKeypairPath = join(dir, "signer-keypair.json");
   const configPath = join(dir, "config.yml");
@@ -25,7 +25,7 @@ test("deploy rejects admin mismatch against manifest", async () => {
   const programKeypair = await Keypair.generate();
   const signerKeypair = await Keypair.generate();
 
-  await writeFile(bytecodePath, Buffer.from([0x7f, 0x45, 0x4c, 0x46]));
+  await writeFile(binaryPath, Buffer.from([0x7f, 0x45, 0x4c, 0x46]));
   await writeFile(programKeypairPath, `${JSON.stringify(Array.from(programKeypair.secretKey))}\n`);
   await writeFile(signerKeypairPath, `${JSON.stringify(Array.from(signerKeypair.secretKey))}\n`);
   await writeFile(
@@ -44,7 +44,7 @@ keypair_path: ${signerKeypairPath}
 
   await expect(
     deployProgram({
-      bytecodePath,
+      binaryPath,
       programKeypairPath,
       admin: "11111111111111111111111111111111",
       configPath,

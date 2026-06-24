@@ -27,18 +27,18 @@ test("buildDeployTransactions assembles loader v3 deploy transactions", async ()
   const payerKeypair = await Keypair.generate();
   const payer = payerKeypair.publicKey;
   const programKeypair = await Keypair.generate();
-  const bytecode = new Uint8Array([0x7f, 0x45, 0x4c, 0x46, 0x01, 0x02, 0x03]);
+  const binary = new Uint8Array([0x7f, 0x45, 0x4c, 0x46, 0x01, 0x02, 0x03]);
 
   const bundle = await buildDeployTransactions({
     connection,
     payer,
     programId: programKeypair.publicKey,
-    bytecode,
+    binary,
   });
 
   expect(bundle.transactions.length).toBeGreaterThanOrEqual(3);
   expect(bundle.programId).toBe(programKeypair.publicKey.toBase58());
-  expect(bundle.maxDataLen).toBeGreaterThanOrEqual(bytecode.length);
+  expect(bundle.maxDataLen).toBeGreaterThanOrEqual(binary.length);
 
   const bufferInit = bundle.transactions[0]!;
   const deploy = bundle.transactions.at(-1)!;
@@ -69,7 +69,7 @@ test("write transactions require two signatures when payer and upgrade authority
     payer,
     upgradeAuthority,
     programId: (await Keypair.generate()).publicKey,
-    bytecode: new Uint8Array(2_000),
+    binary: new Uint8Array(2_000),
   });
 
   const writeTx = bundle.transactions[1]!;
@@ -79,13 +79,13 @@ test("write transactions require two signatures when payer and upgrade authority
 test("write transactions use a smaller chunk size when two signatures are required", async () => {
   const payer = (await Keypair.generate()).publicKey;
   const upgradeAuthority = (await Keypair.generate()).publicKey;
-  const bytecode = new Uint8Array(2_000);
+  const binary = new Uint8Array(2_000);
 
   const sharedAuthorityBundle = await buildDeployTransactions({
     connection: createMockConnection(),
     payer,
     programId: (await Keypair.generate()).publicKey,
-    bytecode,
+    binary,
   });
 
   const distinctAuthorityBundle = await buildDeployTransactions({
@@ -93,7 +93,7 @@ test("write transactions use a smaller chunk size when two signatures are requir
     payer,
     upgradeAuthority,
     programId: (await Keypair.generate()).publicKey,
-    bytecode,
+    binary,
   });
 
   expect(distinctAuthorityBundle.transactions.length).toBeGreaterThan(
@@ -101,7 +101,7 @@ test("write transactions use a smaller chunk size when two signatures are requir
   );
 });
 
-test("buildDeployTransactions compiles bytecode from generator config", async () => {
+test("buildDeployTransactions compiles binary from generator config", async () => {
   const programKeypair = await Keypair.generate();
   const adminKeypair = await Keypair.generate();
   const config = createGeneratorConfig(
@@ -114,16 +114,16 @@ test("buildDeployTransactions compiles bytecode from generator config", async ()
     {},
   );
 
-  const { bytecode } = await createDopplerArtifacts(config);
-  expect(bytecode.byteLength).toBeGreaterThan(0);
+  const { binary } = await createDopplerArtifacts(config);
+  expect(binary.byteLength).toBeGreaterThan(0);
 
   const bundle = await buildDeployTransactions({
     connection: createMockConnection(),
     payer: (await Keypair.generate()).publicKey,
     programId: (await Keypair.generate()).publicKey,
-    bytecode,
+    binary,
   });
 
   expect(bundle.transactions.length).toBeGreaterThanOrEqual(3);
-  expect(bundle.maxDataLen).toBeGreaterThanOrEqual(bytecode.length);
+  expect(bundle.maxDataLen).toBeGreaterThanOrEqual(binary.length);
 });

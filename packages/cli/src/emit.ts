@@ -11,7 +11,7 @@ import {
 } from "@blueshift-gg/doppler";
 
 export type GenerateOptions = {
-  bytecodeFile: string;
+  binaryFile: string;
   manifestFile?: string;
   assemblyFile?: string;
   typescriptSdkDir?: string;
@@ -19,7 +19,7 @@ export type GenerateOptions = {
 };
 
 /**
- * Generate Doppler artifacts in memory and write bytecode, manifest, assembly, and SDK files.
+ * Generate Doppler artifacts in memory and write binary, manifest, assembly, and SDK files.
  *
  * Calls `createDopplerArtifacts` from core, then writes outputs to the paths in `options`.
  */
@@ -29,7 +29,7 @@ export async function writeDopplerArtifacts(
 ): Promise<GeneratedManifest> {
   const artifacts = await createDopplerArtifacts(config);
 
-  await writeFileEnsuringDir(options.bytecodeFile, artifacts.bytecode);
+  await writeFileEnsuringDir(options.binaryFile, artifacts.binary);
 
   if (options.assemblyFile) {
     await writeFileEnsuringDir(options.assemblyFile, artifacts.assembly);
@@ -43,7 +43,7 @@ export async function writeDopplerArtifacts(
     await writeFiles(options.rustSdkDir, await renderRustSdk(config));
   }
 
-  const outputDir = dirname(options.bytecodeFile);
+  const outputDir = dirname(options.binaryFile);
   const manifestFile = options.manifestFile ?? join(outputDir, "manifest.json");
   await writeFileEnsuringDir(manifestFile, `${JSON.stringify(artifacts.manifest, null, 2)}\n`);
 

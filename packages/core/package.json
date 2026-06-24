@@ -2,7 +2,7 @@
   "name": "@blueshift-gg/doppler",
   "version": "0.0.1",
   "type": "module",
-  "description": "Core Doppler payload, manifest, SDK, bytecode, and deploy transaction APIs",
+  "description": "Core Doppler payload, manifest, SDK, ELF binary, and deploy transaction APIs",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",

@@ -28,9 +28,9 @@ test("emits requested artifacts", async () => {
   );
 
   const config = await loadGeneratorConfig(configFile);
-  const bytecodeFile = join(dir, "out", "doppler.so");
+  const binaryFile = join(dir, "out", "doppler.so");
   const manifest = await writeDopplerArtifacts(config, {
-    bytecodeFile,
+    binaryFile,
     assemblyFile: join(dir, "out", "doppler.s"),
     typescriptSdkDir: join(dir, "out", "codec"),
     rustSdkDir: join(dir, "out", "rust"),
@@ -38,7 +38,7 @@ test("emits requested artifacts", async () => {
 
   expect(manifest.arch).toBe("v3");
   expect(manifest.payloadSize).toBe(8);
-  expect(existsSync(bytecodeFile)).toBe(true);
+  expect(existsSync(binaryFile)).toBe(true);
   expect(existsSync(join(dir, "out", "doppler.s"))).toBe(true);
   expect(existsSync(join(dir, "out", "manifest.json"))).toBe(true);
   expect(existsSync(join(dir, "out", "codec", "src", "codecs.ts"))).toBe(true);
@@ -72,7 +72,7 @@ test("writes the TypeScript codec package directly to the requested directory", 
   const config = await loadGeneratorConfig(configFile);
   const out = join(dir, "out", "typescript");
   await writeDopplerArtifacts(config, {
-    bytecodeFile: join(dir, "out", "doppler.so"),
+    binaryFile: join(dir, "out", "doppler.so"),
     typescriptSdkDir: out,
   });
 

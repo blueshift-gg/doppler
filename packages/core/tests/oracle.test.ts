@@ -2,23 +2,23 @@ import { expect, test } from "bun:test";
 
 import {
   countPayloadCopyPairs,
-  renderAssembly,
+  generateOracleProgram,
   renderMemcpyCopy,
   renderPayloadCopy,
   shouldUseSolMemcpy,
-} from "../src/assembly.js";
+} from "../src/oracle.js";
 
 const ADMIN = "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE";
 
 test("aligns instruction offsets to the payload size", () => {
-  const assembly = renderAssembly({ admin: ADMIN, payloadSize: 20 });
+  const assembly = generateOracleProgram({ admin: ADMIN, payloadSize: 20 });
   expect(assembly).toContain(".equ INSTRUCTION_SEQUENCE, 0x50f0");
   expect(assembly).toContain(".equ INSTRUCTION_PAYLOAD, 0x50f8");
   expect(assembly).toContain("lddw r3, 0xd0ab9764c9be9d08");
 });
 
 test("verifies admin signer flags with a single u16 comparison", () => {
-  const assembly = renderAssembly({ admin: ADMIN, payloadSize: 8 });
+  const assembly = generateOracleProgram({ admin: ADMIN, payloadSize: 8 });
   expect(assembly).toContain(".equ NO_DUP_SIGNER, 0x1ff");
   expect(assembly).toContain("  ldxh r2, [r1 + ADMIN_HEADER]");
   expect(assembly).toContain("  jne r2, NO_DUP_SIGNER, error_bad_admin");
@@ -53,13 +53,13 @@ test("counts payload copy pairs for threshold selection", () => {
 });
 
 test("uses load/store path at the memcpy threshold", () => {
-  const assembly = renderAssembly({ admin: ADMIN, payloadSize: 48 });
+  const assembly = generateOracleProgram({ admin: ADMIN, payloadSize: 48 });
   expect(assembly).toContain("  stxdw [r1 + ORACLE_SEQUENCE], r3");
   expect(assembly).not.toContain("call sol_memcpy_");
 });
 
 test("uses sol_memcpy above the copy pair threshold", () => {
-  const assembly = renderAssembly({ admin: ADMIN, payloadSize: 49 });
+  const assembly = generateOracleProgram({ admin: ADMIN, payloadSize: 49 });
   expect(assembly).toContain("call sol_memcpy_");
   expect(assembly).not.toContain("  stxdw [r1 + ORACLE_SEQUENCE], r3");
   expect(assembly).not.toContain("  ldxdw r2, [r1 + INSTRUCTION_PAYLOAD + 0]");
@@ -78,7 +78,7 @@ test("renderMemcpyCopy copies sequence and payload together", () => {
 });
 
 test("keeps default payload on the load/store path", () => {
-  const assembly = renderAssembly({ admin: ADMIN, payloadSize: 8 });
+  const assembly = generateOracleProgram({ admin: ADMIN, payloadSize: 8 });
   expect(assembly).toContain("  stxdw [r1 + ORACLE_SEQUENCE], r3");
   expect(assembly).toContain("  ldxdw r2, [r1 + INSTRUCTION_PAYLOAD + 0]");
   expect(assembly).not.toContain("call sol_memcpy_");

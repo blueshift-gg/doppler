@@ -2,7 +2,7 @@
   "name": "@blueshift-gg/doppler-cli",
   "version": "0.1.0",
   "type": "module",
-  "description": "CLI for generating and deploying custom Doppler bytecode and SDK files",
+  "description": "CLI for generating and deploying custom Doppler program and SDK files",
   "bin": {
     "doppler": "./dist/cli.js",
     "doppler-cli": "./dist/cli.js"

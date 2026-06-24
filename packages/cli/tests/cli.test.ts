@@ -145,7 +145,7 @@ test("generate defaults artifact name to doppler", async () => {
 
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("Generated doppler");
-  expect(result.stdout).toContain("Compiled bytecode: ./doppler.so");
+  expect(result.stdout).toContain("Compiled binary: ./doppler.so");
   expect(existsSync(join(dir, "doppler.so"))).toBe(true);
 });
 
@@ -171,7 +171,7 @@ test("generate writes keypair files when schema omits program ID and admin", asy
   expect(result.exitCode).toBe(0);
   expect(result.stdout).toContain("Generated program keypair:");
   expect(result.stdout).toContain("Generated admin keypair:");
-  expect(result.stdout).toContain("Compiled bytecode: ./doppler.so");
+  expect(result.stdout).toContain("Compiled binary: ./doppler.so");
   expect(existsSync(join(dir, keysDir, "doppler-program-keypair.json"))).toBe(true);
   expect(existsSync(join(dir, keysDir, "doppler-admin-keypair.json"))).toBe(true);
   expect(existsSync(join(dir, "doppler.so"))).toBe(true);

@@ -7,7 +7,7 @@ import { Connection, Keypair, type Transaction } from "@solana/web3.js";
 import { DEFAULT_SOLANA_CONFIG_PATH, loadSolanaCliConfig } from "./solana-config.js";
 
 export type DeployOptions = {
-  bytecodePath: string;
+  binaryPath: string;
   programKeypairPath: string;
   admin: string;
   signerKeypairPath?: string;
@@ -42,11 +42,11 @@ async function loadKeypairFromFile(path: string): Promise<Keypair> {
 }
 
 async function validateManifest(
-  bytecodePath: string,
+  binaryPath: string,
   admin: string,
   programId: string,
 ): Promise<void> {
-  const manifestPath = resolve(dirname(bytecodePath), "manifest.json");
+  const manifestPath = resolve(dirname(binaryPath), "manifest.json");
 
   try {
     await access(manifestPath);
@@ -145,19 +145,19 @@ async function sendDeployTransactions(
 }
 
 /**
- * Deploy a Doppler program bytecode file using Loader v3 transactions.
+ * Deploy a Doppler program binary file using Loader v3 transactions.
  *
  * Reads keypairs from disk, validates against an adjacent `manifest.json` when
  * present, and sends transactions.
  */
 export async function deployProgram(options: DeployOptions): Promise<DeployResult> {
-  const bytecodePath = resolve(options.bytecodePath);
+  const binaryPath = resolve(options.binaryPath);
   const programKeypairPath = resolve(options.programKeypairPath);
   const configPath = resolve(options.configPath ?? DEFAULT_SOLANA_CONFIG_PATH);
 
   decodeSolanaPublicKey(options.admin);
 
-  await assertFileExists(bytecodePath, "Bytecode file");
+  await assertFileExists(binaryPath, "Binary file");
   await assertFileExists(programKeypairPath, "Program keypair file");
 
   const config = await loadSolanaCliConfig(configPath);
@@ -166,21 +166,21 @@ export async function deployProgram(options: DeployOptions): Promise<DeployResul
 
   await assertFileExists(signerKeypairPath, "Signer keypair file");
 
-  const [bytecode, programKeypair, signerKeypair] = await Promise.all([
-    readFile(bytecodePath).then((buffer) => new Uint8Array(buffer)),
+  const [binary, programKeypair, signerKeypair] = await Promise.all([
+    readFile(binaryPath).then((buffer) => new Uint8Array(buffer)),
     loadKeypairFromFile(programKeypairPath),
     loadKeypairFromFile(signerKeypairPath),
   ]);
 
   const programId = programKeypair.publicKey.toBase58();
-  await validateManifest(bytecodePath, options.admin, programId);
+  await validateManifest(binaryPath, options.admin, programId);
 
   const connection = new Connection(network);
   const { transactions } = await buildDeployTransactions({
     connection,
     payer: signerKeypair.publicKey,
     programId: programKeypair.publicKey,
-    bytecode,
+    binary,
   });
 
   const signatures = await sendDeployTransactions(
