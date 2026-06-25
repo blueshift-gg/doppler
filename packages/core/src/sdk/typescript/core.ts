@@ -1,6 +1,6 @@
+import { SCALAR_CODEC_FACTORY_NAMES, SCALAR_TYPESCRIPT_TYPES } from "../../codec-metadata.js";
 import type { GeneratorConfig } from "../../config.js";
 import type { LayoutField, PayloadLayout } from "../../layout.js";
-import type { ScalarType } from "../../schema.js";
 
 export type TypeScriptSdkFiles = Record<string, string>;
 
@@ -58,7 +58,9 @@ function renderCodecsModule(
   layout: PayloadLayout,
   feedName: string,
 ): string {
-  const imports = [...new Set(layout.fields.map((field) => codecFactory(field.type)))].sort();
+  const imports: string[] = [
+    ...new Set(layout.fields.map((field) => codecFactory(field.type))),
+  ].sort();
   const codecEntries = layout.fields
     .map((field) => {
       const codec =
@@ -97,32 +99,11 @@ function renderCodecsModule(
 }
 
 function tsFieldType(field: LayoutField): string {
-  const scalar = field.type === "u64" || field.type === "i64" ? "bigint" : "number";
+  const scalar = SCALAR_TYPESCRIPT_TYPES[field.type];
   return field.length === 1 ? scalar : `${scalar}[]`;
 }
 
-function codecFactory(type: ScalarType): string {
-  switch (type) {
-    case "u8":
-      return "getU8Codec";
-    case "u16":
-      return "getU16Codec";
-    case "u32":
-      return "getU32Codec";
-    case "u64":
-      return "getU64Codec";
-    case "i8":
-      return "getI8Codec";
-    case "i16":
-      return "getI16Codec";
-    case "i32":
-      return "getI32Codec";
-    case "i64":
-      return "getI64Codec";
-    case "bool":
-      return "getBooleanCodec";
-  }
-}
+const codecFactory = (type: LayoutField["type"]) => SCALAR_CODEC_FACTORY_NAMES[type];
 
 function toPascalCase(value: string): string {
   return words(value)

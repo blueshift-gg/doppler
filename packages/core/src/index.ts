@@ -1,6 +1,7 @@
 export * from "./oracle.js";
 export * from "./assemble.js";
 export * from "./artifacts.js";
+export * from "./codec.js";
 export * from "./transactions.js";
 export * from "./config.js";
 export * from "./layout.js";
