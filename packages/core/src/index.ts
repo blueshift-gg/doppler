@@ -7,5 +7,6 @@ export * from "./config.js";
 export * from "./layout.js";
 export * from "./public-key.js";
 export * from "./schema.js";
+export * from "./payload-form.js";
 export * from "./sdk/rust.js";
 export * from "./sdk/typescript.js";
