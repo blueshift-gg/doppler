@@ -24,7 +24,7 @@
   "scripts": {
     "build": "rolldown -c rolldown.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "prepublishOnly": "bun run typecheck && bun run build"
+    "prepublishOnly": "bun run --cwd ../../.. sdk:check"
   },
   "devDependencies": {
     "@blueshift-gg/doppler-common": "workspace:*",
