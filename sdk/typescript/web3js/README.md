@@ -5,14 +5,13 @@ Doppler oracle SDK for applications using `@solana/web3.js`.
 ## Install
 
 ```bash
-npm install @blueshift-gg/doppler-web3js @blueshift-gg/doppler-common @solana/web3.js
+npm install @blueshift-gg/doppler-web3js @solana/web3.js
 ```
 
 ## Usage
 
 ```ts
-import { Doppler } from "@blueshift-gg/doppler-web3js";
-import { priceFeedCodec } from "@blueshift-gg/doppler-common";
+import { Doppler, priceFeedCodec } from "@blueshift-gg/doppler-web3js";
 import { Connection, Keypair, Transaction } from "@solana/web3.js";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com");

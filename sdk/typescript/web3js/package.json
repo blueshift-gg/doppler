@@ -26,6 +26,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@blueshift-gg/doppler-common": "workspace:*",
     "@solana/web3.js": "3.0.0-rc.2",
     "rolldown": "1.1.0",
     "rolldown-plugin-dts": "0.25.2",
@@ -39,8 +40,5 @@
     "typescript": {
       "optional": true
     }
-  },
-  "dependencies": {
-    "@blueshift-gg/doppler-common": "workspace:*"
   }
 }

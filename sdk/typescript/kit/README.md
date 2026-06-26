@@ -5,14 +5,13 @@ Doppler oracle SDK for applications using `@solana/kit`.
 ## Install
 
 ```bash
-npm install @blueshift-gg/doppler-kit @blueshift-gg/doppler-common @solana/kit @solana-program/compute-budget @solana-program/system
+npm install @blueshift-gg/doppler-kit @solana/kit @solana-program/compute-budget @solana-program/system
 ```
 
 ## Usage
 
 ```ts
-import { Doppler } from "@blueshift-gg/doppler-kit";
-import { priceFeedCodec } from "@blueshift-gg/doppler-common";
+import { Doppler, priceFeedCodec } from "@blueshift-gg/doppler-kit";
 import {
   appendTransactionMessageInstructions,
   createKeyPairSignerFromBytes,
