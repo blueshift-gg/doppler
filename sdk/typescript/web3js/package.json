@@ -1,6 +1,6 @@
 {
   "name": "@blueshift-gg/doppler-web3js",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Doppler oracle SDK for @solana/web3.js",
   "type": "module",
   "license": "MIT",

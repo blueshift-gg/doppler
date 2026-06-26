@@ -87,7 +87,7 @@
     },
     "sdk/typescript/web3js": {
       "name": "@blueshift-gg/doppler-web3js",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "devDependencies": {
         "@blueshift-gg/doppler-common": "workspace:*",
         "@solana/web3.js": "3.0.0-rc.2",
