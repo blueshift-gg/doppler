@@ -37,9 +37,10 @@ export function createLibraryConfig(options: {
   external?: ExternalOption;
 }): RolldownOptions {
   const { input, external: externalOption } = options;
+  const inputEntry = typeof input === "string" ? { index: input } : input;
 
   return defineConfig({
-    input,
+    input: inputEntry,
     plugins: [dts()],
     external(id, parentId, isResolved) {
       return isExternalModule(id, parentId, isResolved, externalOption);
@@ -47,7 +48,8 @@ export function createLibraryConfig(options: {
     output: {
       dir: "dist",
       format: "esm",
-      entryFileNames: "index.js",
+      entryFileNames: "[name].js",
+      cleanDir: true,
     },
   });
 }
