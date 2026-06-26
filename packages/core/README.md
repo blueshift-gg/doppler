@@ -12,6 +12,7 @@ npm install @blueshift-gg/doppler
 
 ```ts
 import {
+  buildPayloadCodec,
   buildDeployTransactions,
   createDopplerArtifacts,
   createGeneratorConfig,
@@ -20,20 +21,23 @@ import {
 } from "@blueshift-gg/doppler";
 import { Connection } from "@solana/web3.js";
 
+const payload = {
+  price: "u64",
+  confidence: "u32",
+  slot: "u64",
+} as const;
+
 const config = createGeneratorConfig({
   name: "doppler",
   programId: "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
   admin: "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
   arch: "v3",
-  payload: {
-    price: "u64",
-    confidence: "u32",
-    slot: "u64",
-  },
+  payload,
 });
 
 const { assembly, binary, manifest } = await createDopplerArtifacts(config);
 
+const payloadCodec = buildPayloadCodec(payload);
 const codecFiles = renderPayloadCodecSdk(config);
 const rustFiles = await renderRustSdk(config);
 
@@ -100,6 +104,8 @@ The generated payload layout is packed and little-endian. There is no Rust `repr
 | -------------------- | -------------------------------------------------------------------- |
 | `schema`             | Payload field types, normalization, and validation.                  |
 | `layout`             | Packed offset and size calculation for payload fields.               |
+| `codec`              | Browser-safe fixed-size payload codec construction from schema.      |
+| `payload-form`       | Browser-safe payload form defaults, parsing, and display formatting. |
 | `config`             | `createGeneratorConfig` and package-name helpers.                    |
 | `assembly`           | sBPF assembly source rendering from admin and payload size.          |
 | `binary`             | Assembly-to-ELF compilation via `@blueshift-gg/sbpf-assembler`.      |
