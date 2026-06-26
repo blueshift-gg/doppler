@@ -33,7 +33,7 @@
     },
     "packages/core": {
       "name": "@blueshift-gg/doppler",
-      "version": "0.1.0",
+      "version": "0.0.3",
       "dependencies": {
         "@blueshift-gg/sbpf-assembler": "^0.2.1",
         "@solana-program/loader-v3": "^0.3.0",
@@ -65,7 +65,7 @@
     },
     "sdk/typescript/kit": {
       "name": "@blueshift-gg/doppler-kit",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@blueshift-gg/doppler-common": "workspace:*",
       },
@@ -89,7 +89,7 @@
     },
     "sdk/typescript/web3js": {
       "name": "@blueshift-gg/doppler-web3js",
-      "version": "0.1.0",
+      "version": "0.0.1",
       "dependencies": {
         "@blueshift-gg/doppler-common": "workspace:*",
       },
