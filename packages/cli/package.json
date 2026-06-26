@@ -17,7 +17,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tests/tsconfig.json --noEmit",
     "test": "bun test",
     "test:integration": "cargo test -p doppler-cli-integration",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run typecheck && bun run build"
   },
   "dependencies": {
     "@blueshift-gg/doppler": "workspace:*",
