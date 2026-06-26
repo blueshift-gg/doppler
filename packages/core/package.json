@@ -21,7 +21,7 @@
     "build": "rolldown -c --clean-dir",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "bun test",
-    "prepublishOnly": "bun run typecheck && bun run build"
+    "prepublishOnly": "bun run --cwd ../.. packages:check"
   },
   "dependencies": {
     "@blueshift-gg/sbpf-assembler": "^0.2.1",

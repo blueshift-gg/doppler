@@ -13,7 +13,10 @@
     "fmt:fix": "oxfmt --write",
     "sdk:build": "turbo run build --filter './sdk/typescript/*'",
     "sdk:typecheck": "turbo run typecheck --filter './sdk/typescript/*'",
-    "sdk:check": "turbo run typecheck build --filter './sdk/typescript/*'"
+    "sdk:check": "turbo run typecheck build --filter './sdk/typescript/*'",
+    "packages:build": "turbo run build --filter './packages/*'",
+    "packages:typecheck": "turbo run typecheck --filter './packages/*'",
+    "packages:check": "turbo run typecheck build --filter './packages/*'"
   },
   "packageManager": "bun@1.3.14",
   "devDependencies": {
