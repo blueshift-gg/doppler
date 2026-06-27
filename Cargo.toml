@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["doppler", "examples", "program", "sdk"]
+members = ["doppler", "examples", "feeder", "program", "sdk"]
 
 [workspace.package]
 repository = "https://github.com/blueshift-gg/doppler"
