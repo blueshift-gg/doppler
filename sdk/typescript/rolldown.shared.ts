@@ -7,7 +7,7 @@ function isExternalModule(
   isResolved: boolean,
   externalOption: ExternalOption | undefined,
 ): boolean {
-  if (id === "@blueshift-gg/doppler-common") {
+  if (id === "@blueshift-gg/doppler-common" || isSolanaCodecModule(id)) {
     return false;
   }
 
@@ -32,6 +32,16 @@ function isExternalModule(
   );
 }
 
+function isSolanaCodecModule(id: string): boolean {
+  return (
+    id === "@solana/codecs" ||
+    id.startsWith("@solana/codecs-") ||
+    id === "@solana/errors" ||
+    id === "@solana/fixed-points" ||
+    id === "@solana/options"
+  );
+}
+
 export function createLibraryConfig(options: {
   input: NonNullable<RolldownOptions["input"]>;
   external?: ExternalOption;
@@ -51,5 +61,6 @@ export function createLibraryConfig(options: {
       entryFileNames: "[name].js",
       cleanDir: true,
     },
+    platform: "node",
   });
 }

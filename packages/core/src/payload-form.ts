@@ -1,6 +1,10 @@
-import type { PayloadRecord, PayloadValue } from "./codec.js";
-import { normalizePayloadSchema } from "./schema.js";
-import type { NormalizedField, PayloadSchema } from "./schema.js";
+import {
+  normalizePayloadSchema,
+  type NormalizedField,
+  type PayloadRecord,
+  type PayloadSchema,
+  type PayloadValue,
+} from "@blueshift-gg/doppler-codec";
 
 export type PayloadFormValues = Record<string, string>;
 

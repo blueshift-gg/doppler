@@ -14,7 +14,7 @@ import {
 } from "@solana/codecs";
 
 import { SCALAR_CODEC_FACTORY_NAMES } from "./codec-metadata.js";
-import { computePayloadLayout } from "./layout.js";
+import { normalizePayloadSchema } from "./schema.js";
 import type { PayloadSchema, ScalarType } from "./schema.js";
 
 export type PayloadValue = bigint | number | boolean | bigint[] | number[] | boolean[];
@@ -36,8 +36,7 @@ const SCALAR_CODEC_FACTORIES = {
 
 /** Build a FixedSizeCodec from a Doppler payload schema. */
 export function buildPayloadCodec(schema: PayloadSchema): FixedSizeCodec<PayloadRecord> {
-  const layout = computePayloadLayout(schema);
-  const entries = layout.fields.map((field) => {
+  const entries = normalizePayloadSchema(schema).map((field) => {
     const baseCodec = getScalarCodec(field.type);
     const codec =
       field.length === 1

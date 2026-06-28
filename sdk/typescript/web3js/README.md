@@ -11,17 +11,20 @@ npm install @blueshift-gg/doppler-web3js @solana/web3.js
 ## Usage
 
 ```ts
-import { Doppler, priceFeedCodec } from "@blueshift-gg/doppler-web3js";
+import { Doppler, buildPayloadCodec } from "@blueshift-gg/doppler-web3js";
 import { Connection, Keypair, Transaction } from "@solana/web3.js";
 
 const connection = new Connection("https://api.mainnet-beta.solana.com");
 const signer = Keypair.fromSecretKey(secretKeyBytes);
 const programId = "11111111111111111111111111111111";
+const payloadCodec = buildPayloadCodec({
+  price: "u64",
+});
 
 const client = new Doppler(connection, {
   programId,
   admin: signer.publicKey,
-  payloadCodec: priceFeedCodec,
+  payloadCodec,
 });
 
 const { oraclePubkey, instruction: createInstruction } = await client.createOracleAccount(

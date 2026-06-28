@@ -27,6 +27,7 @@
     "prepublishOnly": "bun run --cwd ../../.. sdk:check"
   },
   "devDependencies": {
+    "@blueshift-gg/doppler-codec": "workspace:*",
     "@blueshift-gg/doppler-common": "workspace:*",
     "@solana/kit": "^6.9.0",
     "@solana-program/compute-budget": "^0.16.0",

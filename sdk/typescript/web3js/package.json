@@ -27,6 +27,7 @@
     "prepublishOnly": "bun run --cwd ../../.. sdk:check"
   },
   "devDependencies": {
+    "@blueshift-gg/doppler-codec": "workspace:*",
     "@blueshift-gg/doppler-common": "workspace:*",
     "@solana/web3.js": "3.0.0-rc.2",
     "rolldown": "1.1.0",

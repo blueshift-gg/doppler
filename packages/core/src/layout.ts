@@ -1,4 +1,8 @@
-import { SCALAR_SIZES, normalizePayloadSchema, type NormalizedField } from "./schema.js";
+import {
+  SCALAR_SIZES,
+  normalizePayloadSchema,
+  type NormalizedField,
+} from "@blueshift-gg/doppler-codec";
 
 export type LayoutField = NormalizedField & {
   offset: number;

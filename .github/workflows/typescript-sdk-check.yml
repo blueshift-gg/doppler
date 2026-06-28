@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "sdk/typescript/**"
+      - "packages/codec/**"
       - "package.json"
       - "bun.lock"
       - "turbo.json"
   push:
     paths:
       - "sdk/typescript/**"
+      - "packages/codec/**"
       - "package.json"
       - "bun.lock"
       - "turbo.json"

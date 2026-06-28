@@ -11,7 +11,7 @@ npm install @blueshift-gg/doppler-kit @solana/kit @solana-program/compute-budget
 ## Usage
 
 ```ts
-import { Doppler, priceFeedCodec } from "@blueshift-gg/doppler-kit";
+import { Doppler, buildPayloadCodec } from "@blueshift-gg/doppler-kit";
 import {
   appendTransactionMessageInstructions,
   createKeyPairSignerFromBytes,
@@ -28,11 +28,14 @@ const rpc = createSolanaRpc("https://api.mainnet-beta.solana.com");
 const rpcSubscriptions = createSolanaRpcSubscriptions("wss://api.mainnet-beta.solana.com");
 const signer = await createKeyPairSignerFromBytes(secretKeyBytes);
 const programId = "11111111111111111111111111111111";
+const payloadCodec = buildPayloadCodec({
+  price: "u64",
+});
 
 const client = new Doppler(rpc, rpcSubscriptions, {
   programId,
   admin: signer.address,
-  payloadCodec: priceFeedCodec,
+  payloadCodec,
 });
 
 const { oraclePubkey, instruction: createInstruction } = await client.createOracleAccount(

@@ -1,6 +1,7 @@
+import type { PayloadSchema } from "@blueshift-gg/doppler-codec";
+
 import { computePayloadLayout } from "./layout.js";
 import type { PayloadLayout } from "./layout.js";
-import type { PayloadSchema } from "./schema.js";
 
 /**
  * Supported sBPF arch versions.

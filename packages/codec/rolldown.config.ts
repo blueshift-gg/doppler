@@ -5,18 +5,8 @@ export default defineConfig({
   input: {
     index: "./src/index.ts",
   },
-  resolve: {
-    conditionNames: ["import", "node", "default"],
-  },
-  external: [
-    /^@blueshift-gg\/sbpf-assembler/,
-    "@solana-program/loader-v3",
-    "@solana/compat",
-    "@solana/kit",
-    "@solana/web3.js",
-    "bs58",
-  ],
-  plugins: [dts({ eager: true })],
+  external: ["@solana/codecs"],
+  plugins: [dts()],
   output: {
     dir: "dist",
     format: "esm",
