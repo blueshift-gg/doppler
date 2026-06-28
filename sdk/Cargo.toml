@@ -15,6 +15,3 @@ solana-keypair = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-signer = { workspace = true }
 solana-transaction = { workspace = true, features = ["bincode"] }
-
-[dev-dependencies]
-doppler-program = { workspace = true }

@@ -11,8 +11,23 @@ pub(crate) const ADMIN_VERIFICATION_CU: u32 = 6;
 pub(crate) const PAYLOAD_WRITE_CU: u32 = 6;
 
 pub(crate) const COMPUTE_BUDGET_IX_CU: u32 = 150;
-pub(crate) const COMPUTE_BUDGET_UNIT_PRICE_SIZE: u32 = 9;
-pub(crate) const COMPUTE_BUDGET_UNIT_LIMIT_SIZE: u32 = 5;
-pub(crate) const COMPUTE_BUDGET_DATA_LIMIT_SIZE: u32 = 5;
+
+// SIMD-0186: each unique loaded account counts `data_len + ACCOUNT_METADATA`.
+pub(crate) const ACCOUNT_METADATA: u32 = 64;
+
+// ComputeBudget program account data length.
 pub(crate) const COMPUTE_BUDGET_PROGRAM_SIZE: u32 = 22;
-pub(crate) const ORACLE_PROGRAM_SIZE: u32 = 36;
+
+// doppler program account (LoaderV3 `Program`: 4-byte tag + 32-byte programdata key).
+pub(crate) const DOPPLER_PROGRAM_SIZE: u32 = 36;
+
+// doppler program binary size (bytes): the size of the stripped deploy artifact
+// (`target/deploy/doppler_program.so`). Pinned statically to the validator-confirmed
+// value; if the program is rebuilt with a different toolchain, re-measure the artifact
+// and update this constant (and the `loaded_accounts_data_size` tests).
+pub(crate) const DOPPLER_BINARY_SIZE: u32 = 1136;
+
+// programdata account: 45-byte LoaderV3 header + program binary. Assumes an exact-fit
+// deploy; a `solana program deploy` with upgrade headroom allocates ~2x the binary,
+// which this does not model.
+pub(crate) const DOPPLER_PROGRAM_DATA_SIZE: u32 = 45 + DOPPLER_BINARY_SIZE;

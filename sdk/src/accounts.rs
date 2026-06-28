@@ -55,7 +55,8 @@ impl<T: Sized + Copy> UpdateInstruction<T> {
             + (core::mem::size_of::<Oracle<T>>() / 4) as u32
     }
 
-    pub const fn loaded_accounts_data_size_limit(&self) -> u32 {
+    /// Byte length of this update's oracle account data.
+    pub const fn oracle_data_len(&self) -> u32 {
         core::mem::size_of::<Oracle<T>>() as u32
     }
 }
@@ -77,10 +78,15 @@ impl<T: Sized + Copy> From<UpdateInstruction<T>> for Instruction {
 
 #[cfg(test)]
 mod tests {
-    use doppler_program::PriceFeed;
     use solana_pubkey::Pubkey;
 
     use super::*;
+
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct PriceFeed {
+        pub price: u64,
+    }
 
     #[repr(C)]
     #[derive(Clone, Copy)]

@@ -86,16 +86,22 @@ instructions.push(priority_fee_ix);
 
 ### 3. Optimizing Account Data Size
 
-Use `setLoadedAccountsDataSizeLimit` to optimize memory allocation:
+Use `setLoadedAccountsDataSizeLimit` to request a tight memory budget. Per
+[SIMD-0186](https://github.com/solana-foundation/solana-improvement-documents/blob/main/proposals/0186-loaded-transaction-data-size-specification.md),
+the metered size is the sum over every **unique** account the transaction loads of
+`data_len + 64` bytes. For a doppler update that is the fee payer, the ComputeBudget
+program (always present for the CU / data-size limit instructions), the doppler
+program account, its **programdata** account (which holds the ELF and dominates the
+total), and one account per oracle.
+
+The SDK `Builder` computes this exactly from constants — no RPC needed — and emits
+the precise limit (e.g. `1583` bytes for a single `PriceFeed` update):
 
 ```rust
-// Set the maximum loaded account data size
-// Calculate based on your oracle data structure size
-let data_size_limit_ix = ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(
-    32_768  // 32KB is usually sufficient for oracle operations
-);
-
-instructions.push(data_size_limit_ix);
+let tx = Builder::new(&admin)
+    .add_oracle_update(oracle_pubkey, oracle_update)
+    .with_unit_price(1_000)
+    .build(recent_blockhash);
 ```
 
 ### 4. Creating an Oracle Update
@@ -250,9 +256,10 @@ cargo test
 ### E2E
 
 ```bash
-chmod +X ./surfpool.sh
-./surfpool.sh
+chmod +x ./run-validator.sh
+./run-validator.sh
 
+# in another shell:
 cargo run --bin single-price-feed
 cargo run --bin multiple-price-feed
 ```
@@ -274,10 +281,10 @@ Transaction executed in slot 131:
     Data: [3, 232, 3, 0, 0, 0, 0, 0, 0]
   Instruction 1
     Program:   ComputeBudget111111111111111111111111111111 (2)
-    Data: [2, 215, 1, 0, 0]
+    Data: [4, 47, 6, 0, 0]
   Instruction 2
     Program:   ComputeBudget111111111111111111111111111111 (2)
-    Data: [4, 127, 0, 0, 0]
+    Data: [2, 215, 1, 0, 0]
   Instruction 3
     Program:   fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm (3)
     Account 0: admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (0)
@@ -304,7 +311,7 @@ Transaction executed in slot 131:
 Finalized
 ```
 
-> Fully fledged tx requires: `471 CU` + `111 bytes`
+> Fully fledged tx requires: `471 CU` + a `1583` byte loaded-accounts-data-size limit (`[4, 47, 6, 0, 0]`), dominated by the program's ~1.2 KB programdata account.
 
 example of multiple price feed update response
 
@@ -325,7 +332,7 @@ Transaction executed in slot 218:
     Data: [3, 232, 3, 0, 0, 0, 0, 0, 0]
   Instruction 1
     Program:   ComputeBudget111111111111111111111111111111 (4)
-    Data: [4, 175, 0, 0, 0]
+    Data: [4, 207, 6, 0, 0]
   Instruction 2
     Program:   ComputeBudget111111111111111111111111111111 (4)
     Data: [2, 1, 2, 0, 0]
@@ -384,16 +391,16 @@ let's assume we are going to update a single oracle:
 - Requested compute-budget-limit to 21 (with compute-budget instructions 321 and 471 respectively) CUs
 - Paying priority fee: 1.00 lamports per CU
 
-| Metric                         | Without Instruction              | With 111 byte Limit               |
-| ------------------------------ | -------------------------------- | --------------------------------- |
-| Loaded Account Data Size Limit | 64M                              | 111 bytes                         |
-| Data Size Cost Calculation     | 64M x (8/32K)                    | 111 bytes x (8/32K)               |
-| Data Size Cost (CUs)           | 16,000                           | 0.02775                           |
-| Reward to Leader Calculation   | (1 x 5000 + 1 x 321)/2           | (1 x 5000 + 1 x 471)/2            |
-| Reward to Leader (lamports)    | 2,660.5                          | 2,735.5                           |
-| Transaction Cost Formula       | 1 x 720 + 0 x 300 + 321 + 16,000 | 1 x 720 + 0 x 300 + 471 + 0.02775 |
-| Transaction Cost (CUs)         | 17,041                           | 1,141.02775                       |
-| Priority Score                 | 0.156                            | 2.397                             |
+| Metric                         | Without Instruction              | With 1583 byte Limit            |
+| ------------------------------ | -------------------------------- | ------------------------------- |
+| Loaded Account Data Size Limit | 64M                              | 1583 bytes                      |
+| Data Size Cost Calculation     | 64M x (8/32K)                    | 1583 bytes x (8/32K)            |
+| Data Size Cost (CUs)           | 16,000                           | 0.386                           |
+| Reward to Leader Calculation   | (1 x 5000 + 1 x 321)/2           | (1 x 5000 + 1 x 471)/2          |
+| Reward to Leader (lamports)    | 2,660.5                          | 2,735.5                         |
+| Transaction Cost Formula       | 1 x 720 + 0 x 300 + 321 + 16,000 | 1 x 720 + 0 x 300 + 471 + 0.386 |
+| Transaction Cost (CUs)         | 17,041                           | 1,191.386                       |
+| Priority Score                 | 0.156                            | 2.296                           |
 
 ## Building
 

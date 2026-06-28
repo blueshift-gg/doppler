@@ -8,8 +8,8 @@ use solana_transaction::Transaction;
 
 use crate::accounts::{Oracle, UpdateInstruction};
 use crate::constants::{
-    COMPUTE_BUDGET_DATA_LIMIT_SIZE, COMPUTE_BUDGET_IX_CU, COMPUTE_BUDGET_PROGRAM_SIZE,
-    COMPUTE_BUDGET_UNIT_LIMIT_SIZE, COMPUTE_BUDGET_UNIT_PRICE_SIZE, ORACLE_PROGRAM_SIZE,
+    ACCOUNT_METADATA, COMPUTE_BUDGET_IX_CU, COMPUTE_BUDGET_PROGRAM_SIZE, DOPPLER_PROGRAM_DATA_SIZE,
+    DOPPLER_PROGRAM_SIZE,
 };
 
 pub struct Builder<'a> {
@@ -28,11 +28,12 @@ impl<'a> Builder<'a> {
             oracle_update_ixs: vec![],
             unit_price: None,
             compute_units: COMPUTE_BUDGET_IX_CU * 2, // default 2 compute budget ixs
-            loaded_account_data_size: ORACLE_PROGRAM_SIZE
+            // Always-loaded accounts: fee payer, ComputeBudget program (the tx
+            // always carries CU/data-size limit ixs), doppler program, programdata.
+            loaded_account_data_size: 4 * ACCOUNT_METADATA
                 + COMPUTE_BUDGET_PROGRAM_SIZE
-                + COMPUTE_BUDGET_UNIT_LIMIT_SIZE
-                + COMPUTE_BUDGET_DATA_LIMIT_SIZE
-                + 2,
+                + DOPPLER_PROGRAM_SIZE
+                + DOPPLER_PROGRAM_DATA_SIZE,
         }
     }
 
@@ -48,11 +49,18 @@ impl<'a> Builder<'a> {
         };
 
         self.compute_units += update_ix.compute_units();
-        self.loaded_account_data_size += update_ix.loaded_accounts_data_size_limit() * 2;
+        // One more unique oracle account.
+        self.loaded_account_data_size += update_ix.oracle_data_len() + ACCOUNT_METADATA;
 
         self.oracle_update_ixs.push(update_ix.into());
 
         self
+    }
+
+    /// SIMD-0186 loaded-accounts-data-size the tx will request (distinct oracles).
+    #[must_use]
+    pub const fn loaded_accounts_data_size(&self) -> u32 {
+        self.loaded_account_data_size
     }
 
     #[must_use]
@@ -64,12 +72,12 @@ impl<'a> Builder<'a> {
     #[must_use]
     pub fn build(self, recent_blockhash: Hash) -> Transaction {
         let mut ixs = Vec::with_capacity(self.oracle_update_ixs.len() + 3);
-        let mut loaded_account_data_size = self.loaded_account_data_size;
+        let loaded_account_data_size = self.loaded_account_data_size;
         let mut compute_units = self.compute_units;
 
         if let Some(unit_price) = self.unit_price {
             ixs.push(ComputeBudgetInstruction::set_compute_unit_price(unit_price));
-            loaded_account_data_size += COMPUTE_BUDGET_UNIT_PRICE_SIZE;
+            // Reuses the ComputeBudget account, so loaded size is unchanged.
             compute_units += COMPUTE_BUDGET_IX_CU;
         }
 
@@ -90,5 +98,75 @@ impl<'a> Builder<'a> {
             &[&self.admin],
             recent_blockhash,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use solana_keypair::Keypair;
+    use solana_pubkey::Pubkey;
+
+    use super::*;
+
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    struct PriceFeed {
+        pub price: u64,
+    }
+
+    #[test]
+    fn single_update_is_exact_simd0186_size() {
+        let admin = Keypair::new();
+        let builder = Builder::new(&admin).add_oracle_update(
+            Pubkey::new_unique(),
+            Oracle {
+                sequence: 1,
+                payload: PriceFeed { price: 1 },
+            },
+        );
+
+        // [0 + 22 + 36 + 1189 + 16] + 5*64 = 1583 (validator-confirmed).
+        assert_eq!(builder.loaded_accounts_data_size(), 1583);
+    }
+
+    #[test]
+    fn unit_price_does_not_change_loaded_size() {
+        let admin = Keypair::new();
+        let update = || {
+            (
+                Pubkey::new_unique(),
+                Oracle {
+                    sequence: 1,
+                    payload: PriceFeed { price: 1 },
+                },
+            )
+        };
+        let (k, o) = update();
+        let without = Builder::new(&admin)
+            .add_oracle_update(k, o)
+            .loaded_accounts_data_size();
+        let (k, o) = update();
+        let with = Builder::new(&admin)
+            .add_oracle_update(k, o)
+            .with_unit_price(1_000)
+            .loaded_accounts_data_size();
+        assert_eq!(without, with);
+    }
+
+    #[test]
+    fn each_distinct_oracle_adds_data_len_plus_metadata() {
+        let admin = Keypair::new();
+        let mut builder = Builder::new(&admin);
+        for price in 0..3 {
+            builder = builder.add_oracle_update(
+                Pubkey::new_unique(),
+                Oracle {
+                    sequence: 1,
+                    payload: PriceFeed { price },
+                },
+            );
+        }
+        // 1583 + 2 * (16 + 64) = 1743.
+        assert_eq!(builder.loaded_accounts_data_size(), 1743);
     }
 }
