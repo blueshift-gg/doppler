@@ -12,7 +12,8 @@
     "fmt": "oxfmt --check",
     "fmt:fix": "oxfmt --write",
     "sdk:check": "oxlint sdk/typescript && oxfmt --check package.json turbo.json sdk/typescript && turbo run typecheck build --filter './sdk/typescript/*'",
-    "packages:check": "oxlint packages && oxfmt --check package.json turbo.json packages && turbo run typecheck build test --filter './packages/*'"
+    "packages:check": "oxlint packages && oxfmt --check package.json turbo.json packages && turbo run typecheck build test --filter './packages/*'",
+    "packages:test:integration": "turbo run test:integration --filter './packages/*'"
   },
   "packageManager": "bun@1.3.14",
   "devDependencies": {
