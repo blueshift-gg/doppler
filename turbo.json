@@ -8,6 +8,14 @@
     "typecheck": {
       "dependsOn": ["^typecheck"],
       "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "@blueshift-gg/doppler-cli#test:integration": {
+      "dependsOn": ["^build"],
+      "outputs": []
     }
   }
 }
