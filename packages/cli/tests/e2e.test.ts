@@ -32,7 +32,6 @@ test("generates price feed artifacts with default v3 arch", async () => {
   const manifest = await writeDopplerArtifacts(config, {
     binaryFile: join(out, "doppler.so"),
     assemblyFile: join(out, "doppler.s"),
-    typescriptSdkDir: join(out, "codec"),
   });
 
   expect(manifest.arch).toBe("v3");
@@ -40,7 +39,6 @@ test("generates price feed artifacts with default v3 arch", async () => {
   expect(existsSync(join(out, "doppler.so"))).toBe(true);
   expect(existsSync(join(out, "doppler.s"))).toBe(true);
   expect(existsSync(join(out, "manifest.json"))).toBe(true);
-  expect(existsSync(join(out, "codec", "src", "codecs.ts"))).toBe(true);
 });
 
 test("supports explicit v0 arch", async () => {

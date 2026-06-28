@@ -1,6 +1,6 @@
 # @blueshift-gg/doppler
 
-Programmatic APIs for payload schema validation, binary generation, manifest creation, SDK rendering, and Loader v3 deploy transaction construction.
+Programmatic APIs for payload schema validation, binary generation, manifest creation, payload codecs, and Loader v3 deploy transaction construction.
 
 ## Get Started
 
@@ -16,8 +16,6 @@ import {
   buildDeployTransactions,
   createDopplerArtifacts,
   createGeneratorConfig,
-  renderPayloadCodecSdk,
-  renderRustSdk,
 } from "@blueshift-gg/doppler";
 import { Connection } from "@solana/web3.js";
 
@@ -38,8 +36,6 @@ const config = createGeneratorConfig({
 const { assembly, binary, manifest } = await createDopplerArtifacts(config);
 
 const payloadCodec = buildPayloadCodec(payload);
-const codecFiles = renderPayloadCodecSdk(config);
-const rustFiles = await renderRustSdk(config);
 
 const connection = new Connection("https://api.devnet.solana.com");
 const bundle = await buildDeployTransactions({
@@ -50,7 +46,7 @@ const bundle = await buildDeployTransactions({
 });
 ```
 
-Each SDK renderer returns `Record<string, string>` (path → source). Core does not write files; callers decide where to persist artifacts.
+Core does not write files; callers decide where to persist artifacts.
 
 ## Schema and manifest
 
@@ -110,8 +106,6 @@ The generated payload layout is packed and little-endian. There is no Rust `repr
 | `assembly`           | sBPF assembly source rendering from admin and payload size.          |
 | `binary`             | Assembly-to-ELF compilation via `@blueshift-gg/sbpf-assembler`.      |
 | `artifacts`          | `createDopplerArtifacts` — assembly, binary, and manifest in memory. |
-| `sdk/typescript`     | `renderPayloadCodecSdk` for generated payload codec packages.        |
-| `sdk/rust`           | `renderRustSdk` matching the `doppler-sdk` layout.                   |
 | `transactions`       | `buildDeployTransactions` for unsigned Loader v3 deploy bundles.     |
 | `programs/loader-v3` | Loader v3 instruction builders used by deploy transactions.          |
 | `public-key`         | Solana address decoding and assembly literal helpers.                |
@@ -130,4 +124,4 @@ bun run typecheck
 bun run build
 ```
 
-Unit tests under `tests/` cover schema layout, assembly rendering, binary compilation, SDK emission, and deploy transaction construction.
+Unit tests under `tests/` cover schema layout, assembly rendering, binary compilation, payload codecs, and deploy transaction construction.

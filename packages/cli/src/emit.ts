@@ -6,20 +6,16 @@ import {
   type GeneratorConfig,
   type GeneratedManifest,
   type PayloadSchema,
-  renderPayloadCodecSdk,
-  renderRustSdk,
 } from "@blueshift-gg/doppler";
 
 export type GenerateOptions = {
   binaryFile: string;
   manifestFile?: string;
   assemblyFile?: string;
-  typescriptSdkDir?: string;
-  rustSdkDir?: string;
 };
 
 /**
- * Generate Doppler artifacts in memory and write binary, manifest, assembly, and SDK files.
+ * Generate Doppler artifacts in memory and write binary, manifest, and assembly files.
  *
  * Calls `createDopplerArtifacts` from core, then writes outputs to the paths in `options`.
  */
@@ -33,14 +29,6 @@ export async function writeDopplerArtifacts(
 
   if (options.assemblyFile) {
     await writeFileEnsuringDir(options.assemblyFile, artifacts.assembly);
-  }
-
-  if (options.typescriptSdkDir) {
-    await writeFiles(options.typescriptSdkDir, renderPayloadCodecSdk(config));
-  }
-
-  if (options.rustSdkDir) {
-    await writeFiles(options.rustSdkDir, await renderRustSdk(config));
   }
 
   const outputDir = dirname(options.binaryFile);
@@ -72,12 +60,6 @@ function formatPayloadFields(payload: PayloadSchema, indent: number): string {
       return `${pad}${name}: { type: ${JSON.stringify(field.type)}, length: ${field.length} }`;
     })
     .join(",\n");
-}
-
-async function writeFiles(root: string, files: Record<string, string>): Promise<void> {
-  await Promise.all(
-    Object.entries(files).map(([file, content]) => writeFileEnsuringDir(join(root, file), content)),
-  );
 }
 
 async function writeFileEnsuringDir(path: string, content: string | Uint8Array): Promise<void> {

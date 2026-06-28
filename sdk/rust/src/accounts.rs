@@ -11,6 +11,10 @@ pub struct Oracle<T: Sized + Copy> {
 }
 
 impl<T: Sized + Copy> Oracle<T> {
+    pub const fn size() -> usize {
+        8 + core::mem::size_of::<T>()
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(core::mem::size_of::<Self>());
         // write sequence bytes

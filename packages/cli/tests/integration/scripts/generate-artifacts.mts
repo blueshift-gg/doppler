@@ -14,5 +14,4 @@ if (!outDir || !schemaFile) {
 const config = await loadGeneratorConfig(schemaFile);
 await writeDopplerArtifacts(config, {
   binaryFile: join(outDir, "doppler.so"),
-  rustSdkDir: join(outDir, "rust-sdk"),
 });

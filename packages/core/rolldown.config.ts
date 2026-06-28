@@ -13,10 +13,6 @@ export default defineConfig({
     "@solana/kit",
     "@solana/web3.js",
     "bs58",
-    "node:fs",
-    "node:fs/promises",
-    "node:path",
-    "node:url",
   ],
   plugins: [dts()],
   output: {

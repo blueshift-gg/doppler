@@ -81,40 +81,8 @@ test("generate help lists schema file and name arguments", () => {
   expect(help).toContain("--keys-dir");
   expect(help).toContain('"keys"');
   expect(help).not.toContain("--name");
-});
-
-test("generate logs optional SDK output directories", async () => {
-  const dir = await mkdtemp(join(tmpdir(), "doppler-generator-cli-"));
-  tempDirs.push(dir);
-
-  const schemaFile = "payload.ts";
-  await Bun.write(
-    join(dir, schemaFile),
-    `export default {
-  payload: { price: "u64" },
-} as const;
-`,
-  );
-  await Bun.write(
-    join(dir, "manifest.json"),
-    JSON.stringify({
-      name: "delta",
-      programId: "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
-      admin: "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
-    }),
-  );
-
-  const result = await runCli(
-    ["generate", schemaFile, "delta", "--typescript-sdk", "sdk/codec", "--rust-sdk", "sdk/rust"],
-    {
-      cwd: dir,
-      cli: join(new URL("..", import.meta.url).pathname, "src/cli.ts"),
-    },
-  );
-
-  expect(result.exitCode).toBe(0);
-  expect(result.stdout).toContain("TypeScript codec SDK: sdk/codec");
-  expect(result.stdout).toContain("Rust SDK: sdk/rust");
+  expect(help).not.toContain("--typescript-sdk");
+  expect(help).not.toContain("--rust-sdk");
 });
 
 test("generate defaults artifact name to doppler", async () => {

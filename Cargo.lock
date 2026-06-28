@@ -1347,6 +1347,7 @@ dependencies = [
 name = "doppler-integration-sdk"
 version = "0.1.0"
 dependencies = [
+ "doppler-sdk",
  "solana-compute-budget-interface",
  "solana-hash 4.2.0",
  "solana-instruction",

@@ -1,6 +1,6 @@
 # @blueshift-gg/doppler-cli
 
-Generate a custom Doppler program binary artifact and matching SDK files from a fixed-size payload schema.
+Generate custom Doppler program artifacts from a fixed-size payload schema.
 
 ## Get Started
 
@@ -14,7 +14,7 @@ npx @blueshift-gg/doppler-cli
 # 1. Create payload.ts (payload fields only)
 npx @blueshift-gg/doppler-cli init
 
-# 2. Build binary, manifest.json, and optional SDKs
+# 2. Build binary and manifest.json
 npx @blueshift-gg/doppler-cli generate ./payload.ts
 
 # 3. Deploy to a cluster
@@ -77,15 +77,13 @@ The generator can emit:
 <name>.so        Compiled Solana program ELF binary.
 doppler.s        Generated sBPF assembly source, if --assembly is provided.
 manifest.json    Name, program ID, admin, arch, payload size, schema hash, and ELF hash.
-codec/           Generated payload codec package (`package.json` + `src/codecs.ts`), if --typescript-sdk is provided.
-rust/            Generated Rust SDK matching doppler-sdk layout, if --rust-sdk is provided.
 ```
 
 The current Doppler program does not embed the program ID in the binary. Program ID is written to the manifest. The binary embeds the admin address and payload size.
 
 ## Integration tests
 
-Rust integration tests under `tests/integration` generate the binary and a Rust SDK into Cargo's `OUT_DIR` at build time, load the program with [Mollusk](https://github.com/anza-xyz/mollusk) and exercise the generated SDK via instruction chains.
+Rust integration tests under `tests/integration` generate the binary into Cargo's `OUT_DIR` at build time, load the program with [Mollusk](https://github.com/anza-xyz/mollusk), and exercise instruction chains.
 
 ```sh
 bun run test:integration

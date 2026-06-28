@@ -3,7 +3,7 @@ use doppler_integration_sdk::custom::{
     BYTECODE as CUSTOM_BYTECODE, ID as CUSTOM_ID, PAYLOAD_SIZE as CUSTOM_PAYLOAD_SIZE,
 };
 use doppler_integration_sdk::{
-    Oracle, OraclePayload, PriceFeedIntegrationPayload, UpdateInstruction, BYTECODE, ID,
+    Oracle, PriceFeedIntegrationPayload, UpdateInstruction, BYTECODE, ID,
 };
 use mollusk_svm::result::Check;
 use mollusk_svm::{program::keyed_account_for_system_program, Mollusk};
@@ -20,7 +20,7 @@ fn keyed_account_for_admin(key: Pubkey) -> (Pubkey, Account) {
     (key, Account::new(10_000_000_000, 0, &system_program::ID))
 }
 
-fn keyed_account_for_oracle<T: OraclePayload>(
+fn keyed_account_for_oracle<T: Sized + Copy>(
     mollusk: &Mollusk,
     admin: Pubkey,
     seed: &str,
@@ -33,7 +33,8 @@ fn keyed_account_for_oracle<T: OraclePayload>(
 
     let key = Pubkey::create_with_seed(&admin, seed, &ID).expect("oracle PDA");
 
-    let lamports = mollusk.sysvars.rent.minimum_balance(Oracle::<T>::SIZE);
+    let account_size = Oracle::<T>::size();
+    let lamports = mollusk.sysvars.rent.minimum_balance(account_size);
 
     let account = Account {
         lamports,
@@ -99,7 +100,7 @@ fn deploy_program_then_create_and_update_oracle_using_default_payload() {
         .expect("oracle account should exist");
     assert_eq!(
         created.data().len(),
-        Oracle::<PriceFeedIntegrationPayload>::SIZE
+        Oracle::<PriceFeedIntegrationPayload>::size()
     );
 
     let oracle_state = Oracle::<PriceFeedIntegrationPayload>::from_bytes(created.data());
@@ -122,7 +123,7 @@ fn deploy_program_then_create_and_update_oracle_using_custom_payload() {
 
     let (admin, admin_account) = keyed_account_for_admin(ADMIN);
     let oracle = Pubkey::create_with_seed(&admin, seed, &CUSTOM_ID).expect("oracle PDA");
-    let account_size = CustomOracle::<CustomOraclePayload>::SIZE;
+    let account_size = CustomOracle::<CustomOraclePayload>::size();
     assert_eq!(account_size, 8 + CUSTOM_PAYLOAD_SIZE);
     assert_eq!(CUSTOM_PAYLOAD_SIZE, 48);
     assert!(
@@ -213,7 +214,7 @@ fn deploy_program_then_create_and_update_oracle_with_sol_memcpy() {
 
     let (admin, admin_account) = keyed_account_for_admin(ADMIN);
     let oracle = Pubkey::create_with_seed(&admin, seed, &MEMCPY_ID).expect("oracle PDA");
-    let account_size = MemcpyOracle::<SolMemcpyOraclePayload>::SIZE;
+    let account_size = MemcpyOracle::<SolMemcpyOraclePayload>::size();
     assert_eq!(account_size, 8 + MEMCPY_PAYLOAD_SIZE);
     assert_eq!(MEMCPY_PAYLOAD_SIZE, 47);
     let lamports = mollusk.sysvars.rent.minimum_balance(account_size);
@@ -265,14 +266,41 @@ fn deploy_program_then_create_and_update_oracle_with_sol_memcpy() {
         .expect("oracle account should exist");
     assert_eq!(created.data().len(), account_size);
 
-    let oracle_state = MemcpyOracle::<SolMemcpyOraclePayload>::from_bytes(created.data());
-    assert_eq!(oracle_state.sequence, 1);
-    assert_eq!(oracle_state.payload.head, 42);
-    assert_eq!(oracle_state.payload.a, 1);
-    assert_eq!(oracle_state.payload.b, 2);
-    assert_eq!(oracle_state.payload.c, 3);
-    assert_eq!(oracle_state.payload.d, 4);
-    assert_eq!(oracle_state.payload.tag, 300);
-    assert_eq!(oracle_state.payload.seq_lo, 7);
-    assert_eq!(oracle_state.payload.flags, 0xCD);
+    let sequence = u64::from_le_bytes(created.data()[..8].try_into().expect("sequence bytes"));
+    let payload = unsafe {
+        created.data()[8..]
+            .as_ptr()
+            .cast::<SolMemcpyOraclePayload>()
+            .read_unaligned()
+    };
+    assert_eq!(sequence, 1);
+    assert_eq!(
+        unsafe { core::ptr::addr_of!(payload.head).read_unaligned() },
+        42
+    );
+    assert_eq!(
+        unsafe { core::ptr::addr_of!(payload.a).read_unaligned() },
+        1
+    );
+    assert_eq!(
+        unsafe { core::ptr::addr_of!(payload.b).read_unaligned() },
+        2
+    );
+    assert_eq!(
+        unsafe { core::ptr::addr_of!(payload.c).read_unaligned() },
+        3
+    );
+    assert_eq!(
+        unsafe { core::ptr::addr_of!(payload.d).read_unaligned() },
+        4
+    );
+    assert_eq!(
+        unsafe { core::ptr::addr_of!(payload.tag).read_unaligned() },
+        300
+    );
+    assert_eq!(
+        unsafe { core::ptr::addr_of!(payload.seq_lo).read_unaligned() },
+        7
+    );
+    assert_eq!(payload.flags, 0xCD);
 }

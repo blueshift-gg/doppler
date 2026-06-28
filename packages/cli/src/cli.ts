@@ -22,8 +22,6 @@ type GenerateArgs = {
   schemaFile: string;
   name: string;
   binaryFile?: string;
-  typescriptSdkDir?: string;
-  rustSdkDir?: string;
   manifestFile?: string;
   assemblyFile?: string;
   keysDir: string;
@@ -56,7 +54,7 @@ async function main(): Promise<void> {
 export function createCommand(): Command {
   const program = new Command()
     .name("doppler")
-    .description("Generate and deploy custom Doppler binary and SDK files from a payload schema")
+    .description("Generate and deploy custom Doppler binaries from a payload schema")
     .showHelpAfterError();
 
   program
@@ -75,12 +73,10 @@ Writes only the payload schema. Does not create keypairs or manifest.json.
 
   program
     .command("generate")
-    .description("Generate compiled Doppler binary and optional SDK files")
+    .description("Generate compiled Doppler binary and optional artifact files")
     .argument("<schema-file>", "Path to TypeScript, JavaScript, or JSON payload schema")
     .argument("[name]", "Generated artifact name", "doppler")
     .option("--out <file>", "Output filepath for compiled Doppler binary. Defaults to ./<name>.so")
-    .option("--typescript-sdk <directory>", "Output directory for generated payload codec package")
-    .option("--rust-sdk <directory>", "Output directory for generated Rust SDK")
     .option(
       "--manifest <file>",
       "Output filepath for manifest JSON. Defaults to manifest.json next to binary output",
@@ -171,8 +167,6 @@ async function runGenerate(args: GenerateArgs): Promise<void> {
   const config = createGeneratorConfig(loaded, overrides);
   const manifest = await writeDopplerArtifacts(config, {
     binaryFile,
-    ...(args.typescriptSdkDir ? { typescriptSdkDir: args.typescriptSdkDir } : {}),
-    ...(args.rustSdkDir ? { rustSdkDir: args.rustSdkDir } : {}),
     ...(args.manifestFile ? { manifestFile: args.manifestFile } : {}),
     ...(args.assemblyFile ? { assemblyFile: args.assemblyFile } : {}),
   });
@@ -207,14 +201,6 @@ function printGeneratedOutputs(args: GenerateArgs): void {
   if (args.manifestFile) {
     console.log(`Manifest: ${args.manifestFile}`);
   }
-
-  if (args.typescriptSdkDir) {
-    console.log(`TypeScript codec SDK: ${args.typescriptSdkDir}`);
-  }
-
-  if (args.rustSdkDir) {
-    console.log(`Rust SDK: ${args.rustSdkDir}`);
-  }
 }
 
 function printGeneratedKeypairs(generatedKeypairs: GeneratedKeypair[]): void {
@@ -248,8 +234,6 @@ async function writeFileEnsuringDir(path: string, content: string): Promise<void
 
 type GenerateCommandOptions = {
   out?: string;
-  typescriptSdk?: string;
-  rustSdk?: string;
   manifest?: string;
   assembly?: string;
   arch?: SbpfArch;
@@ -273,8 +257,6 @@ function toGenerateArgs(
     schemaFile,
     name,
     ...(options.out ? { binaryFile: options.out } : {}),
-    ...(options.typescriptSdk ? { typescriptSdkDir: options.typescriptSdk } : {}),
-    ...(options.rustSdk ? { rustSdkDir: options.rustSdk } : {}),
     ...(options.manifest ? { manifestFile: options.manifest } : {}),
     ...(options.assembly ? { assemblyFile: options.assembly } : {}),
     keysDir: options.keysDir,

@@ -15,7 +15,6 @@
   },
   "files": [
     "dist",
-    "templates",
     "README.md"
   ],
   "scripts": {

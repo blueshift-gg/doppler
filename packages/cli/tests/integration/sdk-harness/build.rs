@@ -25,38 +25,14 @@ fn main() {
     println!("cargo:rerun-if-changed={}", script.display());
     rerun_if_changed(&cli_dir.join("src"));
     rerun_if_changed(&core_dir.join("src"));
-    rerun_if_changed(&core_dir.join("templates/rust"));
 
     generate_artifacts(&script, &cli_dir, &out_dir, &schema);
-    copy_generated_sdk(&out_dir, &out_dir.join("rust-sdk/src"), "");
 
     let custom_out_dir = out_dir.join("custom");
     generate_artifacts(&script, &cli_dir, &custom_out_dir, &custom_schema);
-    copy_generated_sdk(&out_dir, &custom_out_dir.join("rust-sdk/src"), "custom_");
 
     let sol_memcpy_out_dir = out_dir.join("sol_memcpy");
     generate_artifacts(&script, &cli_dir, &sol_memcpy_out_dir, &sol_memcpy_schema);
-    copy_generated_sdk(
-        &out_dir,
-        &sol_memcpy_out_dir.join("rust-sdk/src"),
-        "sol_memcpy_",
-    );
-}
-
-fn copy_generated_sdk(out_dir: &Path, rust_sdk_src: &Path, prefix: &str) {
-    for file in ["accounts.rs", "constants.rs", "transaction.rs"] {
-        fs::copy(
-            rust_sdk_src.join(file),
-            out_dir.join(format!("{prefix}{file}")),
-        )
-        .unwrap_or_else(|error| panic!("failed to copy generated {prefix}{file}: {error}"));
-    }
-
-    let lib_rs =
-        fs::read_to_string(rust_sdk_src.join("lib.rs")).expect("failed to read generated lib.rs");
-    let lib_body = strip_generated_module_declarations(&lib_rs);
-    fs::write(out_dir.join(format!("{prefix}lib_body.rs")), lib_body)
-        .expect("failed to write generated lib body");
 }
 
 fn generate_artifacts(script: &Path, cli_dir: &Path, out_dir: &Path, schema: &Path) {
@@ -84,23 +60,4 @@ fn rerun_if_changed(dir: &Path) {
         let path = entry.path();
         println!("cargo:rerun-if-changed={}", path.display());
     }
-}
-
-fn strip_generated_module_declarations(source: &str) -> String {
-    source
-        .lines()
-        .filter(|line| {
-            !matches!(
-                line.trim(),
-                "mod accounts;"
-                    | "mod constants;"
-                    | "pub mod transaction;"
-                    | "pub use accounts::{Oracle, UpdateInstruction};"
-                    | "pub use accounts::{Oracle, OraclePayload, UpdateInstruction};"
-                    | "pub use constants::ID;"
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("\n")
-        + "\n"
 }
