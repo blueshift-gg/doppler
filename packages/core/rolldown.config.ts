@@ -25,5 +25,5 @@ export default defineConfig({
     entryFileNames: "[name].js",
     cleanDir: true,
   },
-  platform: "node",
+  platform: "neutral",
 });
