@@ -56,7 +56,7 @@ export type GeneratorConfig = {
  * Merge loaded config input with optional overrides and derive layout metadata.
  *
  * Validates required fields, normalizes the payload schema, and computes account
- * layout offsets used by assembly rendering and SDK generation.
+ * layout offsets used by binary generation and SDK generation.
  */
 export function createGeneratorConfig(
   loaded: GeneratorConfigInput,

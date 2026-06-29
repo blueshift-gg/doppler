@@ -75,7 +75,6 @@ The generator can emit:
 
 ```txt
 <name>.so        Compiled Solana program ELF binary.
-doppler.s        Generated sBPF assembly source, if --assembly is provided.
 manifest.json    Name, program ID, admin, arch, payload size, schema hash, and ELF hash.
 ```
 

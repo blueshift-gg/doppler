@@ -31,13 +31,11 @@ test("generates price feed artifacts with default v3 arch", async () => {
   const out = join(dir, "generated");
   const manifest = await writeDopplerArtifacts(config, {
     binaryFile: join(out, "doppler.so"),
-    assemblyFile: join(out, "doppler.s"),
   });
 
   expect(manifest.arch).toBe("v3");
   expect(manifest.payloadSize).toBe(8);
   expect(existsSync(join(out, "doppler.so"))).toBe(true);
-  expect(existsSync(join(out, "doppler.s"))).toBe(true);
   expect(existsSync(join(out, "manifest.json"))).toBe(true);
 });
 

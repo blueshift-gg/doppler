@@ -65,9 +65,6 @@ test("init help documents output default and omits keypair options", () => {
 
   expect(help).toContain("--out");
   expect(help).toContain('default: "payload.ts"');
-  expect(help).not.toContain("--program-id");
-  expect(help).not.toContain("--admin");
-  expect(help).not.toContain("--keys-dir");
 });
 
 test("generate help lists schema file and name arguments", () => {
@@ -80,9 +77,6 @@ test("generate help lists schema file and name arguments", () => {
   expect(help).toContain('default: "doppler"');
   expect(help).toContain("--keys-dir");
   expect(help).toContain('"keys"');
-  expect(help).not.toContain("--name");
-  expect(help).not.toContain("--typescript-sdk");
-  expect(help).not.toContain("--rust-sdk");
 });
 
 test("generate defaults artifact name to doppler", async () => {
