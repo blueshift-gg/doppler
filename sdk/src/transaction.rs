@@ -11,8 +11,8 @@ use solana_transaction::Transaction;
 
 use crate::accounts::{Oracle, UpdateInstruction};
 use crate::constants::{
-    ACCOUNT_METADATA_SIZE, COMPUTE_BUDGET_IX_CU, COMPUTE_BUDGET_PROGRAM_SIZE,
-    COMPUTE_BUDGET_UNIT_PRICE_SIZE, ELF_HEADER_SIZE, PROGRAM_ACCOUNT_SIZE,
+    ACCOUNT_METADATA_SIZE, COMPUTE_BUDGET_IX_CU, COMPUTE_BUDGET_PROGRAM_SIZE, ELF_HEADER_SIZE,
+    PROGRAM_ACCOUNT_SIZE,
 };
 
 fn oracle_pubkey(admin: &Pubkey, seed: &str, program_id: &Pubkey) -> Result<Pubkey, PubkeyError> {
@@ -25,6 +25,16 @@ fn derive_program_data_address(program_address: &Pubkey) -> Pubkey {
         &bpf_loader_upgradeable::id(),
     )
     .0
+}
+
+fn get_average_priority_fee(
+    rpc_client: &rpc_client::RpcClient,
+    mutable_accounts: &[Pubkey],
+) -> u64 {
+    let fees = rpc_client
+        .get_recent_prioritization_fees(mutable_accounts)
+        .unwrap();
+    fees.iter().map(|fee| fee.prioritization_fee).sum::<u64>() / fees.len() as u64
 }
 
 pub struct Builder<'a> {
@@ -56,7 +66,7 @@ impl<'a> Builder<'a> {
             admin,
             oracle_update_ixs: vec![],
             unit_price: None,
-            compute_units: COMPUTE_BUDGET_IX_CU * 2, // default 2 compute budget ixs
+            compute_units: COMPUTE_BUDGET_IX_CU * 3, // default 3 compute budget ixs
             loaded_account_data_size: PROGRAM_ACCOUNT_SIZE
                 + COMPUTE_BUDGET_PROGRAM_SIZE
                 + ELF_HEADER_SIZE as u32
@@ -93,15 +103,27 @@ impl<'a> Builder<'a> {
 
     #[must_use]
     pub fn build(self, recent_blockhash: Hash) -> Transaction {
+        // 3 compute budget ixs
         let mut ixs = Vec::with_capacity(self.oracle_update_ixs.len() + 3);
-        let mut loaded_account_data_size = self.loaded_account_data_size;
-        let mut compute_units = self.compute_units;
+        let loaded_account_data_size = self.loaded_account_data_size;
+        let compute_units = self.compute_units;
 
-        if let Some(unit_price) = self.unit_price {
-            ixs.push(ComputeBudgetInstruction::set_compute_unit_price(unit_price));
-            loaded_account_data_size += COMPUTE_BUDGET_UNIT_PRICE_SIZE;
-            compute_units += COMPUTE_BUDGET_IX_CU;
-        }
+        let micro_lamports = match self.unit_price {
+            Some(unit_price) => unit_price,
+            None => {
+                // the 2nd account in each oracle_update_ix is the mutable oracle account
+                let mutable_accounts = self
+                    .oracle_update_ixs
+                    .iter()
+                    .map(|ix| ix.accounts[1].pubkey)
+                    .collect::<Vec<Pubkey>>();
+                get_average_priority_fee(self.rpc_client, &mutable_accounts)
+            }
+        };
+
+        ixs.push(ComputeBudgetInstruction::set_compute_unit_price(
+            micro_lamports,
+        ));
 
         ixs.push(
             ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(loaded_account_data_size),
