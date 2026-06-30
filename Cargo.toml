@@ -30,6 +30,8 @@ solana-signer = { version = "2.2.1" }
 solana-system-interface = { version = "1.0.0" }
 solana-transaction = { version = "2.2.3" }
 solana-message = { version = "2.4.0" }
+solana-commitment-config = { version = "2.2.1" }
+futures = { version = "0.3" }
 
 [profile.release]
 opt-level = 3

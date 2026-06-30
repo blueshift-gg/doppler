@@ -1,3 +1,7 @@
+use futures::{future::ready, Stream, StreamExt};
+use futures::future::BoxFuture;
+use solana_client::nonblocking::pubsub_client::{PubsubClient, PubsubClientError};
+use solana_client::rpc_config::RpcAccountInfoConfig;
 use solana_client::rpc_client;
 use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_hash::Hash;
@@ -7,6 +11,7 @@ use solana_pubkey::{Pubkey, PubkeyError};
 use solana_sdk_ids::bpf_loader_upgradeable;
 use solana_system_interface::instruction::create_account_with_seed;
 use solana_transaction::Transaction;
+use solana_commitment_config::CommitmentConfig;
 
 use crate::accounts::{Oracle, UpdateInstruction};
 use crate::constants::{
@@ -166,4 +171,36 @@ pub fn fetch_oracle<T: Sized + Copy>(
 ) -> Oracle<T> {
     let data = rpc_client.get_account_data(oracle_pubkey).unwrap();
     Oracle::<T>::from_bytes(data.as_slice())
+}
+
+pub async fn subscribe_to_oracle<'a, T: Sized + Copy + 'a>(
+    pubsub_client: &'a PubsubClient,
+    oracle_pubkey: &Pubkey,
+) -> Result<
+    (
+        impl Stream<Item = Oracle<T>> + 'a,
+        Box<dyn FnOnce() -> BoxFuture<'static, ()> + Send>,
+    ),
+    PubsubClientError,
+> {
+    let config = RpcAccountInfoConfig {
+        commitment: Some(CommitmentConfig::confirmed()),
+        encoding: None,
+        data_slice: None,
+        min_context_slot: None,
+    };
+
+    let (notifications, unsubscribe) = pubsub_client
+        .account_subscribe(oracle_pubkey, Some(config))
+        .await?;
+
+    let oracle_notifications = notifications.filter_map(|response| {
+        let data = match response.value.data.decode() {
+            Some(data) => data,
+            None => return ready(None),
+        };
+        ready(Some(Oracle::<T>::from_bytes(&data)))
+    });
+
+    Ok((oracle_notifications, unsubscribe))
 }
