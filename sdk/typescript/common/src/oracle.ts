@@ -1,14 +1,13 @@
 import { getStructCodec, getU64Codec, type FixedSizeCodec } from "@solana/codecs";
 
 import {
+  ACCOUNT_METADATA_SIZE,
   ADMIN_VERIFICATION_CU,
-  COMPUTE_BUDGET_DATA_LIMIT_SIZE,
   COMPUTE_BUDGET_IX_CU,
   COMPUTE_BUDGET_PROGRAM_SIZE,
-  COMPUTE_BUDGET_UNIT_LIMIT_SIZE,
-  COMPUTE_BUDGET_UNIT_PRICE_SIZE,
-  ORACLE_PROGRAM_SIZE,
+  ELF_HEADER_SIZE,
   PAYLOAD_WRITE_CU,
+  PROGRAM_ACCOUNT_SIZE,
   SEQUENCE_CHECK_CU,
 } from "./constants";
 import type { Oracle } from "./types";
@@ -45,7 +44,17 @@ export function oracleUpdateComputeUnits<T>(payloadCodec: FixedSizeCodec<T>): nu
 }
 
 export function oracleUpdateLoadedAccountsDataSize<T>(payloadCodec: FixedSizeCodec<T>): number {
-  return oracleAccountSize(payloadCodec);
+  return oracleAccountSize(payloadCodec) + ACCOUNT_METADATA_SIZE;
+}
+
+export function baseOracleUpdateLoadedAccountDataSize(programDataAccountSize: number): number {
+  return (
+    PROGRAM_ACCOUNT_SIZE +
+    COMPUTE_BUDGET_PROGRAM_SIZE +
+    ELF_HEADER_SIZE +
+    programDataAccountSize +
+    ACCOUNT_METADATA_SIZE * 4
+  );
 }
 
 export type OracleUpdateComputeBudget = Readonly<{
@@ -53,36 +62,26 @@ export type OracleUpdateComputeBudget = Readonly<{
   loadedAccountDataSize: number;
 }>;
 
-export type OracleUpdateComputeBudgetOptions = Readonly<{
-  unitPrice?: bigint;
-}>;
-
 /** Compute budget limits for one or more oracle update instructions. */
 export function oracleUpdateComputeBudget<T>(
   payloadCodec: FixedSizeCodec<T>,
   updateCount: number,
-  options: OracleUpdateComputeBudgetOptions = {},
+  programDataAccountSize: number,
 ): OracleUpdateComputeBudget {
   if (!Number.isInteger(updateCount) || updateCount < 0) {
     throw new RangeError("updateCount must be a non-negative integer");
   }
 
-  let loadedAccountDataSize =
-    ORACLE_PROGRAM_SIZE +
-    COMPUTE_BUDGET_PROGRAM_SIZE +
-    COMPUTE_BUDGET_UNIT_LIMIT_SIZE +
-    COMPUTE_BUDGET_DATA_LIMIT_SIZE +
-    2;
-  let computeUnits = COMPUTE_BUDGET_IX_CU * 2;
+  if (!Number.isInteger(programDataAccountSize) || programDataAccountSize < 0) {
+    throw new RangeError("programDataAccountSize must be a non-negative integer");
+  }
+
+  let loadedAccountDataSize = baseOracleUpdateLoadedAccountDataSize(programDataAccountSize);
+  let computeUnits = COMPUTE_BUDGET_IX_CU * 3;
 
   for (let index = 0; index < updateCount; index++) {
     computeUnits += oracleUpdateComputeUnits(payloadCodec);
-    loadedAccountDataSize += oracleUpdateLoadedAccountsDataSize(payloadCodec) * 2;
-  }
-
-  if (options.unitPrice !== undefined) {
-    loadedAccountDataSize += COMPUTE_BUDGET_UNIT_PRICE_SIZE;
-    computeUnits += COMPUTE_BUDGET_IX_CU;
+    loadedAccountDataSize += oracleUpdateLoadedAccountsDataSize(payloadCodec);
   }
 
   return { computeUnits, loadedAccountDataSize };

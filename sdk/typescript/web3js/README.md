@@ -32,7 +32,7 @@ const { oraclePubkey, instruction: createInstruction } = await client.createOrac
   signer.publicKey,
 );
 
-const updateInstructions = client.createUpdateInstructions(
+const updateInstructions = await client.createUpdateInstructions(
   [
     {
       oraclePubkey,

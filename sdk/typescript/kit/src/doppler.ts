@@ -22,6 +22,7 @@ import {
   type TransactionSigner,
 } from "@solana/kit";
 
+import { fetchProgramDataAccountSize, getAveragePriorityFee } from "./budget";
 import { decodeBase64AccountData } from "./decode-base64";
 import type { DopplerConfig } from "./types";
 
@@ -48,6 +49,7 @@ export class Doppler<T> {
   private readonly programId: Address;
   private readonly admin: Address;
   private readonly payloadCodec: FixedSizeCodec<T>;
+  private readonly programDataAccountSize: Promise<number>;
 
   constructor(
     private readonly rpc: SolanaRpc,
@@ -57,6 +59,7 @@ export class Doppler<T> {
     this.programId = config.programId;
     this.admin = config.admin;
     this.payloadCodec = config.payloadCodec;
+    this.programDataAccountSize = fetchProgramDataAccountSize(this.rpc, this.programId);
   }
 
   /** Fetch and deserialize an oracle account. */
@@ -133,41 +136,42 @@ export class Doppler<T> {
    * Build compute budget and oracle update instructions.
    *
    * Returns instructions in this order:
-   * 1. `SetComputeUnitPrice` when `unitPrice` is provided
+   * 1. `SetComputeUnitPrice`
    * 2. `SetLoadedAccountsDataSizeLimit`
    * 3. `SetComputeUnitLimit`
    * 4. One Doppler oracle update instruction per entry in `updates`
    */
-  createUpdateInstructions(
+  async createUpdateInstructions(
     updates: Array<{
       oraclePubkey: Address;
       oracle: Oracle<T>;
     }>,
     unitPrice?: bigint,
-  ): Instruction[] {
-    const budget =
-      unitPrice === undefined
-        ? oracleUpdateComputeBudget(this.payloadCodec, updates.length)
-        : oracleUpdateComputeBudget(this.payloadCodec, updates.length, { unitPrice });
+  ): Promise<Instruction[]> {
+    const budget = oracleUpdateComputeBudget(
+      this.payloadCodec,
+      updates.length,
+      await this.programDataAccountSize,
+    );
 
-    const instructions: Instruction[] = [];
+    const microLamports =
+      unitPrice ??
+      (await getAveragePriorityFee(
+        this.rpc,
+        updates.map((update) => update.oraclePubkey),
+      ));
 
-    if (unitPrice !== undefined) {
-      instructions.push(
-        getSetComputeUnitPriceInstruction({
-          microLamports: unitPrice,
-        }),
-      );
-    }
-
-    instructions.push(
+    const instructions: Instruction[] = [
+      getSetComputeUnitPriceInstruction({
+        microLamports,
+      }),
       getSetLoadedAccountsDataSizeLimitInstruction({
         accountDataSizeLimit: budget.loadedAccountDataSize,
       }),
       getSetComputeUnitLimitInstruction({
         units: budget.computeUnits,
       }),
-    );
+    ];
 
     for (const update of updates) {
       instructions.push({
@@ -193,6 +197,10 @@ export class Doppler<T> {
 
   getAdmin(): Address {
     return this.admin;
+  }
+
+  getProgramDataAccountSize(): Promise<number> {
+    return this.programDataAccountSize;
   }
 }
 

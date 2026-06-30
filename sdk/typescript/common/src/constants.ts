@@ -10,17 +10,14 @@ export const PAYLOAD_WRITE_CU = 6;
 /** Base compute units for a compute-budget instruction. */
 export const COMPUTE_BUDGET_IX_CU = 150;
 
-/** Account data size for a compute-unit-price instruction. */
-export const COMPUTE_BUDGET_UNIT_PRICE_SIZE = 9;
-
-/** Account data size for a compute-unit-limit instruction. */
-export const COMPUTE_BUDGET_UNIT_LIMIT_SIZE = 5;
-
-/** Account data size for a loaded-accounts-data-size-limit instruction. */
-export const COMPUTE_BUDGET_DATA_LIMIT_SIZE = 5;
-
 /** Account data size for the compute-budget program. */
 export const COMPUTE_BUDGET_PROGRAM_SIZE = 22;
 
-/** Account data size for the oracle program. */
-export const ORACLE_PROGRAM_SIZE = 36;
+/** Account data size for a LoaderV3 program account. */
+export const PROGRAM_ACCOUNT_SIZE = 36;
+
+/** LoaderV3 programdata ELF header size. */
+export const ELF_HEADER_SIZE = 45;
+
+/** Per-account metadata cost under SIMD-0186. */
+export const ACCOUNT_METADATA_SIZE = 64;
