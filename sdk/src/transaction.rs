@@ -1,3 +1,4 @@
+use solana_client::rpc_client;
 use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_hash::Hash;
 use solana_instruction::Instruction;
@@ -14,6 +15,7 @@ use crate::constants::{
 
 pub struct Builder<'a> {
     oracle_update_ixs: Vec<Instruction>,
+    rpc_client: &'a rpc_client::RpcClient,
     program_id: Pubkey,
     admin: &'a Keypair,
     unit_price: Option<u64>,
@@ -23,8 +25,9 @@ pub struct Builder<'a> {
 
 impl<'a> Builder<'a> {
     #[must_use]
-    pub const fn new(program_id: Pubkey, admin: &'a Keypair) -> Self {
+    pub const fn new(rpc_client: &'a rpc_client::RpcClient, program_id: Pubkey, admin: &'a Keypair) -> Self {
         Self {
+            rpc_client,
             program_id,
             admin,
             oracle_update_ixs: vec![],

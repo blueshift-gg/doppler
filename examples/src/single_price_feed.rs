@@ -43,7 +43,7 @@ fn main() {
         .expect("Failed to get recent blockhash");
 
     // Create and sign the transaction
-    let transaction = Builder::new(program_id, &admin)
+    let transaction = Builder::new(&client, program_id, &admin)
         .add_oracle_update(
             constants::SOL_USDC_ORACLE,
             Oracle {

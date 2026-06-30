@@ -57,7 +57,7 @@ fn main() {
         .expect("Failed to get recent blockhash");
 
     // Create and sign the transaction
-    let mut tx_builder = Builder::new(program_id, &admin).with_unit_price(1_000);
+    let mut tx_builder = Builder::new(&client, program_id, &admin).with_unit_price(1_000);
 
     // Add multiple oracle updates
     for (oracle_pubkey, oracle_data, new_price_feed) in [
