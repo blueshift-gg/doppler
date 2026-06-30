@@ -2,6 +2,7 @@ use doppler_program::PriceFeed;
 use doppler_sdk::{transaction::Builder, Oracle};
 use solana_client::rpc_client::RpcClient;
 use solana_keypair::Keypair;
+use solana_pubkey::Pubkey;
 use solana_signer::EncodableKey as _;
 use std::path::PathBuf;
 
@@ -16,6 +17,13 @@ fn main() {
     let keypair_path: PathBuf = [env!("CARGO_MANIFEST_DIR"), "keys", "admin-keypair.json"]
         .iter()
         .collect();
+
+    // fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
+    let program_id: Pubkey = Pubkey::new_from_array([
+        0x09, 0xe2, 0x60, 0x40, 0xff, 0x10, 0xec, 0xcf, 0xc1, 0x6a, 0xf6, 0x16, 0x9a, 0x68, 0x04,
+        0x78, 0x15, 0x14, 0x33, 0x02, 0xac, 0x6e, 0x98, 0x5f, 0x70, 0x85, 0x53, 0xe1, 0x0a, 0xb6,
+        0xf9, 0x22,
+    ]);
 
     // Load admin keypair (ensure this path is correct)
     let admin = Keypair::read_from_file(keypair_path).expect("keypair not found at that path");
@@ -35,7 +43,7 @@ fn main() {
         .expect("Failed to get recent blockhash");
 
     // Create and sign the transaction
-    let transaction = Builder::new(&admin)
+    let transaction = Builder::new(program_id, &admin)
         .add_oracle_update(
             constants::SOL_USDC_ORACLE,
             Oracle {

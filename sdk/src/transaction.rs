@@ -14,6 +14,7 @@ use crate::constants::{
 
 pub struct Builder<'a> {
     oracle_update_ixs: Vec<Instruction>,
+    program_id: Pubkey,
     admin: &'a Keypair,
     unit_price: Option<u64>,
     compute_units: u32,
@@ -22,8 +23,9 @@ pub struct Builder<'a> {
 
 impl<'a> Builder<'a> {
     #[must_use]
-    pub const fn new(admin: &'a Keypair) -> Self {
+    pub const fn new(program_id: Pubkey, admin: &'a Keypair) -> Self {
         Self {
+            program_id,
             admin,
             oracle_update_ixs: vec![],
             unit_price: None,
@@ -42,6 +44,7 @@ impl<'a> Builder<'a> {
         oracle: Oracle<T>,
     ) -> Self {
         let update_ix = UpdateInstruction {
+            program_id: self.program_id,
             admin: self.admin.pubkey(),
             oracle_pubkey,
             oracle,
