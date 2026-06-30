@@ -39,6 +39,10 @@ impl<T: Sized + Copy> Oracle<T> {
 
         Self { sequence, payload }
     }
+
+    pub fn space(&self) -> usize {
+        8 + core::mem::size_of::<T>()
+    }
 }
 
 pub struct UpdateInstruction<T: Sized + Copy> {
