@@ -3,7 +3,7 @@ use doppler_sdk::{transaction::Builder, Oracle};
 use solana_client::rpc_client::RpcClient;
 use solana_keypair::Keypair;
 use solana_pubkey::Pubkey;
-use solana_signer::EncodableKey as _;
+use solana_signer::{EncodableKey as _, Signer};
 use std::path::PathBuf;
 
 mod constants;
@@ -43,7 +43,7 @@ fn main() {
         .expect("Failed to get recent blockhash");
 
     // Create and sign the transaction
-    let transaction = Builder::new(&client, program_id, &admin)
+    let mut transaction = Builder::new(&client, program_id, admin.pubkey())
         .add_oracle_update(
             constants::SOL_USDC_ORACLE,
             Oracle {
@@ -53,6 +53,7 @@ fn main() {
         )
         .with_unit_price(1_000)
         .build(recent_blockhash);
+    transaction.sign(&[&admin], recent_blockhash);
 
     println!("Sending Tx...");
 

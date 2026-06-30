@@ -2,10 +2,9 @@ use solana_client::rpc_client;
 use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_hash::Hash;
 use solana_instruction::Instruction;
-use solana_keypair::Keypair;
+use solana_message::Message;
 use solana_pubkey::{Pubkey, PubkeyError};
 use solana_sdk_ids::bpf_loader_upgradeable;
-use solana_signer::Signer as _;
 use solana_system_interface::instruction::create_account_with_seed;
 use solana_transaction::Transaction;
 
@@ -41,7 +40,7 @@ pub struct Builder<'a> {
     oracle_update_ixs: Vec<Instruction>,
     rpc_client: &'a rpc_client::RpcClient,
     program_id: Pubkey,
-    admin: &'a Keypair,
+    admin: Pubkey,
     unit_price: Option<u64>,
     compute_units: u32,
     loaded_account_data_size: u32,
@@ -49,11 +48,7 @@ pub struct Builder<'a> {
 
 impl<'a> Builder<'a> {
     #[must_use]
-    pub fn new(
-        rpc_client: &'a rpc_client::RpcClient,
-        program_id: Pubkey,
-        admin: &'a Keypair,
-    ) -> Self {
+    pub fn new(rpc_client: &'a rpc_client::RpcClient, program_id: Pubkey, admin: Pubkey) -> Self {
         let program_data_address = derive_program_data_address(&program_id);
         let program_data_account_size = rpc_client
             .get_account_data(&program_data_address)
@@ -82,7 +77,7 @@ impl<'a> Builder<'a> {
     ) -> Self {
         let update_ix = UpdateInstruction {
             program_id: self.program_id,
-            admin: self.admin.pubkey(),
+            admin: self.admin,
             oracle_pubkey,
             oracle,
         };
@@ -136,12 +131,8 @@ impl<'a> Builder<'a> {
             ixs.push(oracle_ix);
         }
 
-        Transaction::new_signed_with_payer(
-            &ixs,
-            Some(&self.admin.pubkey()),
-            &[&self.admin],
-            recent_blockhash,
-        )
+        let message = Message::new_with_blockhash(&ixs, Some(&self.admin), &recent_blockhash);
+        Transaction::new_unsigned(message)
     }
 }
 

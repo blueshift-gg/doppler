@@ -24,11 +24,12 @@ solana-hash = { version = "2.2.1" }
 solana-instruction = { version = "2.3.0" }
 solana-keypair = { version = "2.2.3" }
 solana-program = { version = "2.3.0" }
-solana-pubkey = { version = "2.3.0" }
+solana-pubkey = { version = "2.4.0" }
 solana-sdk-ids = { version = "2.2.1" }
 solana-signer = { version = "2.2.1" }
 solana-system-interface = { version = "1.0.0" }
 solana-transaction = { version = "2.2.3" }
+solana-message = { version = "2.4.0" }
 
 [profile.release]
 opt-level = 3

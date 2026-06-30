@@ -12,12 +12,11 @@ solana-client = { workspace = true }
 solana-compute-budget-interface = { workspace = true }
 solana-hash = { workspace = true }
 solana-instruction = { workspace = true }
-solana-keypair = { workspace = true }
-solana-pubkey = { workspace = true, features = ["sha2"] }
+solana-pubkey = { workspace = true, features = ["sha2", "curve25519"] }
 solana-sdk-ids = { workspace = true }
-solana-signer = { workspace = true }
 solana-system-interface = { workspace = true, features = ["bincode"] }
 solana-transaction = { workspace = true, features = ["bincode"] }
+solana-message = { workspace = true }
 
 [dev-dependencies]
 doppler-program = { workspace = true }
