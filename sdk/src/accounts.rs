@@ -1,7 +1,9 @@
 use solana_instruction::{AccountMeta, Instruction};
 use solana_pubkey::Pubkey;
 
-use crate::constants::{ADMIN_VERIFICATION_CU, PAYLOAD_WRITE_CU, SEQUENCE_CHECK_CU};
+use crate::constants::{
+    ACCOUNT_METADATA_SIZE, ADMIN_VERIFICATION_CU, PAYLOAD_WRITE_CU, SEQUENCE_CHECK_CU,
+};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -61,7 +63,7 @@ impl<T: Sized + Copy> UpdateInstruction<T> {
     }
 
     pub const fn loaded_accounts_data_size_limit(&self) -> u32 {
-        core::mem::size_of::<Oracle<T>>() as u32
+        core::mem::size_of::<Oracle<T>>() as u32 + ACCOUNT_METADATA_SIZE as u32
     }
 }
 

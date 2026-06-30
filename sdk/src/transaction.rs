@@ -4,18 +4,27 @@ use solana_hash::Hash;
 use solana_instruction::Instruction;
 use solana_keypair::Keypair;
 use solana_pubkey::{Pubkey, PubkeyError};
+use solana_sdk_ids::bpf_loader_upgradeable;
 use solana_signer::Signer as _;
 use solana_system_interface::instruction::create_account_with_seed;
 use solana_transaction::Transaction;
 
 use crate::accounts::{Oracle, UpdateInstruction};
 use crate::constants::{
-    COMPUTE_BUDGET_DATA_LIMIT_SIZE, COMPUTE_BUDGET_IX_CU, COMPUTE_BUDGET_PROGRAM_SIZE,
-    COMPUTE_BUDGET_UNIT_LIMIT_SIZE, COMPUTE_BUDGET_UNIT_PRICE_SIZE, ORACLE_PROGRAM_SIZE,
+    ACCOUNT_METADATA_SIZE, COMPUTE_BUDGET_IX_CU, COMPUTE_BUDGET_PROGRAM_SIZE,
+    COMPUTE_BUDGET_UNIT_PRICE_SIZE, ELF_HEADER_SIZE, PROGRAM_ACCOUNT_SIZE,
 };
 
 fn oracle_pubkey(admin: &Pubkey, seed: &str, program_id: &Pubkey) -> Result<Pubkey, PubkeyError> {
     Pubkey::create_with_seed(admin, seed, program_id)
+}
+
+fn derive_program_data_address(program_address: &Pubkey) -> Pubkey {
+    Pubkey::find_program_address(
+        &[program_address.to_bytes().as_slice()],
+        &bpf_loader_upgradeable::id(),
+    )
+    .0
 }
 
 pub struct Builder<'a> {
@@ -30,7 +39,17 @@ pub struct Builder<'a> {
 
 impl<'a> Builder<'a> {
     #[must_use]
-    pub const fn new(rpc_client: &'a rpc_client::RpcClient, program_id: Pubkey, admin: &'a Keypair) -> Self {
+    pub fn new(
+        rpc_client: &'a rpc_client::RpcClient,
+        program_id: Pubkey,
+        admin: &'a Keypair,
+    ) -> Self {
+        let program_data_address = derive_program_data_address(&program_id);
+        let program_data_account_size = rpc_client
+            .get_account_data(&program_data_address)
+            .unwrap()
+            .len();
+
         Self {
             rpc_client,
             program_id,
@@ -38,11 +57,11 @@ impl<'a> Builder<'a> {
             oracle_update_ixs: vec![],
             unit_price: None,
             compute_units: COMPUTE_BUDGET_IX_CU * 2, // default 2 compute budget ixs
-            loaded_account_data_size: ORACLE_PROGRAM_SIZE
+            loaded_account_data_size: PROGRAM_ACCOUNT_SIZE
                 + COMPUTE_BUDGET_PROGRAM_SIZE
-                + COMPUTE_BUDGET_UNIT_LIMIT_SIZE
-                + COMPUTE_BUDGET_DATA_LIMIT_SIZE
-                + 2,
+                + ELF_HEADER_SIZE as u32
+                + program_data_account_size as u32
+                + (ACCOUNT_METADATA_SIZE as u32 * 4),
         }
     }
 
@@ -59,7 +78,7 @@ impl<'a> Builder<'a> {
         };
 
         self.compute_units += update_ix.compute_units();
-        self.loaded_account_data_size += update_ix.loaded_accounts_data_size_limit() * 2;
+        self.loaded_account_data_size += update_ix.loaded_accounts_data_size_limit();
 
         self.oracle_update_ixs.push(update_ix.into());
 
