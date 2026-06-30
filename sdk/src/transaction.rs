@@ -159,3 +159,11 @@ pub fn create_oracle_account<T: Sized + Copy>(
         program_id,
     )
 }
+
+pub fn fetch_oracle<T: Sized + Copy>(
+    rpc_client: &rpc_client::RpcClient,
+    oracle_pubkey: &Pubkey,
+) -> Oracle<T> {
+    let data = rpc_client.get_account_data(oracle_pubkey).unwrap();
+    Oracle::<T>::from_bytes(data.as_slice())
+}
