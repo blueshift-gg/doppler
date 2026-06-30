@@ -3,8 +3,9 @@ use solana_compute_budget_interface::ComputeBudgetInstruction;
 use solana_hash::Hash;
 use solana_instruction::Instruction;
 use solana_keypair::Keypair;
-use solana_pubkey::Pubkey;
+use solana_pubkey::{Pubkey, PubkeyError};
 use solana_signer::Signer as _;
+use solana_system_interface::instruction::create_account_with_seed;
 use solana_transaction::Transaction;
 
 use crate::accounts::{Oracle, UpdateInstruction};
@@ -12,6 +13,10 @@ use crate::constants::{
     COMPUTE_BUDGET_DATA_LIMIT_SIZE, COMPUTE_BUDGET_IX_CU, COMPUTE_BUDGET_PROGRAM_SIZE,
     COMPUTE_BUDGET_UNIT_LIMIT_SIZE, COMPUTE_BUDGET_UNIT_PRICE_SIZE, ORACLE_PROGRAM_SIZE,
 };
+
+fn oracle_pubkey(admin: &Pubkey, seed: &str, program_id: &Pubkey) -> Result<Pubkey, PubkeyError> {
+    Pubkey::create_with_seed(admin, seed, program_id)
+}
 
 pub struct Builder<'a> {
     oracle_update_ixs: Vec<Instruction>,
@@ -97,4 +102,28 @@ impl<'a> Builder<'a> {
             recent_blockhash,
         )
     }
+}
+
+pub fn create_oracle_account<T: Sized + Copy>(
+    rpc_client: &rpc_client::RpcClient,
+    program_id: &Pubkey,
+    admin: &Pubkey,
+    seed: &str,
+    oracle: Oracle<T>,
+) -> Instruction {
+    let space = oracle.space();
+    let lamports = rpc_client
+        .get_minimum_balance_for_rent_exemption(space)
+        .unwrap();
+    let oracle_pubkey = oracle_pubkey(admin, seed, program_id).unwrap();
+
+    create_account_with_seed(
+        admin,
+        &oracle_pubkey,
+        admin,
+        seed,
+        lamports,
+        space as u64,
+        program_id,
+    )
 }
