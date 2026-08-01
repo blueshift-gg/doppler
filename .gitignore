@@ -21,3 +21,6 @@ playground/
 # skills
 .agents
 skills-lock.json
+
+.env
+!.env.example
