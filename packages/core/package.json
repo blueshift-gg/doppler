@@ -24,7 +24,6 @@
     "prepublishOnly": "bun run --cwd ../.. packages:check"
   },
   "dependencies": {
-    "@blueshift-gg/sbpf-assembler": "^0.2.1",
     "@solana-program/loader-v3": "^0.4.0",
     "@solana/compat": "^6.9.0",
     "@solana/kit": "^6.9.0",

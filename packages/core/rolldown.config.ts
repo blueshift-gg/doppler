@@ -9,7 +9,6 @@ export default defineConfig({
     conditionNames: ["import", "node", "default"],
   },
   external: [
-    /^@blueshift-gg\/sbpf-assembler/,
     "@solana-program/loader-v3",
     "@solana/compat",
     "@solana/kit",

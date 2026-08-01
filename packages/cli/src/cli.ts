@@ -23,7 +23,6 @@ type GenerateArgs = {
   name: string;
   binaryFile?: string;
   manifestFile?: string;
-  assemblyFile?: string;
   keysDir: string;
   overrides: ConfigOverrides;
 };
@@ -81,7 +80,6 @@ Writes only the payload schema. Does not create keypairs or manifest.json.
       "--manifest <file>",
       "Output filepath for manifest JSON. Defaults to manifest.json next to binary output",
     )
-    .option("--assembly <file>", "Output filepath for generated assembly source")
     .option("--arch <arch>", "Target sBPF arch. Defaults to v3", parseArch)
     .option(
       "--program-id <address>",
@@ -168,7 +166,6 @@ async function runGenerate(args: GenerateArgs): Promise<void> {
   const manifest = await writeDopplerArtifacts(config, {
     binaryFile,
     ...(args.manifestFile ? { manifestFile: args.manifestFile } : {}),
-    ...(args.assemblyFile ? { assemblyFile: args.assemblyFile } : {}),
   });
 
   console.log(
@@ -194,10 +191,6 @@ async function runDeploy(binaryFile: string, options: DeployOptions): Promise<vo
 }
 
 function printGeneratedOutputs(args: GenerateArgs): void {
-  if (args.assemblyFile) {
-    console.log(`Assembly source: ${args.assemblyFile}`);
-  }
-
   if (args.manifestFile) {
     console.log(`Manifest: ${args.manifestFile}`);
   }
@@ -235,7 +228,6 @@ async function writeFileEnsuringDir(path: string, content: string): Promise<void
 type GenerateCommandOptions = {
   out?: string;
   manifest?: string;
-  assembly?: string;
   arch?: SbpfArch;
   programId?: string;
   admin?: string;
@@ -258,7 +250,6 @@ function toGenerateArgs(
     name,
     ...(options.out ? { binaryFile: options.out } : {}),
     ...(options.manifest ? { manifestFile: options.manifest } : {}),
-    ...(options.assembly ? { assemblyFile: options.assembly } : {}),
     keysDir: options.keysDir,
     overrides,
   };

@@ -1,6 +1,5 @@
-import { assemble } from "./assemble.js";
+import { generateBinary } from "./assemble.js";
 import type { GeneratorConfig } from "./config.js";
-import { generateOracleProgram } from "./oracle.js";
 
 export type GeneratedManifest = {
   name: string;
@@ -13,7 +12,6 @@ export type GeneratedManifest = {
 };
 
 export type DopplerArtifacts = {
-  assembly: string;
   binary: Uint8Array;
   manifest: GeneratedManifest;
 };
@@ -21,16 +19,12 @@ export type DopplerArtifacts = {
 /**
  * Build Doppler program artifacts in memory from a generator config.
  *
- * Renders assembly source, assembles it to ELF, and produces a manifest with
- * schema and ELF checksums.
+ * Emits an ELF binary and produces a manifest with schema and ELF checksums.
  */
 export async function createDopplerArtifacts(config: GeneratorConfig): Promise<DopplerArtifacts> {
-  const assembly = generateOracleProgram({
+  const binary = generateBinary({
     admin: config.admin,
     payloadSize: config.layout.payloadSize,
-  });
-  const binary = await assemble({
-    source: assembly,
     arch: config.arch,
   });
 
@@ -44,7 +38,7 @@ export async function createDopplerArtifacts(config: GeneratorConfig): Promise<D
     elfSha256: `sha256:${await sha256(binary)}`,
   };
 
-  return { assembly, binary, manifest };
+  return { binary, manifest };
 }
 
 async function sha256(content: string | Uint8Array): Promise<string> {

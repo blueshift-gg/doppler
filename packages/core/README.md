@@ -33,7 +33,7 @@ const config = createGeneratorConfig({
   payload,
 });
 
-const { assembly, binary, manifest } = await createDopplerArtifacts(config);
+const { binary, manifest } = await createDopplerArtifacts(config);
 
 const payloadCodec = buildPayloadCodec(payload);
 
@@ -103,12 +103,11 @@ The generated payload layout is packed and little-endian. There is no Rust `repr
 | `codec`              | Browser-safe fixed-size payload codec construction from schema.      |
 | `payload-form`       | Browser-safe payload form defaults, parsing, and display formatting. |
 | `config`             | `createGeneratorConfig` and package-name helpers.                    |
-| `assembly`           | sBPF assembly source rendering from admin and payload size.          |
-| `binary`             | Assembly-to-ELF compilation via `@blueshift-gg/sbpf-assembler`.      |
-| `artifacts`          | `createDopplerArtifacts` — assembly, binary, and manifest in memory. |
+| `binary`             | Directly generated SBPF ELF binary.                                  |
+| `artifacts`          | `createDopplerArtifacts` — binary and manifest in memory.            |
 | `transactions`       | `buildDeployTransactions` for unsigned Loader v3 deploy bundles.     |
 | `programs/loader-v3` | Loader v3 instruction builders used by deploy transactions.          |
-| `public-key`         | Solana address decoding and assembly literal helpers.                |
+| `public-key`         | Solana address decoding helpers.                                     |
 
 The current Doppler program does not embed the program ID in the binary. Program ID is written to the manifest. The binary embeds the admin address and payload size.
 
@@ -124,4 +123,4 @@ bun run typecheck
 bun run build
 ```
 
-Unit tests under `tests/` cover schema layout, assembly rendering, binary compilation, payload codecs, and deploy transaction construction.
+Unit tests under `tests/` cover schema layout, binary generation, payload codecs, and deploy transaction construction.

@@ -31,12 +31,10 @@ test("emits requested artifacts", async () => {
   const binaryFile = join(dir, "out", "doppler.so");
   const manifest = await writeDopplerArtifacts(config, {
     binaryFile,
-    assemblyFile: join(dir, "out", "doppler.s"),
   });
 
   expect(manifest.arch).toBe("v3");
   expect(manifest.payloadSize).toBe(8);
   expect(existsSync(binaryFile)).toBe(true);
-  expect(existsSync(join(dir, "out", "doppler.s"))).toBe(true);
   expect(existsSync(join(dir, "out", "manifest.json"))).toBe(true);
 });

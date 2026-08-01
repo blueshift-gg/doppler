@@ -11,11 +11,10 @@ import {
 export type GenerateOptions = {
   binaryFile: string;
   manifestFile?: string;
-  assemblyFile?: string;
 };
 
 /**
- * Generate Doppler artifacts in memory and write binary, manifest, and assembly files.
+ * Generate Doppler artifacts in memory and write binary and manifest files.
  *
  * Calls `createDopplerArtifacts` from core, then writes outputs to the paths in `options`.
  */
@@ -26,10 +25,6 @@ export async function writeDopplerArtifacts(
   const artifacts = await createDopplerArtifacts(config);
 
   await writeFileEnsuringDir(options.binaryFile, artifacts.binary);
-
-  if (options.assemblyFile) {
-    await writeFileEnsuringDir(options.assemblyFile, artifacts.assembly);
-  }
 
   const outputDir = dirname(options.binaryFile);
   const manifestFile = options.manifestFile ?? join(outputDir, "manifest.json");
