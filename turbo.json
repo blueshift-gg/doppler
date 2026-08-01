@@ -13,7 +13,7 @@
       "dependsOn": ["^build"],
       "outputs": []
     },
-    "@blueshift-gg/doppler-cli#test:integration": {
+    "test:integration": {
       "dependsOn": ["^build"],
       "outputs": []
     }

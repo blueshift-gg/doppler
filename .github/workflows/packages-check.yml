@@ -39,4 +39,4 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: bun install --frozen-lockfile
-      - run: bun run packages:test:integration
+      - run: bun run test:integration
