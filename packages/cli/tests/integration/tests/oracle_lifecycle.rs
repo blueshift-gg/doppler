@@ -74,6 +74,7 @@ fn deploy_program_then_create_and_update_oracle_using_default_payload() {
     );
 
     let update_ix: Instruction = UpdateInstruction {
+        program_id: ID,
         admin,
         oracle_pubkey: oracle,
         oracle: Oracle::<PriceFeedIntegrationPayload> {
@@ -146,6 +147,7 @@ fn deploy_program_then_create_and_update_oracle_using_custom_payload() {
     );
 
     let update_ix: Instruction = CustomUpdateInstruction {
+        program_id: CUSTOM_ID,
         admin,
         oracle_pubkey: oracle,
         oracle: CustomOracle::<CustomOraclePayload> {
@@ -231,6 +233,7 @@ fn deploy_program_then_create_and_update_oracle_with_sol_memcpy() {
     );
 
     let update_ix: Instruction = MemcpyUpdateInstruction {
+        program_id: MEMCPY_ID,
         admin,
         oracle_pubkey: oracle,
         oracle: MemcpyOracle::<SolMemcpyOraclePayload> {

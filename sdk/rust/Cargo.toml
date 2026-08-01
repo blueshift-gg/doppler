@@ -8,13 +8,17 @@ edition = { workspace = true }
 version = { workspace = true }
 
 [dependencies]
+solana-client = { workspace = true }
 solana-compute-budget-interface = { workspace = true }
+solana-commitment-config = { workspace = true }
 solana-hash = { workspace = true }
 solana-instruction = { workspace = true }
-solana-keypair = { workspace = true }
-solana-pubkey = { workspace = true }
-solana-signer = { workspace = true }
+solana-pubkey = { workspace = true, features = ["sha2", "curve25519"] }
+solana-sdk-ids = { workspace = true }
+solana-system-interface = { workspace = true, features = ["bincode"] }
 solana-transaction = { workspace = true, features = ["bincode"] }
+solana-message = { workspace = true }
+futures = { workspace = true }
 
 [dev-dependencies]
 doppler-program = { workspace = true }
