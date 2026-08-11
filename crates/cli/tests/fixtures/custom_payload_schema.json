@@ -1,0 +1,17 @@
+{
+  "name": "custom-oracle",
+  "programId": "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
+  "admin": "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
+  "arch": "v3",
+  "payload": {
+    "bid": "u64",
+    "ask": "u64",
+    "mid": "u64",
+    "leg_a": "u32",
+    "leg_b": "u32",
+    "leg_c": "u32",
+    "leg_d": "u32",
+    "leg_e": "u32",
+    "leg_f": "u32"
+  }
+}
