@@ -4,8 +4,6 @@ members = [
   "crates/*",
   "doppler",
   "examples",
-  "packages/cli/tests/integration",
-  "packages/cli/tests/integration/sdk-harness",
   "program",
   "sdk/rust",
 ]

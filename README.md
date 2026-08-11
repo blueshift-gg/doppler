@@ -37,15 +37,18 @@ solana-signer = "2.2.1"
 Doppler includes TypeScript packages under `packages/`:
 
 - `@blueshift-gg/doppler` for programmatic payload, manifest, SDK, ELF binary, and deploy transaction APIs.
-- `@blueshift-gg/doppler-cli` for CLI generation and deployment workflows.
 
-Use the CLI to produce custom fixed-size payload program binary and SDKs:
+## CLI
+
+Generate and deploy custom Doppler binaries with the Rust CLI:
 
 ```sh
-npx @blueshift-gg/doppler-cli
+cargo install --path crates/cli
+doppler init
+doppler generate ./payload.json
 ```
 
-See [`packages/cli/README.md`](./packages/cli/README.md) for full usage.
+See [`crates/cli/README.md`](./crates/cli/README.md) for full usage.
 
 ## Program ID
 

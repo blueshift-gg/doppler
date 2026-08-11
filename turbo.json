@@ -12,10 +12,6 @@
     "test": {
       "dependsOn": ["^build"],
       "outputs": []
-    },
-    "test:integration": {
-      "dependsOn": ["^build"],
-      "outputs": []
     }
   }
 }

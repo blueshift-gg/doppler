@@ -14,7 +14,6 @@
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "test:integration": "turbo run test:integration",
     "sdk:check": "oxlint sdk/typescript && oxfmt --check package.json turbo.json sdk/typescript && turbo run typecheck build --filter './sdk/typescript/*'",
     "packages:check": "oxlint packages && oxfmt --check package.json turbo.json packages && turbo run typecheck build test --filter './packages/*'"
   },

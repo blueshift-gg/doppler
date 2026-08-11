@@ -1428,20 +1428,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "doppler-cli-integration"
-version = "0.1.0"
-dependencies = [
- "doppler-integration-sdk",
- "mollusk-svm",
- "solana-account",
- "solana-clock",
- "solana-instruction",
- "solana-pubkey 4.1.0",
- "solana-sdk-ids",
- "solana-system-interface 3.1.0",
-]
-
-[[package]]
 name = "doppler-examples"
 version = "0.1.0"
 dependencies = [
@@ -1451,20 +1437,6 @@ dependencies = [
  "solana-keypair",
  "solana-pubkey 4.1.0",
  "solana-signer",
-]
-
-[[package]]
-name = "doppler-integration-sdk"
-version = "0.1.0"
-dependencies = [
- "doppler-sdk",
- "solana-compute-budget-interface",
- "solana-hash 4.2.0",
- "solana-instruction",
- "solana-keypair",
- "solana-pubkey 4.1.0",
- "solana-signer",
- "solana-transaction",
 ]
 
 [[package]]
