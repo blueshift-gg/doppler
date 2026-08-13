@@ -16,13 +16,3 @@ export function decodeSolanaPublicKey(address: string): Uint8Array {
 
   return decoded;
 }
-
-export function publicKeyToU64Words(address: string): bigint[] {
-  const bytes = decodeSolanaPublicKey(address);
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  return [0, 8, 16, 24].map((offset) => view.getBigUint64(offset, true));
-}
-
-export function bigintToHexLiteral(value: bigint): string {
-  return `0x${value.toString(16).padStart(16, "0")}`;
-}
