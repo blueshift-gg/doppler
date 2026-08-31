@@ -32,6 +32,24 @@ solana-signer = "2.2.1"
 # Add other Solana crates as needed
 ```
 
+## TypeScript Packages
+
+Doppler includes TypeScript packages under `packages/`:
+
+- `@blueshift-gg/doppler` for programmatic payload, manifest, SDK, ELF binary, and deploy transaction APIs.
+
+## CLI
+
+Generate and deploy custom Doppler binaries with the Rust CLI:
+
+```sh
+cargo install --path crates/cli
+doppler init
+doppler generate ./payload.json
+```
+
+See [`crates/cli/README.md`](./crates/cli/README.md) for full usage.
+
 ## Program ID
 
 ```
@@ -234,10 +252,12 @@ let priority_ix = ComputeBudgetInstruction::set_compute_unit_price(optimal_fee);
 ## Testing
 
 ### Build
+
 ```bash
 # Within root
 cargo build-sbf --manifest-path program/Cargo.toml
 ```
+
 ### Unit
 
 Run the test suite:

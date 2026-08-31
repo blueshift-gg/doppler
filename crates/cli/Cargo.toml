@@ -1,0 +1,50 @@
+[package]
+name = "doppler-cli"
+description = "CLI for generating and deploying custom Doppler program artifacts."
+repository = { workspace = true }
+readme = { workspace = true }
+license-file = { workspace = true }
+edition = { workspace = true }
+version = { workspace = true }
+publish = false
+
+[lib]
+name = "doppler_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "doppler"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+anyhow = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+indexmap = { workspace = true }
+solana-client = { workspace = true }
+solana-keypair = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-signer = { workspace = true }
+solana-instruction = { workspace = true }
+solana-sdk-ids = { workspace = true }
+solana-system-interface = { workspace = true, features = ["bincode"] }
+solana-transaction = { workspace = true, features = ["bincode"] }
+solana-message = { workspace = true }
+solana-hash = { workspace = true }
+solana-commitment-config = { workspace = true }
+solana-loader-v3-interface = { workspace = true }
+bincode = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.14"
+doppler-sdk = { workspace = true }
+mollusk-svm = { workspace = true }
+solana-account = { workspace = true }
+solana-clock = { workspace = true }
+solana-instruction = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-sdk-ids = { workspace = true }
+solana-system-interface = { workspace = true }

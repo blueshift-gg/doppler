@@ -1,0 +1,24 @@
+name: Doppler CLI
+
+on:
+  pull_request:
+    paths:
+      - "crates/cli/**"
+      - "sdk/rust/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+  push:
+    paths:
+      - "crates/cli/**"
+      - "sdk/rust/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test -p doppler-cli

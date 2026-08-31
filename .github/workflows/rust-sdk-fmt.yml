@@ -1,0 +1,19 @@
+name: Rust SDK format
+
+on:
+  pull_request:
+    paths:
+      - "sdk/rust/**"
+  push:
+    paths:
+      - "sdk/rust/**"
+
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --manifest-path sdk/rust/Cargo.toml -- --check

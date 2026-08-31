@@ -1,0 +1,28 @@
+{
+  "name": "@blueshift-gg/doppler-common",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rolldown -c rolldown.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "bun run --cwd ../../.. sdk:check"
+  },
+  "dependencies": {
+    "@solana/codecs": "^6.9.0"
+  },
+  "devDependencies": {
+    "rolldown": "1.1.0",
+    "rolldown-plugin-dts": "0.25.2",
+    "typescript": "6.0.3"
+  }
+}

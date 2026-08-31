@@ -1,0 +1,26 @@
+{
+  "name": "doppler",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "sdk/typescript/*"
+  ],
+  "scripts": {
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt --check",
+    "fmt:fix": "oxfmt --write",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "sdk:check": "oxlint sdk/typescript && oxfmt --check package.json turbo.json sdk/typescript && turbo run typecheck build --filter './sdk/typescript/*'",
+    "packages:check": "oxlint packages && oxfmt --check package.json turbo.json packages && turbo run typecheck build test --filter './packages/*'"
+  },
+  "packageManager": "bun@1.3.14",
+  "devDependencies": {
+    "oxfmt": "^0.54.0",
+    "oxlint": "^1.69.0",
+    "turbo": "^2.9.17"
+  }
+}

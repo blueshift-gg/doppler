@@ -10,8 +10,17 @@
 # testing
 test-ledger
 
-# Lock file (optional - you may want to commit this for reproducible builds)
-Cargo.lock
-
 # surfpool simnet logs
 .surfpool
+
+node_modules
+.turbo
+
+playground/
+
+# skills
+.agents
+skills-lock.json
+
+.env
+!.env.example

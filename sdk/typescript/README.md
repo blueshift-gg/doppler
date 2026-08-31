@@ -1,0 +1,1 @@
+TypeScript SDK comes in 2 flavors: [web3.js](./web3js/README.md) and [Kit](./kit/README.md).

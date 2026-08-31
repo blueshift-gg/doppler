@@ -1,7 +1,9 @@
 use solana_instruction::{AccountMeta, Instruction};
 use solana_pubkey::Pubkey;
 
-use crate::constants::{ADMIN_VERIFICATION_CU, ID, PAYLOAD_WRITE_CU, SEQUENCE_CHECK_CU};
+use crate::constants::{
+    ACCOUNT_METADATA_SIZE, ADMIN_VERIFICATION_CU, PAYLOAD_WRITE_CU, SEQUENCE_CHECK_CU,
+};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
@@ -11,6 +13,10 @@ pub struct Oracle<T: Sized + Copy> {
 }
 
 impl<T: Sized + Copy> Oracle<T> {
+    pub const fn size() -> usize {
+        8 + core::mem::size_of::<T>()
+    }
+
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(core::mem::size_of::<Self>());
         // write sequence bytes
@@ -39,9 +45,14 @@ impl<T: Sized + Copy> Oracle<T> {
 
         Self { sequence, payload }
     }
+
+    pub fn space(&self) -> usize {
+        8 + core::mem::size_of::<T>()
+    }
 }
 
 pub struct UpdateInstruction<T: Sized + Copy> {
+    pub program_id: Pubkey,
     pub admin: Pubkey,
     pub oracle_pubkey: Pubkey,
     pub oracle: Oracle<T>,
@@ -56,7 +67,7 @@ impl<T: Sized + Copy> UpdateInstruction<T> {
     }
 
     pub const fn loaded_accounts_data_size_limit(&self) -> u32 {
-        core::mem::size_of::<Oracle<T>>() as u32
+        core::mem::size_of::<Oracle<T>>() as u32 + ACCOUNT_METADATA_SIZE as u32
     }
 }
 
@@ -65,7 +76,7 @@ impl<T: Sized + Copy> From<UpdateInstruction<T>> for Instruction {
         let data = update.oracle.to_bytes();
 
         Self {
-            program_id: ID,
+            program_id: update.program_id,
             accounts: vec![
                 AccountMeta::new_readonly(update.admin, true),
                 AccountMeta::new(update.oracle_pubkey, false),
@@ -112,6 +123,7 @@ mod tests {
 
     #[test]
     fn test_cu_limit_num_payload() {
+        let program_id = Pubkey::new_unique();
         let admin = Pubkey::new_unique();
         let oracle_pubkey = Pubkey::new_unique();
 
@@ -121,6 +133,7 @@ mod tests {
         };
 
         let update_instruction = UpdateInstruction {
+            program_id,
             admin,
             oracle_pubkey,
             oracle,
@@ -133,6 +146,7 @@ mod tests {
 
     #[test]
     fn test_cu_limit_price_feed_payload() {
+        let program_id = Pubkey::new_unique();
         let admin = Pubkey::new_unique();
         let oracle_pubkey = Pubkey::new_unique();
 
@@ -142,6 +156,7 @@ mod tests {
         };
 
         let update_instruction = UpdateInstruction {
+            program_id,
             admin,
             oracle_pubkey,
             oracle,
@@ -154,6 +169,7 @@ mod tests {
 
     #[test]
     fn test_cu_limit_prop_amm_payload() {
+        let program_id = Pubkey::new_unique();
         let admin = Pubkey::new_unique();
         let oracle_pubkey = Pubkey::new_unique();
 
@@ -166,6 +182,7 @@ mod tests {
         };
 
         let update_instruction = UpdateInstruction {
+            program_id,
             admin,
             oracle_pubkey,
             oracle,
@@ -178,6 +195,7 @@ mod tests {
 
     #[test]
     fn test_cu_limit_market_data_payload() {
+        let program_id = Pubkey::new_unique();
         let admin = Pubkey::new_unique();
         let oracle_pubkey = Pubkey::new_unique();
 
@@ -191,6 +209,7 @@ mod tests {
         };
 
         let update_instruction = UpdateInstruction {
+            program_id,
             admin,
             oracle_pubkey,
             oracle,
