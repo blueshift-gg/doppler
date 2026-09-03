@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import {
   AccountRole,
+  address,
   appendTransactionMessageInstructions,
   compileTransaction,
   createSolanaRpc,
@@ -23,7 +24,7 @@ import {
   getSetComputeUnitPriceInstructionDataDecoder,
   getSetLoadedAccountsDataSizeLimitInstructionDataDecoder,
 } from '@solana-program/compute-budget';
-import vectors from '../../../doppler/tests/vectors.json';
+import vectors from '../../../doppler/tests/vectors.json' with { type: 'json' };
 import { LOADER_V3_PROGRAM_ADDRESS } from '@solana-program/loader-v3';
 import { Doppler, Update } from '../src/index.js';
 
@@ -35,15 +36,18 @@ const fields = [
 ] as const;
 const value = { price: 17_234_000_000n, conf: 5_000_000n, expo: -8 };
 const noRpc = {} as never;
+const program = address(vectors.program);
+const admin = address(vectors.admin);
+const feed = address(vectors.feed);
 
 test('the address and the update instruction match the vectors', async () => {
   const d = await Doppler.load({ program: vectors.program, admin: vectors.admin, fields });
-  expect(d.address).toBe(vectors.feed);
+  expect(d.address).toBe(feed);
   const ix = d.update(value).instruction();
-  expect(ix.programAddress).toBe(vectors.program);
+  expect(ix.programAddress).toBe(program);
   expect(ix.accounts).toEqual([
-    { address: vectors.admin, role: AccountRole.READONLY_SIGNER },
-    { address: vectors.feed, role: AccountRole.WRITABLE },
+    { address: admin, role: AccountRole.READONLY_SIGNER },
+    { address: feed, role: AccountRole.WRITABLE },
   ]);
   expect(hex(ix.data!.subarray(8))).toBe(vectors.price.data.slice(16));
 });
@@ -54,7 +58,7 @@ test('instructions carry the exact budget', async () => {
   expect(getSetComputeUnitPriceInstructionDataDecoder().decode(price!.data!).microLamports).toBe(1000n);
   expect(getSetLoadedAccountsDataSizeLimitInstructionDataDecoder().decode(loaded!.data!).accountDataSizeLimit).toBe(vectors.price.loadedBytes);
   expect(getSetComputeUnitLimitInstructionDataDecoder().decode(limit!.data!).units).toBe(vectors.price.computeUnits);
-  expect(update!.programAddress).toBe(vectors.program);
+  expect(update!.programAddress).toBe(program);
 });
 
 test('deploy fits one transaction and ends immutable with the feed', async () => {

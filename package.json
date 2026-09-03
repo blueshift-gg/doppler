@@ -2,10 +2,10 @@
   "name": "doppler-workspace",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
+  "workspaces": ["packages/*", "examples"],
   "scripts": {
     "build": "tsc -b packages/kit packages/web3js",
-    "test": "bun test"
+    "test": "tsc -p tsconfig.test.json && bun test"
   },
   "devDependencies": {
     "@types/bun": "^1.2.0",

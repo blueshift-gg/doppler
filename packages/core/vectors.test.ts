@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import vectors from '../../../doppler/tests/vectors.json';
-import { BUFFER_HEADER, Feed, HEADER, PROGRAM_LEN, rentExempt, updateCu } from '../src/index.js';
+import vectors from '../../doppler/tests/vectors.json' with { type: 'json' };
+import { BUFFER_HEADER, Feed, HEADER, PROGRAM_LEN, rentExempt, updateCu } from './index.js';
 
 const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 const fromHex = (text: string) => Uint8Array.from(text.match(/../g) ?? [], (b) => parseInt(b, 16));

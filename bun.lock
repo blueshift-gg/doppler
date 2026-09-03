@@ -9,16 +9,21 @@
         "typescript": "^5.9.0",
       },
     },
-    "packages/core": {
-      "name": "@blueshift-gg/doppler",
-      "version": "0.1.0",
+    "examples": {
+      "name": "doppler-examples",
+      "dependencies": {
+        "@blueshift-gg/doppler-kit": "workspace:*",
+        "@blueshift-gg/doppler-web3js": "workspace:*",
+        "@solana-program/compute-budget": "^0.18.1",
+        "@solana-program/loader-v3": "^0.6.1",
+        "@solana-program/system": "^0.14.1",
+        "@solana/kit": "^8.2.0",
+        "@solana/web3.js": "3.0.0-rc.3",
+      },
     },
     "packages/kit": {
       "name": "@blueshift-gg/doppler-kit",
       "version": "0.1.0",
-      "dependencies": {
-        "@blueshift-gg/doppler": "workspace:*",
-      },
       "devDependencies": {
         "@solana-program/compute-budget": "^0.18.1",
         "@solana-program/loader-v3": "^0.6.1",
@@ -35,9 +40,6 @@
     "packages/web3js": {
       "name": "@blueshift-gg/doppler-web3js",
       "version": "0.1.0",
-      "dependencies": {
-        "@blueshift-gg/doppler": "workspace:*",
-      },
       "devDependencies": {
         "@solana/web3.js": "3.0.0-rc.3",
       },
@@ -47,8 +49,6 @@
     },
   },
   "packages": {
-    "@blueshift-gg/doppler": ["@blueshift-gg/doppler@workspace:packages/core"],
-
     "@blueshift-gg/doppler-kit": ["@blueshift-gg/doppler-kit@workspace:packages/kit"],
 
     "@blueshift-gg/doppler-web3js": ["@blueshift-gg/doppler-web3js@workspace:packages/web3js"],
@@ -164,6 +164,8 @@
     "chalk": ["chalk@5.6.2", "", {}, "sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA=="],
 
     "commander": ["commander@15.0.0", "", {}, "sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg=="],
+
+    "doppler-examples": ["doppler-examples@workspace:examples"],
 
     "typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

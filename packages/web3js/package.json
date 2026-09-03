@@ -8,14 +8,13 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/web3js/src/index.d.ts",
       "bun": "./src/index.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/web3js/src/index.js"
     }
   },
   "files": ["dist", "README.md"],
   "scripts": { "build": "tsc -b" },
-  "dependencies": { "@blueshift-gg/doppler": "workspace:*" },
   "peerDependencies": { "@solana/web3.js": "^3.0.0-rc.3" },
   "devDependencies": { "@solana/web3.js": "3.0.0-rc.3" }
 }

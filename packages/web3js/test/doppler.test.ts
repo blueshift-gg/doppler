@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { ComputeBudgetProgram, Connection, Keypair, LoaderV3Program, PACKET_DATA_SIZE, PublicKey, Transaction } from '@solana/web3.js';
-import vectors from '../../../doppler/tests/vectors.json';
+import vectors from '../../../doppler/tests/vectors.json' with { type: 'json' };
 import { Doppler, Update } from '../src/index.js';
 
 const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
@@ -57,7 +57,7 @@ const url = process.env.DOPPLER_RPC;
 const ws = process.env.DOPPLER_WS;
 
 test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live cluster', async () => {
-  const rpc = new Connection(url!, { wsEndpoint: ws, commitment: 'confirmed' });
+  const rpc = new Connection(url!, { wsEndpoint: ws!, commitment: 'confirmed' });
   const [admin, program] = await Promise.all([Keypair.generate(), Keypair.generate()]);
   await rpc.confirmTransaction(await rpc.requestAirdrop(admin.publicKey, 1_000_000_000));
   const d = await Doppler.load({ program: program.address, admin: admin.address, fields });

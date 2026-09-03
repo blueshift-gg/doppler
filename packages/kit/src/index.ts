@@ -1,7 +1,7 @@
 // @solana/kit client for Doppler feeds: `load` a manifest, `deploy` once, then `update`, `read`, `subscribe`.
 
-import { BUFFER_HEADER, FEED_SEED, Feed, HEADER, PROGRAM_LEN, rentExempt } from '@blueshift-gg/doppler';
-import type { Field, FieldLike, Manifest, Payload, Reading } from '@blueshift-gg/doppler';
+import { BUFFER_HEADER, FEED_SEED, Feed, HEADER, PROGRAM_LEN, rentExempt } from '../../core/index.js';
+import type { Field, FieldLike, Manifest, Payload, Reading } from '../../core/index.js';
 import {
   AccountRole,
   address,
@@ -50,7 +50,7 @@ import {
 } from '@solana-program/loader-v3';
 import { getCreateAccountInstruction, getCreateAccountWithSeedInstruction } from '@solana-program/system';
 
-export type { Field, FieldLike, Manifest, Payload, Reading, Ty } from '@blueshift-gg/doppler';
+export type { Feed, Field, FieldLike, Manifest, Payload, Reading, Ty } from '../../core/index.js';
 
 export type SendRpc = Rpc<GetLatestBlockhashApi & SendTransactionApi & GetSignatureStatusesApi & GetBlockHeightApi>;
 /** `unitPrice` is the priority fee in micro-lamports per compute unit. */

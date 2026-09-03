@@ -37,15 +37,15 @@ A program that reads a feed needs only the core, without its generator:
 doppler = { version = "0.1.0", default-features = false }
 ```
 
-In TypeScript, one package per client library, each over the same core:
+In TypeScript, one package per client library:
 
 ```bash
 bun add @blueshift-gg/doppler-kit @solana/kit @solana-program/loader-v3 @solana-program/system @solana-program/compute-budget
 bun add @blueshift-gg/doppler-web3js @solana/web3.js@3.0.0-rc.3
 ```
 
-`@blueshift-gg/doppler` alone has no dependencies: the manifest, the payload codec, the budget, and
-the program generator, for a browser, a worker, or a server that only reads feeds.
+Each compiles the core in, with no dependency of its own: the manifest, the payload codec, the
+budget and the program generator are `doppler.feed`, usable in a browser or a worker.
 
 ## Manifest
 
@@ -252,7 +252,7 @@ the feed address, the wire bytes and budget of a `Price` update, and the rent of
 TypeScript packages reproduce every byte of it:
 
 ```bash
-bun install && bun run build && bun test
+bun install && bun run build && bun run test
 ```
 
 ### E2E
@@ -261,6 +261,8 @@ bun install && bun run build && bun test
 surfpool start                         # surfpool 1.5.0 or newer
 RPC_URL=http://localhost:8899 cargo run --bin deploy
 RPC_URL=http://localhost:8899 cargo run --bin update
+RPC_URL=http://localhost:8899 bun examples/kit/deploy.ts       # or examples/web3js
+RPC_URL=http://localhost:8899 bun examples/kit/update.ts
 DOPPLER_RPC=http://localhost:8899 DOPPLER_WS=ws://localhost:8900 bun test   # deploy, update, read, subscribe
 ```
 

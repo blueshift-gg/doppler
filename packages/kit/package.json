@@ -8,14 +8,13 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/kit/src/index.d.ts",
       "bun": "./src/index.ts",
-      "default": "./dist/index.js"
+      "default": "./dist/kit/src/index.js"
     }
   },
   "files": ["dist", "README.md"],
   "scripts": { "build": "tsc -b" },
-  "dependencies": { "@blueshift-gg/doppler": "workspace:*" },
   "peerDependencies": {
     "@solana/kit": "^8.0.0",
     "@solana-program/compute-budget": "^0.18.0",
