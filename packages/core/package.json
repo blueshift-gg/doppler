@@ -1,0 +1,18 @@
+{
+  "name": "@blueshift-gg/doppler",
+  "version": "0.1.0",
+  "description": "Doppler feeds: the manifest, the payload codec, the wire format, the budget, and the program generator.",
+  "license": "MIT",
+  "repository": "github:blueshift-gg/doppler",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": { "build": "tsc -b" }
+}

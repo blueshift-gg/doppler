@@ -37,6 +37,16 @@ A program that reads a feed needs only the core, without its generator:
 doppler = { version = "0.1.0", default-features = false }
 ```
 
+In TypeScript, one package per client library, each over the same core:
+
+```bash
+bun add @blueshift-gg/doppler-kit @solana/kit @solana-program/loader-v3 @solana-program/system @solana-program/compute-budget
+bun add @blueshift-gg/doppler-web3js @solana/web3.js@3.0.0-rc.3
+```
+
+`@blueshift-gg/doppler` alone has no dependencies: the manifest, the payload codec, the budget, and
+the program generator, for a browser, a worker, or a server that only reads feeds.
+
 ## Manifest
 
 Every Doppler feed is one program with one admin and one payload, described by a `doppler.json`
@@ -154,6 +164,41 @@ transaction holding only them: three compute-budget builtins at 150 units, and t
 the payer and the compute-budget program. `lamports` is that transaction's fee at `unit_price`:
 5,000 per signature plus `ceil(unit_price × requested_compute_units / 1e6)`.
 
+### TypeScript
+
+The same client, with the same four calls, for `@solana/kit` and for `@solana/web3.js` 3:
+
+```ts
+import { Doppler } from '@blueshift-gg/doppler-kit';
+import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
+
+const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
+const doppler = await Doppler.load({
+  program: 'fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm',
+  admin: 'admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE',
+  fields: [{ name: 'price', type: 'i64' }, { name: 'conf', type: 'u64' }, { name: 'expo', type: 'i32' }],
+});
+
+await doppler.deploy().send([admin, programKeypair], { rpc, unitPrice: 1_000 });          // once
+await doppler.update({ price: 17_234_000_000n, conf: 5_000_000n, expo: -8 }).send([admin], { rpc, unitPrice: 1_000 });
+
+const { lastUpdatedMs, value } = await doppler.read(rpc);
+for await (const reading of doppler.subscribe(createSolanaRpcSubscriptions('wss://...'), { signal })) {
+  console.log(reading.value.price, reading.lastUpdatedMs);
+}
+
+const ixs = doppler.update(value).instructions({ unitPrice: 1_000 });   // [price, loaded size, limit, update]
+const ix = doppler.update(value).instruction();                          // just the update
+```
+
+`load` validates the manifest and derives the feed address. Written inline, the manifest types the
+value: `{ price: bigint; conf: bigint; expo: number }`, arrays for `len > 1`. A `doppler.json` import
+is validated the same way and typed loosely. Signers are `TransactionSigner`s, so a wallet works
+like a keypair; `send` resolves once the transaction is confirmed.
+
+`@blueshift-gg/doppler-web3js` is identical over `Connection`, `Keypair` and `PublicKey`:
+`send([admin], { rpc: connection, unitPrice })`, `read(connection)`, `subscribe(connection)`.
+
 ## Performance Optimization Tips
 
 ### 1. Compute Budget Configuration
@@ -202,12 +247,21 @@ cargo test
 to 64: exact bytes copied, stale and unsigned updates rejected, and the metered compute units equal
 to `doppler::update_cu`. No Solana toolchain is needed for it.
 
+`doppler/tests/vectors.rs` writes `doppler/tests/vectors.json`: programs for seven payload sizes,
+the feed address, the wire bytes and budget of a `Price` update, and the rent of a deploy. The
+TypeScript packages reproduce every byte of it:
+
+```bash
+bun install && bun run build && bun test
+```
+
 ### E2E
 
 ```bash
 surfpool start                         # surfpool 1.5.0 or newer
 RPC_URL=http://localhost:8899 cargo run --bin deploy
 RPC_URL=http://localhost:8899 cargo run --bin update
+DOPPLER_RPC=http://localhost:8899 DOPPLER_WS=ws://localhost:8900 bun test   # deploy, update, read, subscribe
 ```
 
 The program is sBPF v3 under the gate mainnet activated, which Agave carries from 4.0 on; surfpool
@@ -367,7 +421,7 @@ pub struct MarketData {
 A: Doppler uses direct memory operations, inline assembly optimizations, and zero-overhead abstractions to achieve minimal compute usage. 21 is a `u64` feed; every 8 bytes of payload adds 2, so `Price` is 25, and from six chunks the copy is one `sol_memcpy_` at 31. `doppler::update_cu` gives the number for any size.
 
 **Q: Can I use custom payload types?**
-A: Yes! Doppler is generic over any packed `Pod` type. Define your structure, list its fields in the manifest, and use it with the SDK.
+A: Yes! Doppler is generic over any packed `Pod` type. Define your structure, list its fields in the manifest, and use it with the SDK. In TypeScript the manifest's fields type the value.
 
 **Q: How do I handle feed account creation?**
 A: `deploy` creates it in the same transaction as the program, with `create_account_with_seed` and the admin as the base key, which is the cheapest way.

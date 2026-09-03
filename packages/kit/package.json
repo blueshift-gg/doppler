@@ -1,0 +1,31 @@
+{
+  "name": "@blueshift-gg/doppler-kit",
+  "version": "0.1.0",
+  "description": "Doppler feeds for @solana/kit: load, deploy, update, read, subscribe.",
+  "license": "MIT",
+  "repository": "github:blueshift-gg/doppler",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": { "build": "tsc -b" },
+  "dependencies": { "@blueshift-gg/doppler": "workspace:*" },
+  "peerDependencies": {
+    "@solana/kit": "^8.0.0",
+    "@solana-program/compute-budget": "^0.18.0",
+    "@solana-program/loader-v3": "^0.6.0",
+    "@solana-program/system": "^0.14.0"
+  },
+  "devDependencies": {
+    "@solana/kit": "^8.2.0",
+    "@solana-program/compute-budget": "^0.18.1",
+    "@solana-program/loader-v3": "^0.6.1",
+    "@solana-program/system": "^0.14.1"
+  }
+}

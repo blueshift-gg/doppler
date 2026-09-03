@@ -1,0 +1,21 @@
+{
+  "name": "@blueshift-gg/doppler-web3js",
+  "version": "0.1.0",
+  "description": "Doppler feeds for @solana/web3.js 3: load, deploy, update, read, subscribe.",
+  "license": "MIT",
+  "repository": "github:blueshift-gg/doppler",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "bun": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": { "build": "tsc -b" },
+  "dependencies": { "@blueshift-gg/doppler": "workspace:*" },
+  "peerDependencies": { "@solana/web3.js": "^3.0.0-rc.3" },
+  "devDependencies": { "@solana/web3.js": "3.0.0-rc.3" }
+}
