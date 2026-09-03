@@ -185,7 +185,6 @@ impl<T: Pod> Doppler<T> {
         Update {
             doppler: self,
             last_updated_ms: now_ms(),
-            unit_price: 0,
             value: *value,
         }
     }
@@ -225,19 +224,12 @@ impl<T: Pod> Doppler<T> {
 pub struct Update<'a, T> {
     doppler: &'a Doppler<T>,
     last_updated_ms: u64,
-    unit_price: u64,
     value: T,
 }
 
 impl<T: Pod> Update<'_, T> {
     pub fn at(mut self, last_updated_ms: u64) -> Self {
         self.last_updated_ms = last_updated_ms;
-        self
-    }
-
-    /// Priority fee in micro-lamports per compute unit. Default 0.
-    pub fn unit_price(mut self, micro_lamports: u64) -> Self {
-        self.unit_price = micro_lamports;
         self
     }
 
@@ -257,24 +249,30 @@ impl<T: Pod> Update<'_, T> {
         }
     }
 
+    /// The compute-budget instructions and the update, for a transaction that holds only this update.
+    /// `unit_price` is micro-lamports per compute unit.
+    pub fn instructions(&self, unit_price: u64) -> [Instruction; 4] {
+        let (compute_units, loaded_bytes) = self.doppler.budget();
+        [
+            ComputeBudgetInstruction::set_compute_unit_price(unit_price),
+            ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(loaded_bytes),
+            ComputeBudgetInstruction::set_compute_unit_limit(compute_units),
+            self.instruction(),
+        ]
+    }
+
     /// Exact budget, signed by the admin, who pays, confirmed.
     pub fn send<S: Signers + ?Sized>(
         &self,
         signers: &S,
         rpc: &RpcClient,
+        unit_price: u64,
     ) -> Result<Signature, Error> {
         let d = self.doppler;
         expect(signers, d.admin)?;
-        let (compute_units, loaded_bytes) = d.budget();
-        let instructions = [
-            ComputeBudgetInstruction::set_compute_unit_price(self.unit_price),
-            ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(loaded_bytes),
-            ComputeBudgetInstruction::set_compute_unit_limit(compute_units),
-            self.instruction(),
-        ];
         let blockhash = rpc.get_latest_blockhash()?;
         let mut tx = Transaction::new_unsigned(Message::new_with_blockhash(
-            &instructions,
+            &self.instructions(unit_price),
             Some(&d.admin),
             &blockhash,
         ));
@@ -434,6 +432,7 @@ mod tests {
         let d = Doppler::<u64>::from_manifest(manifest(u64_fields())).unwrap();
         assert_eq!(d.elf().len(), 328);
         assert_eq!(d.budget(), (471, 5 * 64 + 22 + 36 + (45 + 328) + 16));
+        assert_eq!(d.update(&1u64).instructions(1_000).len(), 4);
     }
 
     #[test]

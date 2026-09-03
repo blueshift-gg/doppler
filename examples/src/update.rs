@@ -20,10 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         conf: 5_000_000,
         expo: -8,
     };
-    let signature = doppler
-        .update(&price)
-        .unit_price(1_000)
-        .send(&[&admin], &rpc)?;
+    let signature = doppler.update(&price).send(&[&admin], &rpc, 1_000)?;
     println!("sent {signature}");
 
     let Reading {

@@ -100,13 +100,13 @@ keypair is needed only here; the admin pays.
 
 ```rust
 doppler.update(&Price { price: 17_234_000_000, conf: 5_000_000, expo: -8 })
-    .unit_price(1_000)                              // micro-lamports per CU
-    .send(&[&admin], &rpc)?;
+    .send(&[&admin], &rpc, 1_000)?;                 // micro-lamports per CU
 ```
 
 `update` stamps the current time, sets the exact compute budget for the transaction, signs with
 the admin, sends, and returns once confirmed. Signers are passed the way
 `Transaction::new_signed_with_payer` takes them, so a wallet or HSM works as well as a keypair.
+`.at(ms)` stamps a timestamp of your own instead of now.
 
 ### 4. Read
 
@@ -124,12 +124,14 @@ let price = doppler::price_no_older_than(&feed, clock.unix_timestamp as u64 * 10
 
 ### 5. Your Own Transaction
 
-For batching, versioned transactions, or a custom sender, take the raw instruction and set the
-budget yourself:
+For a custom sender, `.instructions(unit_price)` is the compute budget plus the update, ready
+for a transaction that holds only this update. For batching or versioned transactions, take the
+raw instruction and set the budget yourself:
 
 ```rust
-let ix = doppler.update(&price).at(timestamp_ms).instruction();
-let cu = doppler::update_cu(doppler::Price::SIZE);   // 25 for Price
+let ixs = doppler.update(&price).instructions(1_000);          // [price, loaded size, limit, update]
+let ix = doppler.update(&price).at(timestamp_ms).instruction(); // just the update
+let cu = doppler::update_cu(doppler::Price::SIZE);              // 25 for Price
 ```
 
 ## Performance Optimization Tips
@@ -137,7 +139,7 @@ let cu = doppler::update_cu(doppler::Price::SIZE);   // 25 for Price
 ### 1. Compute Budget Configuration
 
 - **Exact CU Request**: `update(..).send(..)` requests exactly what the transaction consumes
-- **Priority Fees**: `unit_price` is the one knob; pick it from network congestion
+- **Priority Fees**: the `unit_price` you pass to `send` is the one knob; pick it from network congestion
 - **Account Data Size**: the loaded-accounts-data-size limit is computed from the program and the feed, per SIMD-0186
 
 ### 2. Batching Updates
@@ -153,7 +155,7 @@ per SIMD-0186 every unique account costs 64 bytes plus its data.
 let recent_fees = client.get_recent_prioritization_fees(&[doppler.address()])?;
 let unit_price = choose_fee(recent_fees);
 
-doppler.update(&price).unit_price(unit_price).send(&[&admin], &rpc)?;
+doppler.update(&price).send(&[&admin], &rpc, unit_price)?;
 ```
 
 ## Testing
