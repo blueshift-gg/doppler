@@ -1,6 +1,6 @@
 [package]
 name = "doppler"
-description = "Doppler building blocks."
+description = "Doppler feeds: the account format, the program that writes it, and the reads that consume it."
 repository = { workspace = true }
 readme = { workspace = true }
 license-file = { workspace = true }
@@ -8,10 +8,19 @@ edition = { workspace = true }
 version = { workspace = true }
 
 [features]
-default = []
-std = []
+default = ["std"]
+std = ["dep:bs58", "dep:serde", "dep:serde_json", "dep:sha2"]
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-    'cfg(target_os, values("solana"))',
-] }
+[dependencies]
+bytemuck = { workspace = true }
+bs58 = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+
+[dev-dependencies]
+mollusk-svm = { workspace = true }
+solana-account = { workspace = true }
+solana-instruction = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-sdk-ids = { workspace = true }
