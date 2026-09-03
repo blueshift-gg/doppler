@@ -21,7 +21,7 @@ use solana_message::Message;
 use solana_pubkey::Pubkey;
 use solana_rent::Rent;
 use solana_signature::Signature;
-use solana_signer::{signers::Signers, Signer};
+use solana_signer::{signers::Signers, Signer, SignerError};
 use solana_system_interface::instruction::create_account_with_seed;
 use solana_transaction::Transaction;
 
@@ -42,6 +42,7 @@ pub enum Error {
     Rpc(ClientError),
     Payload { manifest: usize, value: usize },
     Missing(Pubkey),
+    Sign(SignerError),
 }
 
 impl fmt::Display for Error {
@@ -58,6 +59,7 @@ impl fmt::Display for Error {
                 )
             }
             Error::Missing(key) => write!(f, "{key} must sign"),
+            Error::Sign(e) => e.fmt(f),
         }
     }
 }
@@ -85,6 +87,45 @@ impl From<doppler::Error> for Error {
 impl From<ClientError> for Error {
     fn from(e: ClientError) -> Self {
         Error::Rpc(e)
+    }
+}
+
+impl From<SignerError> for Error {
+    fn from(e: SignerError) -> Self {
+        Error::Sign(e)
+    }
+}
+
+/// Sign with every signer the message requires, ignore the ones it does not, and name the
+/// first one it still lacks.
+fn sign<S: Signers + ?Sized>(
+    tx: &mut Transaction,
+    signers: &S,
+    extra: Option<&Keypair>,
+) -> Result<(), Error> {
+    let message = tx.message_data();
+    let mut keys = signers.pubkeys();
+    let mut signatures = signers.try_sign_message(&message)?;
+    if let Some(keypair) = extra {
+        keys.push(keypair.pubkey());
+        signatures.push(keypair.sign_message(&message));
+    }
+    let required = tx.message.header.num_required_signatures as usize;
+    for (key, signature) in keys.iter().zip(signatures) {
+        if let Some(position) = tx.message.account_keys[..required]
+            .iter()
+            .position(|k| k == key)
+        {
+            tx.signatures[position] = signature;
+        }
+    }
+    match tx
+        .signatures
+        .iter()
+        .position(|s| *s == Signature::default())
+    {
+        Some(missing) => Err(Error::Missing(tx.message.account_keys[missing])),
+        None => Ok(()),
     }
 }
 
@@ -231,12 +272,13 @@ impl<T: Pod> Update<'_, T> {
             ComputeBudgetInstruction::set_compute_unit_limit(compute_units),
             self.instruction(),
         ];
-        let tx = Transaction::new_signed_with_payer(
+        let blockhash = rpc.get_latest_blockhash()?;
+        let mut tx = Transaction::new_unsigned(Message::new_with_blockhash(
             &instructions,
             Some(&d.admin),
-            signers,
-            rpc.get_latest_blockhash()?,
-        );
+            &blockhash,
+        ));
+        sign(&mut tx, signers, None)?;
         Ok(rpc.send_and_confirm_transaction(&tx)?)
     }
 }
@@ -259,22 +301,24 @@ impl<T: Pod> Deploy<'_, T> {
         let buffer = Keypair::new();
         let blockhash = rpc.get_latest_blockhash()?;
         let [write, deploy] = self.instructions(&buffer.pubkey());
-        let sign = |instructions: &[Instruction]| -> Result<Transaction, Error> {
-            let mut tx = Transaction::new_unsigned(Message::new_with_blockhash(
+        let unsigned = |instructions: &[Instruction]| {
+            Transaction::new_unsigned(Message::new_with_blockhash(
                 instructions,
                 Some(&d.admin),
                 &blockhash,
-            ));
-            tx.partial_sign(signers, blockhash);
-            tx.partial_sign(&[&buffer], blockhash);
-            Ok(tx)
+            ))
         };
-        let single = sign(&[write.as_slice(), deploy.as_slice()].concat())?;
+        let mut single = unsigned(&[write.as_slice(), deploy.as_slice()].concat());
         if 1 + 64 * single.signatures.len() + single.message_data().len() <= PACKET_DATA_SIZE {
+            sign(&mut single, signers, Some(&buffer))?;
             return Ok(rpc.send_and_confirm_transaction(&single)?);
         }
-        rpc.send_and_confirm_transaction(&sign(&write)?)?;
-        Ok(rpc.send_and_confirm_transaction(&sign(&deploy)?)?)
+        let mut first = unsigned(&write);
+        sign(&mut first, signers, Some(&buffer))?;
+        rpc.send_and_confirm_transaction(&first)?;
+        let mut second = unsigned(&deploy);
+        sign(&mut second, signers, None)?;
+        Ok(rpc.send_and_confirm_transaction(&second)?)
     }
 
     /// `[buffer create + write, program create + deploy + finalize + feed create]`.
@@ -409,12 +453,46 @@ mod tests {
     }
 
     #[test]
-    fn send_requires_the_admin_among_the_signers() {
-        let d = Doppler::<u64>::from_manifest(manifest(u64_fields())).unwrap();
-        let rpc = RpcClient::new("http://localhost:1".to_string());
-        let stranger = Keypair::new();
+    fn sign_places_each_signature_where_the_message_wants_it() {
+        let (admin, program, buffer, stranger) = (
+            Keypair::new(),
+            Keypair::new(),
+            Keypair::new(),
+            Keypair::new(),
+        );
+        let d = Doppler::<Price>::from_manifest(Manifest {
+            program: program.pubkey().to_bytes(),
+            admin: admin.pubkey().to_bytes(),
+            fields: price_fields(),
+        })
+        .unwrap();
+        let [write, deploy] = d.deploy().instructions(&buffer.pubkey());
+        let unsigned = |ixs: &[Instruction]| {
+            Transaction::new_unsigned(Message::new_with_blockhash(
+                ixs,
+                Some(&d.admin),
+                &Default::default(),
+            ))
+        };
+        let mut first = unsigned(&write);
+        sign(&mut first, &[&admin, &program, &stranger], Some(&buffer)).unwrap();
+        assert!(first.is_signed());
+        let mut second = unsigned(&deploy);
+        sign(&mut second, &[&admin, &program], Some(&buffer)).unwrap();
+        assert!(second.is_signed());
+        let mut lacking = unsigned(&deploy);
         assert!(
-            matches!(d.update(&1u64).send(&[&stranger], &rpc), Err(Error::Missing(key)) if key == d.admin)
+            matches!(sign(&mut lacking, &[&admin], Some(&buffer)), Err(Error::Missing(k)) if k == program.pubkey())
+        );
+        let mut update = unsigned(&[d
+            .update(&Price {
+                price: 1,
+                conf: 1,
+                expo: 0,
+            })
+            .instruction()]);
+        assert!(
+            matches!(sign(&mut update, &[&stranger], None), Err(Error::Missing(k)) if k == admin.pubkey())
         );
     }
 

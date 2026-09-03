@@ -1,6 +1,9 @@
 ; Doppler, as `doppler::generate` emits it for a one-u64 payload. sBPF v3.
 ; r1 = serialized input (account 0: admin, account 1: feed), r2 = instruction data.
 ; Instruction data and feed data share one layout: last_updated_ms (u64 LE), then the payload.
+; Assumed, not checked: account 0 carries no data (so account 1's data sits at 0x28c0), the feed
+; account is 8 + payload bytes, the instruction data is 8 + payload bytes. Only the admin's own
+; signed transaction reaches the write path, and `deploy` sizes the feed account.
 
   ldxh   r3, [r1+0x08]        ; account 0 flags: 0xff "not a duplicate", then is_signer
   jne    r3, 0x1ff, fail

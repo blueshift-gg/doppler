@@ -60,8 +60,8 @@ pub fn generate(admin: &[u8; 32], payload_size: usize) -> Vec<u8> {
 
     p.extend(insn(LDXH, 3, 1, ADMIN_FLAGS, 0));
     p.extend(insn(JNE_IMM, 3, 0, 19, NOT_DUP_SIGNER));
-    for (i, word) in admin.chunks_exact(8).enumerate() {
-        let word = u64::from_le_bytes(word.try_into().unwrap());
+    for (i, word) in admin.as_chunks::<8>().0.iter().enumerate() {
+        let word = u64::from_le_bytes(*word);
         p.extend(insn(LDXDW, 3, 1, ADMIN_KEY + 8 * i as i16, 0));
         p.extend(insn(LDDW, 4, 0, 0, word as i32));
         p.extend(insn(0, 0, 0, 0, (word >> 32) as i32));
