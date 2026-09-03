@@ -79,7 +79,7 @@ compute units come from.
 ### 1. Load the Manifest
 
 ```rust
-use doppler_sdk::{doppler::Price, Doppler};
+use doppler_sdk::{doppler::Price, Doppler, SendOptions};
 
 let doppler = Doppler::<Price>::load("doppler.json")?;
 ```
@@ -90,7 +90,7 @@ type is an error here and not a corrupted account later.
 ### 2. Deploy
 
 ```rust
-doppler.deploy().send(&[&admin, &program_keypair], &rpc)?;
+doppler.deploy().send(&[&admin, &program_keypair], SendOptions { rpc: &rpc, unit_price: 1_000 })?;
 ```
 
 One transaction writes the program, makes it immutable, and creates the feed account. The program
@@ -100,13 +100,12 @@ keypair is needed only here; the admin pays.
 
 ```rust
 doppler.update(&Price { price: 17_234_000_000, conf: 5_000_000, expo: -8 })
-    .send(&[&admin], &rpc, 1_000)?;                 // micro-lamports per CU
+    .send(&[&admin], SendOptions { rpc: &rpc, unit_price: 1_000 })?;   // micro-lamports per CU
 ```
 
 `update` stamps the current time, sets the exact compute budget for the transaction, signs with
 the admin, sends, and returns once confirmed. Signers are passed the way
 `Transaction::new_signed_with_payer` takes them, so a wallet or HSM works as well as a keypair.
-`.at(ms)` stamps a timestamp of your own instead of now.
 
 ### 4. Read
 
@@ -130,7 +129,7 @@ raw instruction and set the budget yourself:
 
 ```rust
 let ixs = doppler.update(&price).instructions(1_000);          // [price, loaded size, limit, update]
-let ix = doppler.update(&price).at(timestamp_ms).instruction(); // just the update
+let ix = doppler.update(&price).instruction();                  // just the update
 let cu = doppler::update_cu(doppler::Price::SIZE);              // 25 for Price
 ```
 
@@ -155,7 +154,7 @@ per SIMD-0186 every unique account costs 64 bytes plus its data.
 let recent_fees = client.get_recent_prioritization_fees(&[doppler.address()])?;
 let unit_price = choose_fee(recent_fees);
 
-doppler.update(&price).send(&[&admin], &rpc, unit_price)?;
+doppler.update(&price).send(&[&admin], SendOptions { rpc: &rpc, unit_price })?;
 ```
 
 ## Testing

@@ -3,7 +3,7 @@
 
 use doppler_sdk::{
     doppler::{Field, Manifest, Price, Ty},
-    Doppler,
+    Doppler, SendOptions,
 };
 use solana_client::rpc_client::RpcClient;
 use solana_keypair::Keypair;
@@ -40,7 +40,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ],
     })?;
 
-    let signature = doppler.deploy().send(&[&admin, &program], &rpc)?;
+    let signature = doppler.deploy().send(
+        &[&admin, &program],
+        SendOptions {
+            rpc: &rpc,
+            unit_price: 1_000,
+        },
+    )?;
     std::fs::write("target/doppler.json", doppler.manifest.to_string())?;
     println!(
         "program {} feed {} in {signature}",

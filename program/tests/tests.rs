@@ -43,7 +43,7 @@ fn create_then_update() {
     );
 
     let result = mollusk.process_instruction_chain(
-        &[create, d.update(&1_100_000u64).at(1).instruction()],
+        &[create, d.update(&1_100_000u64).instruction()],
         &[
             (
                 admin,
@@ -61,5 +61,6 @@ fn create_then_update() {
 
     let account = result.get_account(&feed).unwrap();
     let feed = read(&account.data, account.owner.as_array(), &ID, 8).unwrap();
-    assert_eq!((feed.last_updated_ms, feed.value::<u64>()), (1, 1_100_000));
+    assert!(feed.last_updated_ms > 0);
+    assert_eq!(feed.value::<u64>(), 1_100_000);
 }

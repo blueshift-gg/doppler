@@ -137,6 +137,13 @@ fn expect<S: Signers + ?Sized>(signers: &S, key: Pubkey) -> Result<(), Error> {
     }
 }
 
+/// `unit_price` is the priority fee in micro-lamports per compute unit.
+#[derive(Clone, Copy)]
+pub struct SendOptions<'a> {
+    pub rpc: &'a RpcClient,
+    pub unit_price: u64,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Reading<T> {
     pub last_updated_ms: u64,
@@ -228,11 +235,6 @@ pub struct Update<'a, T> {
 }
 
 impl<T: Pod> Update<'_, T> {
-    pub fn at(mut self, last_updated_ms: u64) -> Self {
-        self.last_updated_ms = last_updated_ms;
-        self
-    }
-
     /// The raw instruction, for your own transaction and budget. The admin signs.
     pub fn instruction(&self) -> Instruction {
         let d = self.doppler;
@@ -265,19 +267,18 @@ impl<T: Pod> Update<'_, T> {
     pub fn send<S: Signers + ?Sized>(
         &self,
         signers: &S,
-        rpc: &RpcClient,
-        unit_price: u64,
+        options: SendOptions<'_>,
     ) -> Result<Signature, Error> {
         let d = self.doppler;
         expect(signers, d.admin)?;
-        let blockhash = rpc.get_latest_blockhash()?;
+        let blockhash = options.rpc.get_latest_blockhash()?;
         let mut tx = Transaction::new_unsigned(Message::new_with_blockhash(
-            &self.instructions(unit_price),
+            &self.instructions(options.unit_price),
             Some(&d.admin),
             &blockhash,
         ));
         sign(&mut tx, signers, None)?;
-        Ok(rpc.send_and_confirm_transaction(&tx)?)
+        Ok(options.rpc.send_and_confirm_transaction(&tx)?)
     }
 }
 
@@ -291,17 +292,20 @@ impl<T: Pod> Deploy<'_, T> {
     pub fn send<S: Signers + ?Sized>(
         &self,
         signers: &S,
-        rpc: &RpcClient,
+        options: SendOptions<'_>,
     ) -> Result<Signature, Error> {
         let d = self.doppler;
         expect(signers, d.admin)?;
         expect(signers, d.program)?;
         let buffer = Keypair::new();
+        let rpc = options.rpc;
         let blockhash = rpc.get_latest_blockhash()?;
         let [write, deploy] = self.instructions(&buffer.pubkey());
         let unsigned = |instructions: &[Instruction]| {
+            let fee = ComputeBudgetInstruction::set_compute_unit_price(options.unit_price);
+            let all = [core::slice::from_ref(&fee), instructions].concat();
             Transaction::new_unsigned(Message::new_with_blockhash(
-                instructions,
+                &all,
                 Some(&d.admin),
                 &blockhash,
             ))
@@ -443,12 +447,15 @@ mod tests {
             conf: 5_000_000,
             expo: -8,
         };
-        let ix = d.update(&price).at(5).instruction();
+        let ix = d.update(&price).instruction();
         assert_eq!(ix.accounts[1].pubkey, d.address());
         assert_eq!(ix.data.len(), HEADER + 20);
         let feed = read(&ix.data, d.program.as_array(), d.program.as_array(), 20).unwrap();
         assert_eq!(feed.value::<Price>(), price);
-        assert_eq!(price_no_older_than(&feed, 105, 100), Ok(price));
+        assert_eq!(
+            price_no_older_than(&feed, feed.last_updated_ms + 100, 100),
+            Ok(price)
+        );
     }
 
     #[test]

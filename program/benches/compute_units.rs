@@ -58,7 +58,7 @@ fn main() {
         ))
         .bench((
             "PriceFeedUpdate",
-            &d.update(&1_100_000u64).at(1).instruction(),
+            &d.update(&1_100_000u64).instruction(),
             &[(admin, admin_account), (feed, feed_account)],
         ))
         .must_pass(true)
