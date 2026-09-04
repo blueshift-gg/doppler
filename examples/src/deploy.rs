@@ -21,6 +21,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Manifest {
             admin: admin.pubkey().to_bytes(),
             seed: "SOL/USD".into(),
+            pull: false,
             fields: vec![
                 Field {
                     name: "price".into(),
@@ -45,12 +46,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     )?;
 
-    let signature = doppler.deploy().send(&[&admin])?;
+    for signature in doppler.deploy().send(&[&admin])? {
+        println!("deploy {signature}");
+    }
     std::fs::write("target/doppler.json", doppler.manifest.to_string())?;
-    println!(
-        "program {} feed {} in {signature}",
-        doppler.program(),
-        doppler.address()
-    );
+    println!("program {} feed {}", doppler.program(), doppler.address());
     Ok(())
 }

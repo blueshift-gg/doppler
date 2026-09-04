@@ -1,4 +1,6 @@
-//! Rust client for Doppler feeds: `load` a manifest, `deploy` once, then `update` and `read`.
+//! Rust client for Doppler feeds: `load` a manifest, `deploy` once, then `update` and `read`. With
+//! a pull manifest the admin signs off chain, `update(..).sign(&admin)`, and anyone lands the bytes,
+//! `pull(&signed).send(&[&relayer])`.
 
 use std::{
     fmt,
@@ -8,40 +10,51 @@ use std::{
 
 pub use doppler;
 use doppler::{
-    feed_address, generate, padded, payload_size, program_address, read, update_cu, update_data,
-    Manifest, Pod, FEED_SEED, HEADER, PROGRAMDATA_HEADER,
+    feed_address, generate, generate_pull, padded, payload_size, program_address, pull_cu,
+    pull_message, read, update_cu, update_data, Manifest, Pod, FEED_SEED, HEADER,
+    PROGRAMDATA_HEADER,
 };
 use solana_client::{client_error::ClientError, rpc_client::RpcClient};
 use solana_compute_budget_interface::ComputeBudgetInstruction;
+use solana_hash::Hash;
 use solana_instruction::{AccountMeta, Instruction};
 use solana_loader_v3_interface::{instruction as loader, state::UpgradeableLoaderState};
 use solana_message::Message;
+use solana_packet::PACKET_DATA_SIZE;
 use solana_pubkey::Pubkey;
 use solana_rent::Rent;
-use solana_sdk_ids::bpf_loader_upgradeable;
+use solana_sdk_ids::{bpf_loader_upgradeable, system_program, sysvar};
 use solana_signature::Signature;
-use solana_signer::{signers::Signers, SignerError};
+use solana_signer::{signers::Signers, Signer, SignerError};
 use solana_system_interface::instruction::create_account_with_seed;
 use solana_transaction::Transaction;
 
 /// `DEFAULT_COMPUTE_UNITS` of the system and compute-budget builtins.
 const BUILTIN_IX_CU: u32 = 150;
-/// A deploy's own units: three `create_account`s, the loader's `create_account` CPI, and four
-/// loader-v3 instructions at 2_370 each. Measured at 10_230 with the price instruction on surfpool
-/// 1.5.0 for 328, 336 and 360-byte programs; pinned by the live tests.
-const DEPLOY_CU: u32 = 4 * BUILTIN_IX_CU + 4 * 2_370;
+/// `DEFAULT_COMPUTE_UNITS` of loader v3; its deploy also CPIs one system `create_account`.
+const LOADER_IX_CU: u32 = 2_370;
 /// SIMD-0186.
 const ACCOUNT_OVERHEAD: u32 = 64;
 const COMPUTE_BUDGET_PROGRAM_LEN: u32 = "compute_budget_program".len() as u32;
-/// Builtin and sysvar data a deploy loads: the system program, 21 bytes on mainnet and 14 on devnet,
-/// where a limit only needs to cover the larger; the loader; the rent and clock sysvars.
-const DEPLOY_LOADED_DATA: u32 = 21 + 37 + 17 + 40;
 /// Loader-v3 program account: tag, programdata address.
 const PROGRAM_ACCOUNT_LEN: u32 = 4 + 32;
-/// The buffer lives only inside the deploy transaction, so one seed serves every deploy.
+/// The buffer lives only until the deploy, so one seed serves every deploy.
 const BUFFER_SEED: &str = "buf";
 /// `FeeStructure::default()`.
 const LAMPORTS_PER_SIGNATURE: u64 = 5_000;
+const SIGNATURE: usize = 64;
+
+/// Builtin and sysvar data as loaded: the system program, 21 bytes on mainnet and 14 on devnet,
+/// where a limit only needs to cover the larger; the loader; the rent and clock sysvars.
+fn builtin_len(key: &Pubkey) -> u32 {
+    match *key {
+        k if k == system_program::id() => 21,
+        k if k == bpf_loader_upgradeable::id() => 37,
+        k if k == sysvar::rent::id() => 17,
+        k if k == sysvar::clock::id() => 40,
+        _ => 0,
+    }
+}
 
 #[derive(Debug)]
 pub enum Error {
@@ -50,6 +63,9 @@ pub enum Error {
     Payload { manifest: usize, value: usize },
     Missing(Pubkey),
     Sign(SignerError),
+    PushOnly,
+    Signed { expected: usize, got: usize },
+    Payer,
 }
 
 impl fmt::Display for Error {
@@ -65,6 +81,11 @@ impl fmt::Display for Error {
             }
             Error::Missing(key) => write!(f, "{key} must sign"),
             Error::Sign(e) => e.fmt(f),
+            Error::PushOnly => f.write_str("the manifest has no pull path"),
+            Error::Signed { expected, got } => {
+                write!(f, "a signed update is {expected} bytes, got {got}")
+            }
+            Error::Payer => f.write_str("a pull needs a signer to pay"),
         }
     }
 }
@@ -140,15 +161,15 @@ pub struct Budget {
     pub lamports: u64,
 }
 
-/// The raw update instruction, which the admin signs, and its budget.
+/// The raw update instruction and its budget.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpdateInstruction {
     pub instruction: Instruction,
     pub budget: Budget,
 }
 
-/// The raw deploy instructions and their budget: create and fill the buffer, create the program,
-/// deploy it immutable, create the feed. The admin pays and is the only signer.
+/// The raw instructions of one deploy transaction and their budget.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeployInstructions {
     pub instructions: Vec<Instruction>,
     pub budget: Budget,
@@ -210,6 +231,24 @@ impl<'a, T: Pod> DopplerClient<'a, T> {
         }
     }
 
+    /// The bytes of `Update::sign`, from wherever the admin published them.
+    pub fn pull(&self, signed: &[u8]) -> Result<Pull<'_, T>, Error> {
+        if !self.manifest.pull {
+            return Err(Error::PushOnly);
+        }
+        let expected = SIGNATURE + HEADER + padded(size_of::<T>());
+        if signed.len() != expected {
+            return Err(Error::Signed {
+                expected,
+                got: signed.len(),
+            });
+        }
+        Ok(Pull {
+            doppler: self,
+            signed: signed.to_vec(),
+        })
+    }
+
     pub fn read(&self) -> Result<Reading<T>, Error> {
         let account = self.options.rpc.get_account(&self.address())?;
         let feed = read(
@@ -225,7 +264,23 @@ impl<'a, T: Pod> DopplerClient<'a, T> {
     }
 
     fn elf(&self) -> Vec<u8> {
-        generate(self.admin.as_array(), size_of::<T>())
+        if self.manifest.pull {
+            generate_pull(
+                self.admin.as_array(),
+                self.program.as_array(),
+                size_of::<T>(),
+            )
+        } else {
+            generate(self.admin.as_array(), size_of::<T>())
+        }
+    }
+
+    /// What a write to the feed loads: the program, its programdata, the feed.
+    fn feed_loaded_bytes(&self) -> u32 {
+        3 * ACCOUNT_OVERHEAD
+            + PROGRAM_ACCOUNT_LEN
+            + (PROGRAMDATA_HEADER + self.elf().len()) as u32
+            + (HEADER + padded(size_of::<T>())) as u32
     }
 
     fn budget(&self, compute_units: u32, loaded_bytes: u32, signatures: u64) -> Budget {
@@ -255,15 +310,26 @@ impl<'a, T: Pod> DopplerClient<'a, T> {
         all
     }
 
+    /// The serialized size of the transaction `send` builds around the instructions.
+    fn size(&self, instructions: &[Instruction]) -> usize {
+        let message = Message::new_with_blockhash(
+            &self.budgeted(&self.budget(0, 0, 1), instructions),
+            Some(&self.admin),
+            &Hash::default(),
+        );
+        1 + SIGNATURE + message.serialize().len()
+    }
+
     fn send<S: Signers + ?Sized>(
         &self,
+        payer: &Pubkey,
         instructions: &[Instruction],
         signers: &S,
     ) -> Result<Signature, Error> {
         let blockhash = self.options.rpc.get_latest_blockhash()?;
         let mut tx = Transaction::new_unsigned(Message::new_with_blockhash(
             instructions,
-            Some(&self.admin),
+            Some(payer),
             &blockhash,
         ));
         sign(&mut tx, signers)?;
@@ -277,14 +343,14 @@ pub struct Update<'a, T> {
     value: T,
 }
 
-impl<T: Pod> Update<'_, T> {
+impl<'a, T: Pod> Update<'a, T> {
+    fn data(&self) -> Vec<u8> {
+        update_data(self.sequence, doppler::bytemuck::bytes_of(&self.value))
+    }
+
     /// The raw instruction and its budget, for your own transaction.
     pub fn instruction(&self) -> UpdateInstruction {
         let d = self.doppler;
-        let loaded_bytes = 3 * ACCOUNT_OVERHEAD
-            + PROGRAM_ACCOUNT_LEN
-            + (PROGRAMDATA_HEADER + d.elf().len()) as u32
-            + (HEADER + padded(size_of::<T>())) as u32;
         UpdateInstruction {
             instruction: Instruction {
                 program_id: d.program,
@@ -292,9 +358,9 @@ impl<T: Pod> Update<'_, T> {
                     AccountMeta::new_readonly(d.admin, true),
                     AccountMeta::new(d.address(), false),
                 ],
-                data: update_data(self.sequence, doppler::bytemuck::bytes_of(&self.value)),
+                data: self.data(),
             },
-            budget: d.budget(update_cu(size_of::<T>()), loaded_bytes, 1),
+            budget: d.budget(update_cu(size_of::<T>()), d.feed_loaded_bytes(), 1),
         }
     }
 
@@ -305,7 +371,57 @@ impl<T: Pod> Update<'_, T> {
             instruction,
             budget,
         } = self.instruction();
-        d.send(&d.budgeted(&budget, &[instruction]), signers)
+        d.send(&d.admin, &d.budgeted(&budget, &[instruction]), signers)
+    }
+
+    /// The admin's detached signature over the update, off chain: `Pull::signed` is what to
+    /// publish, and `DopplerClient::pull` takes it back.
+    pub fn sign(&self, admin: &dyn Signer) -> Result<Pull<'a, T>, Error> {
+        let d = self.doppler;
+        if !d.manifest.pull {
+            return Err(Error::PushOnly);
+        }
+        if admin.pubkey() != d.admin {
+            return Err(Error::Missing(d.admin));
+        }
+        let update = self.data();
+        let signature = admin.try_sign_message(&pull_message(d.program.as_array(), &update))?;
+        Ok(Pull {
+            doppler: d,
+            signed: [signature.as_ref(), &update].concat(),
+        })
+    }
+}
+
+/// An update the admin signed: the signature, then the sequence and the payload. Anyone sends it.
+pub struct Pull<'a, T> {
+    doppler: &'a DopplerClient<'a, T>,
+    pub signed: Vec<u8>,
+}
+
+impl<T: Pod> Pull<'_, T> {
+    /// The raw instruction and its budget, for your own transaction. One account, the feed.
+    pub fn instruction(&self) -> UpdateInstruction {
+        let d = self.doppler;
+        UpdateInstruction {
+            instruction: Instruction {
+                program_id: d.program,
+                accounts: vec![AccountMeta::new(d.address(), false)],
+                data: self.signed.clone(),
+            },
+            budget: d.budget(pull_cu(size_of::<T>()), d.feed_loaded_bytes(), 1),
+        }
+    }
+
+    /// Exact budget, the first signer pays, confirmed.
+    pub fn send<S: Signers + ?Sized>(&self, signers: &S) -> Result<Signature, Error> {
+        let d = self.doppler;
+        let payer = *signers.pubkeys().first().ok_or(Error::Payer)?;
+        let UpdateInstruction {
+            instruction,
+            budget,
+        } = self.instruction();
+        d.send(&payer, &d.budgeted(&budget, &[instruction]), signers)
     }
 }
 
@@ -314,9 +430,11 @@ pub struct Deploy<'a, T> {
 }
 
 impl<T: Pod> Deploy<'_, T> {
-    /// The raw instructions and their budget, for your own transaction. The program and the buffer
-    /// are seeded accounts of the admin, so nothing but the admin signs.
-    pub fn instructions(&self) -> DeployInstructions {
+    /// The raw instructions, one element per transaction, each with its budget: create and fill
+    /// the buffer, create the program, deploy it immutable, create the feed. The program and the
+    /// buffer are seeded accounts of the admin, so nothing but the admin signs. Writes take what
+    /// a packet holds: a push program is one transaction, a pull program several.
+    pub fn instructions(&self) -> Vec<DeployInstructions> {
         let d = self.doppler;
         let elf = d.elf();
         let rent = Rent::default();
@@ -324,70 +442,127 @@ impl<T: Pod> Deploy<'_, T> {
         let buffer =
             Pubkey::create_with_seed(&d.admin, BUFFER_SEED, &loader).expect("a short seed");
         let buffer_len = UpgradeableLoaderState::size_of_buffer(elf.len());
-        let mut instructions = vec![create_account_with_seed(
-            &d.admin,
-            &buffer,
-            &d.admin,
-            BUFFER_SEED,
-            rent.minimum_balance(buffer_len),
-            buffer_len as u64,
-            &loader,
-        )];
-        instructions.extend(
-            loader::create_buffer(&d.admin, &buffer, &d.admin, 0, elf.len())
-                .expect("loader instruction")
-                .pop(),
-        );
-        instructions.push(loader::write(&buffer, &d.admin, 0, elf.clone()));
-        let program_len = UpgradeableLoaderState::size_of_program();
-        instructions.push(create_account_with_seed(
-            &d.admin,
-            &d.program,
-            &d.admin,
-            &d.manifest.seed,
-            rent.minimum_balance(program_len),
-            program_len as u64,
-            &loader,
-        ));
-        instructions.extend(
-            loader::deploy_with_max_program_len(
+        let create = |to: &Pubkey, seed: &str, space: usize, owner: &Pubkey| {
+            let ix = create_account_with_seed(
                 &d.admin,
-                &d.program,
-                &buffer,
+                to,
                 &d.admin,
-                0,
-                elf.len(),
-                true,
-            )
-            .expect("loader instruction")
-            .pop(),
-        );
-        instructions.push(loader::set_upgrade_authority(&d.program, &d.admin, None));
-        let space = HEADER + padded(size_of::<T>());
-        instructions.push(create_account_with_seed(
-            &d.admin,
-            &d.address(),
-            &d.admin,
-            FEED_SEED,
-            rent.minimum_balance(space),
-            space as u64,
-            &d.program,
-        ));
-        DeployInstructions {
-            instructions,
-            budget: d.budget(DEPLOY_CU, 8 * ACCOUNT_OVERHEAD + DEPLOY_LOADED_DATA, 1),
+                seed,
+                rent.minimum_balance(space),
+                space as u64,
+                owner,
+            );
+            (ix, BUILTIN_IX_CU)
+        };
+        let write = |offset: usize, bytes: &[u8]| {
+            let ix = loader::write(&buffer, &d.admin, offset as u32, bytes.to_vec());
+            (ix, LOADER_IX_CU)
+        };
+        let ixs = |costed: &[(Instruction, u32)]| -> Vec<Instruction> {
+            costed.iter().map(|(ix, _)| ix.clone()).collect()
+        };
+
+        let mut transactions = vec![];
+        let mut current = vec![
+            create(&buffer, BUFFER_SEED, buffer_len, &loader),
+            (
+                loader::create_buffer(&d.admin, &buffer, &d.admin, 0, elf.len())
+                    .expect("loader instruction")
+                    .pop()
+                    .unwrap(),
+                LOADER_IX_CU,
+            ),
+        ];
+        let mut offset = 0;
+        loop {
+            let rest = &elf[offset..];
+            let mut probe = ixs(&current);
+            probe.push(write(offset, rest).0);
+            let chunk = rest.len() - d.size(&probe).saturating_sub(PACKET_DATA_SIZE);
+            current.push(write(offset, &rest[..chunk]));
+            offset += chunk;
+            if offset == elf.len() {
+                break;
+            }
+            transactions.push(std::mem::take(&mut current));
         }
+        let space = HEADER + padded(size_of::<T>());
+        let finish = [
+            create(
+                &d.program,
+                &d.manifest.seed,
+                UpgradeableLoaderState::size_of_program(),
+                &loader,
+            ),
+            (
+                loader::deploy_with_max_program_len(
+                    &d.admin,
+                    &d.program,
+                    &buffer,
+                    &d.admin,
+                    0,
+                    elf.len(),
+                    true,
+                )
+                .expect("loader instruction")
+                .pop()
+                .unwrap(),
+                LOADER_IX_CU + BUILTIN_IX_CU,
+            ),
+            (
+                loader::set_upgrade_authority(&d.program, &d.admin, None),
+                LOADER_IX_CU,
+            ),
+            create(&d.address(), FEED_SEED, space, &d.program),
+        ];
+        let mut probe = ixs(&current);
+        probe.extend(ixs(&finish));
+        if d.size(&probe) > PACKET_DATA_SIZE {
+            transactions.push(std::mem::take(&mut current));
+        }
+        current.extend(finish);
+        transactions.push(current);
+
+        transactions
+            .into_iter()
+            .enumerate()
+            .map(|(i, costed)| {
+                let instructions = ixs(&costed);
+                let mut keys: Vec<Pubkey> = instructions
+                    .iter()
+                    .flat_map(|ix| ix.accounts.iter().map(|a| a.pubkey).chain([ix.program_id]))
+                    .filter(|k| *k != d.admin)
+                    .collect();
+                keys.sort_unstable();
+                keys.dedup();
+                let loaded_bytes = keys
+                    .iter()
+                    .map(|k| {
+                        ACCOUNT_OVERHEAD
+                            + if *k == buffer && i > 0 {
+                                buffer_len as u32
+                            } else {
+                                builtin_len(k)
+                            }
+                    })
+                    .sum();
+                let compute_units = costed.iter().map(|(_, cu)| cu).sum();
+                DeployInstructions {
+                    instructions,
+                    budget: d.budget(compute_units, loaded_bytes, 1),
+                }
+            })
+            .collect()
     }
 
-    /// Exact budget, one transaction: writes the program, deploys it immutable, and creates the
-    /// feed account. The admin signs and pays.
-    pub fn send<S: Signers + ?Sized>(&self, signers: &S) -> Result<Signature, Error> {
+    /// Exact budgets, one transaction after another, each confirmed: writes the program, deploys
+    /// it immutable, and creates the feed account. The admin signs and pays.
+    pub fn send<S: Signers + ?Sized>(&self, signers: &S) -> Result<Vec<Signature>, Error> {
         let d = self.doppler;
-        let DeployInstructions {
-            instructions,
-            budget,
-        } = self.instructions();
-        d.send(&d.budgeted(&budget, &instructions), signers)
+        self.instructions()
+            .iter()
+            .map(|tx| d.send(&d.admin, &d.budgeted(&tx.budget, &tx.instructions), signers))
+            .collect()
     }
 }
 
@@ -403,15 +578,12 @@ mod tests {
     use super::*;
     use doppler::{price_no_older_than, Field, Price, Ty};
     use solana_keypair::Keypair;
-    use solana_signer::Signer;
 
-    /// `solana_packet::PACKET_DATA_SIZE`.
-    const PACKET_DATA_SIZE: usize = 1232;
-
-    fn manifest(fields: Vec<Field>) -> Manifest {
+    fn manifest(fields: Vec<Field>, pull: bool) -> Manifest {
         Manifest {
             admin: Pubkey::new_unique().to_bytes(),
             seed: "SOL/USD".into(),
+            pull,
             fields,
         }
     }
@@ -425,6 +597,14 @@ mod tests {
 
     fn rpc() -> RpcClient {
         RpcClient::new("http://localhost:8899")
+    }
+
+    fn bytes(len: u16) -> Vec<Field> {
+        vec![Field {
+            name: "bytes".into(),
+            ty: Ty::U8,
+            len,
+        }]
     }
 
     fn u64_fields() -> Vec<Field> {
@@ -455,23 +635,31 @@ mod tests {
         ]
     }
 
+    fn price() -> Price {
+        Price {
+            price: 17_234_000_000,
+            conf: 5_000_000,
+            expo: -8,
+        }
+    }
+
     #[test]
     fn load_checks_the_payload_type_against_the_schema() {
         let rpc = rpc();
         assert!(matches!(
-            DopplerClient::<u32>::load(manifest(u64_fields()), options(&rpc)),
+            DopplerClient::<u32>::load(manifest(u64_fields(), false), options(&rpc)),
             Err(Error::Payload {
                 manifest: 8,
                 value: 4
             })
         ));
-        assert!(DopplerClient::<u64>::load(manifest(u64_fields()), options(&rpc)).is_ok());
+        assert!(DopplerClient::<u64>::load(manifest(u64_fields(), false), options(&rpc)).is_ok());
     }
 
     #[test]
     fn address_is_create_with_seed() {
         let rpc = rpc();
-        let d = DopplerClient::<u64>::load(manifest(u64_fields()), options(&rpc)).unwrap();
+        let d = DopplerClient::<u64>::load(manifest(u64_fields(), false), options(&rpc)).unwrap();
         assert_eq!(
             d.program(),
             Pubkey::create_with_seed(&d.admin, "SOL/USD", &bpf_loader_upgradeable::id()).unwrap()
@@ -485,7 +673,7 @@ mod tests {
     #[test]
     fn one_update_is_21_cu_of_471_and_617_bytes_of_767() {
         let rpc = rpc();
-        let d = DopplerClient::<u64>::load(manifest(u64_fields()), options(&rpc)).unwrap();
+        let d = DopplerClient::<u64>::load(manifest(u64_fields(), false), options(&rpc)).unwrap();
         assert_eq!(d.elf().len(), 328);
         let UpdateInstruction {
             instruction,
@@ -509,20 +697,16 @@ mod tests {
     #[test]
     fn update_round_trips_packed_through_the_wire_format() {
         let rpc = rpc();
-        let d = DopplerClient::<Price>::load(manifest(price_fields()), options(&rpc)).unwrap();
-        let price = Price {
-            price: 17_234_000_000,
-            conf: 5_000_000,
-            expo: -8,
-        };
-        let ix = d.update(5, &price).instruction().instruction;
+        let d =
+            DopplerClient::<Price>::load(manifest(price_fields(), false), options(&rpc)).unwrap();
+        let ix = d.update(5, &price()).instruction().instruction;
         assert_eq!(ix.accounts[1].pubkey, d.address());
         assert_eq!(ix.data.len(), HEADER + 24);
         let feed = read(&ix.data, d.program.as_array(), d.program.as_array(), 20).unwrap();
-        assert_eq!(feed.value::<Price>(), price);
+        assert_eq!(feed.value::<Price>(), price());
         assert_eq!(
             price_no_older_than(&feed, feed.sequence + 100, 100),
-            Ok(price)
+            Ok(price())
         );
     }
 
@@ -534,12 +718,13 @@ mod tests {
             Manifest {
                 admin: admin.pubkey().to_bytes(),
                 seed: "SOL/USD".into(),
+                pull: false,
                 fields: price_fields(),
             },
             options(&rpc),
         )
         .unwrap();
-        let DeployInstructions { instructions, .. } = d.deploy().instructions();
+        let instructions = &d.deploy().instructions()[0].instructions;
         let unsigned = |ixs: &[Instruction]| {
             Transaction::new_unsigned(Message::new_with_blockhash(
                 ixs,
@@ -547,43 +732,35 @@ mod tests {
                 &Default::default(),
             ))
         };
-        let mut deploy = unsigned(&instructions);
+        let mut deploy = unsigned(instructions);
         sign(&mut deploy, &[&admin, &stranger]).unwrap();
         assert!(deploy.is_signed());
-        let mut lacking = unsigned(&instructions);
+        let mut lacking = unsigned(instructions);
         assert!(
             matches!(sign(&mut lacking, &[&stranger]), Err(Error::Missing(k)) if k == admin.pubkey())
         );
-        let mut update = unsigned(&[d
-            .update(
-                1,
-                &Price {
-                    price: 1,
-                    conf: 1,
-                    expo: 0,
-                },
-            )
-            .instruction()
-            .instruction]);
+        let mut update = unsigned(&[d.update(1, &price()).instruction().instruction]);
         assert!(
             matches!(sign(&mut update, &[&stranger]), Err(Error::Missing(k)) if k == admin.pubkey())
         );
     }
 
     #[test]
-    fn deploy_fits_one_transaction_for_every_payload_size_and_ends_immutable_with_the_feed() {
+    fn a_push_deploy_is_one_transaction_for_every_payload_size_and_ends_immutable_with_the_feed() {
         let rpc = rpc();
-        let d = DopplerClient::<Price>::load(manifest(price_fields()), options(&rpc)).unwrap();
+        let d =
+            DopplerClient::<Price>::load(manifest(price_fields(), false), options(&rpc)).unwrap();
+        let deploy = d.deploy().instructions();
+        assert_eq!(deploy.len(), 1);
         let DeployInstructions {
             instructions,
             budget,
-            ..
-        } = d.deploy().instructions();
+        } = &deploy[0];
         assert_eq!(instructions.len(), 7);
         assert_eq!(instructions[5].accounts.len(), 2);
         assert_eq!(instructions[6].accounts[1].pubkey, d.address());
         assert_eq!(
-            budget,
+            *budget,
             Budget {
                 compute_units: 10_080,
                 loaded_bytes: 8 * 64 + 21 + 37 + 17 + 40,
@@ -592,16 +769,129 @@ mod tests {
                 lamports: 5_000 + 11,
             }
         );
-        let tx = Transaction::new_unsigned(Message::new_with_blockhash(
-            &d.budgeted(&budget, &instructions),
-            Some(&d.admin),
-            &Default::default(),
+        assert!(d.size(instructions) <= PACKET_DATA_SIZE);
+        let one = DopplerClient::<[u8; 1]>::load(manifest(bytes(1), false), options(&rpc)).unwrap();
+        assert_eq!(one.deploy().instructions().len(), 1);
+        let inline =
+            DopplerClient::<[u8; 40]>::load(manifest(bytes(40), false), options(&rpc)).unwrap();
+        assert_eq!(inline.elf().len(), 392);
+        assert_eq!(inline.deploy().instructions().len(), 1);
+        let memcpy =
+            DopplerClient::<[u8; 64]>::load(manifest(bytes(64), false), options(&rpc)).unwrap();
+        assert_eq!(memcpy.elf().len(), 336);
+        assert_eq!(memcpy.deploy().instructions().len(), 1);
+    }
+
+    #[test]
+    fn a_pull_deploy_fills_packets_and_finishes_in_the_last() {
+        let rpc = rpc();
+        let d =
+            DopplerClient::<Price>::load(manifest(price_fields(), true), options(&rpc)).unwrap();
+        let elf = d.elf();
+        let deploy = d.deploy().instructions();
+        let last = deploy.len() - 1;
+        assert_eq!(elf.len(), 19_152);
+        assert_eq!(last, 20, "a packet holds up to 964 bytes of program");
+        let mut offset = 0;
+        for (i, tx) in deploy.iter().enumerate() {
+            assert!(
+                d.size(&tx.instructions) <= PACKET_DATA_SIZE,
+                "transaction {i}"
+            );
+            for ix in &tx.instructions {
+                if ix.program_id == bpf_loader_upgradeable::id() && ix.data[..4] == [1, 0, 0, 0] {
+                    assert_eq!(
+                        u32::from_le_bytes(ix.data[4..8].try_into().unwrap()) as usize,
+                        offset
+                    );
+                    let len = u64::from_le_bytes(ix.data[8..16].try_into().unwrap()) as usize;
+                    assert_eq!(ix.data[16..], elf[offset..offset + len]);
+                    offset += len;
+                }
+            }
+        }
+        assert_eq!(offset, elf.len());
+        assert_eq!(deploy[0].instructions.len(), 3);
+        assert_eq!(deploy[1].instructions.len(), 1);
+        assert!(deploy[1].instructions[0].data.len() > deploy[0].instructions[2].data.len());
+        assert_eq!(deploy[last].instructions.len(), 5);
+        assert_eq!(deploy[last].instructions[4].accounts[1].pubkey, d.address());
+        assert_eq!(deploy[0].budget.compute_units, 150 + 2 * 2_370);
+        assert_eq!(deploy[0].budget.loaded_bytes, 3 * 64 + 21 + 37);
+        assert_eq!(deploy[1].budget.compute_units, 2_370);
+        assert_eq!(
+            deploy[1].budget.loaded_bytes,
+            2 * 64 + (37 + elf.len() as u32) + 37
+        );
+        assert_eq!(
+            deploy[last].budget.compute_units,
+            2_370 + 2 * 150 + 2 * 2_370 + 150
+        );
+        assert_eq!(
+            deploy[last].budget.loaded_bytes,
+            8 * 64 + (37 + elf.len() as u32) + 21 + 37 + 17 + 40
+        );
+        assert!(d.size(&deploy[last - 1].instructions) > PACKET_DATA_SIZE - 32);
+    }
+
+    #[test]
+    fn a_signed_update_verifies_against_the_admin_and_comes_back_as_a_pull() {
+        let rpc = rpc();
+        let admin = Keypair::new();
+        let d = DopplerClient::<Price>::load(
+            Manifest {
+                admin: admin.pubkey().to_bytes(),
+                seed: "SOL/USD".into(),
+                pull: true,
+                fields: price_fields(),
+            },
+            options(&rpc),
+        )
+        .unwrap();
+        let update = d.update(5, &price());
+        let signed = update.sign(&admin).unwrap().signed;
+        assert_eq!(signed.len(), 64 + 8 + 24);
+        assert_eq!(signed[64..], update.data());
+        let signature = Signature::try_from(&signed[..64]).unwrap();
+        assert!(signature.verify(
+            &admin.pubkey().to_bytes(),
+            &pull_message(d.program.as_array(), &signed[64..])
         ));
-        let largest = (1..=64)
-            .map(|n| generate(d.admin.as_array(), n).len())
-            .max()
-            .unwrap();
-        let size = 1 + 64 + tx.message_data().len() + largest - d.elf().len();
-        assert!(size <= PACKET_DATA_SIZE, "{size}");
+        assert!(
+            matches!(update.sign(&Keypair::new()), Err(Error::Missing(k)) if k == admin.pubkey())
+        );
+
+        let UpdateInstruction {
+            instruction,
+            budget,
+        } = d.pull(&signed).unwrap().instruction();
+        assert_eq!(instruction.accounts.len(), 1);
+        assert_eq!(instruction.accounts[0].pubkey, d.address());
+        assert_eq!(instruction.data, signed);
+        assert_eq!(budget.compute_units, pull_cu(20));
+        assert_eq!(
+            budget.loaded_bytes,
+            3 * 64 + 36 + (45 + d.elf().len() as u32) + 32
+        );
+        assert_eq!(budget.requested_compute_units, pull_cu(20) + 450);
+        assert!(matches!(
+            d.pull(&signed[1..]),
+            Err(Error::Signed {
+                expected: 96,
+                got: 95
+            })
+        ));
+        assert!(matches!(
+            d.pull(&signed).unwrap().send(&[] as &[&Keypair; 0]),
+            Err(Error::Payer)
+        ));
+
+        let push =
+            DopplerClient::<Price>::load(manifest(price_fields(), false), options(&rpc)).unwrap();
+        assert!(matches!(
+            push.update(5, &price()).sign(&admin),
+            Err(Error::PushOnly)
+        ));
+        assert!(matches!(push.pull(&signed), Err(Error::PushOnly)));
     }
 }

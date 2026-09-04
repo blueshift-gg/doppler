@@ -59,7 +59,7 @@ checksum = "11af131e96e1a0df153db2d673a28293d171da78056104ec8e0d396e2bdf305b"
 dependencies = [
  "solana-hash",
  "solana-message",
- "solana-packet",
+ "solana-packet 4.2.0",
  "solana-pubkey 4.2.1",
  "solana-sdk-ids",
  "solana-short-vec",
@@ -824,6 +824,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "brine-ed25519"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb50edc4cf7a2eb8bdd300e2c370724c1fb8772666734f6ef79c2873152e52c6"
+dependencies = [
+ "curve25519-dalek",
+ "sha2 0.10.9",
+ "solana-address 2.6.1",
+ "solana-define-syscall 5.2.0",
+ "solana-program-error",
+]
+
+[[package]]
 name = "brotli"
 version = "8.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1430,15 +1443,19 @@ version = "0.1.0"
 dependencies = [
  "bs58",
  "bytemuck",
+ "doppler-sdk",
  "mollusk-svm",
  "serde",
  "serde_json",
  "sha2 0.11.0",
  "solana-account 4.3.2",
+ "solana-client",
  "solana-instruction",
+ "solana-keypair",
  "solana-pubkey 4.2.1",
  "solana-rent",
  "solana-sdk-ids",
+ "solana-signer",
 ]
 
 [[package]]
@@ -1449,6 +1466,16 @@ dependencies = [
  "solana-client",
  "solana-keypair",
  "solana-signer",
+]
+
+[[package]]
+name = "doppler-extended-program"
+version = "0.1.0"
+dependencies = [
+ "brine-ed25519",
+ "doppler",
+ "solana-address 2.6.1",
+ "solana-define-syscall 5.2.0",
 ]
 
 [[package]]
@@ -1473,10 +1500,12 @@ dependencies = [
  "doppler",
  "solana-client",
  "solana-compute-budget-interface",
+ "solana-hash",
  "solana-instruction",
  "solana-keypair",
  "solana-loader-v3-interface 8.0.1",
  "solana-message",
+ "solana-packet 3.0.0",
  "solana-pubkey 4.2.1",
  "solana-rent",
  "solana-sdk-ids",
@@ -4123,7 +4152,7 @@ dependencies = [
  "solana-clock",
  "solana-instruction",
  "solana-loader-v3-interface 7.0.0",
- "solana-packet",
+ "solana-packet 4.2.0",
  "solana-program-runtime",
  "solana-pubkey 4.2.1",
  "solana-sbpf",
@@ -4262,7 +4291,7 @@ dependencies = [
  "solana-compute-budget",
  "solana-compute-budget-interface",
  "solana-instruction",
- "solana-packet",
+ "solana-packet 4.2.0",
  "solana-pubkey 4.2.1",
  "solana-sdk-ids",
  "solana-svm-transaction",
@@ -4737,6 +4766,15 @@ dependencies = [
 
 [[package]]
 name = "solana-packet"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6edf2f25743c95229ac0fdc32f8f5893ef738dbf332c669e9861d33ddb0f469d"
+dependencies = [
+ "bitflags 2.13.1",
+]
+
+[[package]]
+name = "solana-packet"
 version = "4.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43a2a582d7863548f047f49aa3745c076cfa9e1364baa080ef0c1210f0e4ebda"
@@ -4772,7 +4810,7 @@ dependencies = [
  "solana-hash",
  "solana-message",
  "solana-metrics",
- "solana-packet",
+ "solana-packet 4.2.0",
  "solana-pubkey 4.2.1",
  "solana-runtime-transaction",
  "solana-sdk-ids",
@@ -5383,7 +5421,7 @@ dependencies = [
  "solana-measure",
  "solana-metrics",
  "solana-net-utils",
- "solana-packet",
+ "solana-packet 4.2.0",
  "solana-perf",
  "solana-pubkey 4.2.1",
  "solana-signer",
@@ -5549,7 +5587,7 @@ dependencies = [
  "solana-instruction",
  "solana-nonce",
  "solana-nonce-account",
- "solana-packet",
+ "solana-packet 4.2.0",
  "solana-program-runtime",
  "solana-pubkey 4.2.1",
  "solana-sdk-ids",
@@ -5773,7 +5811,7 @@ dependencies = [
  "solana-hash",
  "solana-instruction",
  "solana-keypair",
- "solana-packet",
+ "solana-packet 4.2.0",
  "solana-pubkey 4.2.1",
  "solana-sdk-ids",
  "solana-serialize-utils",

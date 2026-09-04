@@ -58,7 +58,9 @@ test('the addresses, the update instruction and its budget match the vectors', a
 test('deploy is one transaction signed by the admin that ends immutable with the feed', async () => {
   const [admin, stranger] = await Promise.all([generateKeyPairSigner(), generateKeyPairSigner()]);
   const d = await DopplerClient.load({ admin: admin.address, seed: 'SOL/USD', fields }, { rpc: noRpc, unitPrice: 1000 });
-  const { instructions, budget } = await d.deploy().instructions([admin]);
+  const deploy = await d.deploy().instructions([admin]);
+  expect(deploy.length).toBe(1);
+  const { instructions, budget } = deploy[0]!;
   expect(instructions.length).toBe(7);
   expect(instructions[3]!.accounts![1]!.address).toBe(d.program);
   expect(instructions[5]!.accounts!.length).toBe(2);
@@ -98,12 +100,12 @@ test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live clust
     (await rpc.getTransaction(signature, { commitment: 'confirmed', encoding: 'json', maxSupportedTransactionVersion: 0 }).send())?.meta?.computeUnitsConsumed;
 
   const funded = await balance();
-  const { budget } = await d.deploy().instructions([admin]);
-  const deploy = await d.deploy().send([admin]);
+  const { budget } = (await d.deploy().instructions([admin]))[0]!;
+  const [deploy] = await d.deploy().send([admin]);
   const deployed = await balance();
   const rent = rentExempt(PROGRAM_LEN) + rentExempt(PROGRAMDATA_HEADER + d.feed.elf().length) + rentExempt(HEADER + padded(d.feed.size));
   expect(funded - deployed).toBe(budget.lamports + rent);
-  expect(await consumed(deploy)).toBe(BigInt(budget.requestedComputeUnits));
+  expect(await consumed(deploy!)).toBe(BigInt(budget.requestedComputeUnits));
   const [programdata] = await getProgramDerivedAddress({ programAddress: LOADER_V3_PROGRAM_ADDRESS, seeds: [getAddressEncoder().encode(d.program)] });
   const account = await fetchEncodedAccount(rpc, programdata);
   expect(account.exists && [account.data.length, account.data[12]]).toEqual([45 + d.feed.elf().length, 0]);

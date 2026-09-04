@@ -13,12 +13,16 @@ mod schema;
 
 pub use bytemuck::{self, Pod, Zeroable};
 #[cfg(feature = "std")]
-pub use elf::generate;
+pub use elf::{generate, generate_pull};
 #[cfg(feature = "std")]
 pub use schema::{feed_address, payload_size, program_address, update_data, Field, Manifest, Ty};
 
 pub const HEADER: usize = 8;
 pub const FEED_SEED: &str = "feed";
+/// What the admin signs for a pull, before the program id and the update. A leading 0xff is not a
+/// legacy header (255 required signers) and not a versioned prefix, so no transaction the admin
+/// signs can be replayed as a pull, nor a pull as a transaction.
+pub const DOMAIN: &[u8] = b"\xffdoppler:pull:v1";
 /// Loader-v3 programdata: tag, slot, optional authority.
 pub const PROGRAMDATA_HEADER: usize = 4 + 8 + 1 + 32;
 
@@ -44,6 +48,21 @@ pub const fn update_cu(payload_size: usize) -> u32 {
         let per_byte = (HEADER + padded(payload_size)) as u32 / 250;
         21 + if per_byte > 10 { per_byte } else { 10 }
     }
+}
+
+/// What the admin signs for a pull: `DOMAIN`, the program id, then the update.
+#[cfg(feature = "std")]
+pub fn pull_message(program: &[u8; 32], update: &[u8]) -> std::vec::Vec<u8> {
+    [DOMAIN, program, update].concat()
+}
+
+/// A limit for the pull path, not its exact cost: brine-ed25519's Barrett reduction takes
+/// data-dependent corrections, measured from 4,958 to 5,012 over 1,200 signatures plus the hash's
+/// `max(10, len / 2)` on the update slice (agave syscalls/mod.rs), so the limit carries 18 units
+/// over the largest seen. tests/sweep.rs pins every size inside the last 80 units of it.
+pub const fn pull_cu(payload_size: usize) -> u32 {
+    let update = (HEADER + padded(payload_size)) as u32 / 2;
+    5_030 + if update > 10 { update } else { 10 }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

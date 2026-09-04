@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import vectors from '../../doppler/tests/vectors.json' with { type: 'json' };
-import { Feed, HEADER, padded, updateCu } from './index.js';
+import { DOMAIN, Feed, HEADER, padded, pullCu, updateCu } from './index.js';
 
 const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 const fromHex = (text: string) => Uint8Array.from(text.match(/../g) ?? [], (b) => parseInt(b, 16));
@@ -16,6 +16,36 @@ test.each(vectors.programs)('program for $payloadSize bytes matches the Rust emi
   const feed = await Feed.load({ admin, seed, fields: [{ name: 'x', type: 'u8', len: payloadSize }] });
   expect(hex(feed.elf())).toBe(elf);
   expect(updateCu(payloadSize)).toBe(cu);
+});
+
+test.each(vectors.pull.programs)('pull program for $payloadSize bytes matches the Rust build by digest', async ({ payloadSize, cu, sha256 }) => {
+  const feed = await Feed.load({ admin, seed, pull: true, fields: [{ name: 'x', type: 'u8', len: payloadSize }] });
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', Uint8Array.from(feed.elf())));
+  expect(hex(digest)).toBe(sha256);
+  expect(pullCu(payloadSize)).toBe(cu);
+});
+
+test('the pull message, budget and signed bytes follow the manifest', async () => {
+  const feed = await Feed.load({ admin, seed, pull: true, fields: price });
+  const update = feed.encode(vectors.price.sequence, value);
+  const message = feed.pullMessage(update);
+  expect(hex(message.subarray(0, DOMAIN.length))).toBe('ff' + hex(new TextEncoder().encode('doppler:pull:v1')));
+  expect(message.length).toBe(DOMAIN.length + 32 + update.length);
+  expect(hex(message.subarray(DOMAIN.length + 32))).toBe(vectors.price.data);
+  expect(feed.pullBudget(1000)).toEqual({
+    computeUnits: pullCu(20),
+    loadedBytes: vectors.pull.loadedBytes - 2 * 64 - 22,
+    requestedComputeUnits: vectors.pull.computeUnits,
+    requestedLoadedBytes: vectors.pull.loadedBytes,
+    lamports: 5_000n + BigInt(Math.ceil(vectors.pull.computeUnits / 1000)),
+  });
+  const signed = fromHex(vectors.pull.signed);
+  expect(feed.checkSigned(signed)).toBe(signed);
+  expect(() => feed.checkSigned(signed.subarray(1))).toThrow('a signed update is 96 bytes, got 95');
+  const push = await Feed.load({ admin, seed, fields: price });
+  expect(() => push.pullBudget(1000)).toThrow('no pull path');
+  expect(() => push.pullMessage(update)).toThrow('no pull path');
+  expect(push.elf().length).toBeLessThan(feed.elf().length);
 });
 
 test('the program and the feed address are create_with_seed', async () => {
@@ -40,13 +70,6 @@ test('price round trips through the wire format with the exact budgets', async (
   });
   expect(feed.updateBudget(0).lamports).toBe(5_000n);
   expect(feed.updateBudget(1_000_000).lamports).toBe(5_000n + BigInt(vectors.price.computeUnits));
-  expect(feed.deployBudget(1000)).toEqual({
-    computeUnits: 10_080,
-    loadedBytes: 8 * 64 + 21 + 37 + 17 + 40,
-    requestedComputeUnits: 10_530,
-    requestedLoadedBytes: 10 * 64 + 21 + 37 + 17 + 40 + 22,
-    lamports: 5_011n,
-  });
 });
 
 test('every type and arrays round trip', async () => {

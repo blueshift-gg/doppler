@@ -68,6 +68,9 @@ A feed is its admin and its seed. The program is `create_with_seed(admin, seed, 
 feed account `create_with_seed(admin, "feed", program)`, so there is no program keypair to make or
 keep, nothing else to look up, and one admin runs as many feeds as it has seeds.
 
+`"pull": true` makes it a [pull feed](#pull): the same program with a second write path, where the
+admin signs updates off chain and anyone lands them.
+
 ## Architecture
 
 Doppler uses a simple yet powerful architecture:
@@ -113,7 +116,8 @@ doppler.deploy().send(&[&admin])?;
 ```
 
 One transaction writes the program, makes it immutable, and creates the feed account. The admin is
-the only signer and pays; `doppler.program()` is the address.
+the only signer and pays; `doppler.program()` is the address. A pull program is larger and takes
+as many transactions as its writes need, 21 for a `Price` feed; `send` returns their signatures.
 
 ### 3. Update
 
@@ -144,18 +148,39 @@ The sequence is any strictly increasing `u64` the publisher chooses. The SDK wri
 milliseconds, which is what `price_no_older_than` assumes; a feed that counts instead carries its
 own time in the payload, or offers no freshness.
 
-### 5. Your Own Transaction
+### 5. Pull
 
-Both operations hand you their raw instructions and a `Budget`:
+With `"pull": true` in the manifest, the admin signs an update anywhere and hands out the bytes;
+whoever holds them sends, and pays:
+
+```rust
+let signed = doppler.update(now_ms(), &price).sign(&admin)?.signed;   // the admin, off chain: 96 bytes to publish
+doppler.pull(&signed)?.send(&[&relayer])?;                             // anyone, on chain
+```
+
+`sign` binds the update to the program id under a domain prefix, so nothing the admin signs for
+another purpose is a valid pull and no pull replays elsewhere; the sequence still has to increase,
+and a repeat of the current update from a second relayer succeeds without verifying. The program
+verifies the signature on chain with [brine-ed25519](https://crates.io/crates/brine-ed25519),
+under a limit of `pull_cu`: about 5,000 units, exact only to the reduction's data-dependent
+corrections.
+
+### 6. Your Own Transaction
+
+Every operation hands you its raw instructions and a `Budget`:
 
 ```rust
 let update = doppler.update(now_ms(), &price).instruction();
 update.instruction;                 // the admin signs
 update.budget;                      // Budget { compute_units: 25, loaded_bytes: 665, requested_compute_units: 475, requested_loaded_bytes: 815, lamports }
 
-let deploy = doppler.deploy().instructions();
-deploy.instructions;                // create and fill the buffer, create the program, deploy it immutable, create the feed
-deploy.budget;                      // Budget { compute_units: 10_080, loaded_bytes: 627, requested_compute_units: 10_530, requested_loaded_bytes: 777, lamports }
+let pull = doppler.pull(&signed)?.instruction();
+pull.instruction;                   // one account, the feed; whoever pays signs
+
+for transaction in doppler.deploy().instructions() {
+    transaction.instructions;       // create and fill the buffer, create the program, deploy it immutable, create the feed
+    transaction.budget;             // Budget { compute_units: 10_080, loaded_bytes: 627, requested_compute_units: 10_530, requested_loaded_bytes: 777, lamports }
+}
 ```
 
 `compute_units` and `loaded_bytes` are the instructions' own: what they add to any transaction, per
@@ -191,18 +216,42 @@ for await (const reading of doppler.subscribe(createSolanaRpcSubscriptions('wss:
 }
 
 const { instruction, budget } = doppler.update(Date.now(), value).instruction();
-const { instructions, budget: deployBudget } = await doppler.deploy().instructions([admin]);
+for (const { instructions, budget } of await doppler.deploy().instructions([admin])) { /* one transaction each */ }
+
+// With `pull: true` in the manifest: the admin signs anywhere, whoever holds the bytes sends and pays.
+const { signed } = await doppler.update(Date.now(), value).sign(admin);   // 96 bytes to publish
+await doppler.pull(signed).send([relayer]);
 ```
 
 `load` validates the manifest and derives `program` and `address`. Written inline, the manifest types
 the value: `{ price: bigint; conf: bigint; expo: number }`, arrays for `len > 1`. A `doppler.json`
 import is validated the same way and typed loosely. Signers are `TransactionSigner`s, so a wallet
-works like a keypair; `send` resolves once the transaction is confirmed. `doppler.options` is
-public, so a publisher can follow the fee market.
+works like a keypair, and `sign` takes any signer that signs messages; `send` resolves once the
+transaction is confirmed. `doppler.options` is public, so a publisher can follow the fee market.
 
 `@blueshift-gg/doppler-web3js` is identical over `Connection`, `Keypair` and `PublicKey`:
 `DopplerClient.load(manifest, { rpc: connection, unitPrice })`, `deploy().instructions()` needs no
 signer, and `subscribe({ signal })` uses the connection.
+
+## Pull
+
+`program-extended/` is the program with a second write path. Its push path is the listing,
+`doppler/doppler.s`, included as `global_asm!`; an instruction whose first account is not the
+admin signing falls through into `pull`, which takes the admin's detached Ed25519 signature over
+`0xff ‖ "doppler:pull:v1" ‖ program ‖ sequence ‖ payload` in the instruction data before the update,
+with no account but the feed. The push path is unchanged, 21 units for a `u64`. A pull verifies
+with brine-ed25519 through the `sol_sha512` and `sol_curve_multiscalar_mul` syscalls, in 4,958 to
+5,012 units plus the hash's `max(10, len / 2)` on the update: `pull_cu` is the limit `send` sets. A
+repeat of the current sequence with the same payload succeeds without verifying, so several relayers
+may land one update; an older sequence fails.
+
+`doppler::generate_pull` builds it the way `generate` builds the push program: the Rust build,
+checked in as `doppler/doppler-pull.so` and `doppler/doppler-pull-memcpy.so`, with the admin key,
+the copy pairs and the sizes patched into the listing, and the admin and the program id patched
+into `.rodata`. `doppler/tests/sweep.rs` runs both paths at every payload size.
+
+The `sol_sha512` syscall is behind the `enable_sha512_syscall` feature gate,
+`s512oDwgx8hjMnaQjXfqqrZroVj4HvC6TkN3iSSWXCh`; on surfpool, start with `--feature` and that id.
 
 ## Performance Optimization Tips
 
@@ -263,9 +312,11 @@ bun install && bun run build && bun run test
 ### E2E
 
 ```bash
-surfpool start                         # surfpool 1.5.0 or newer
+surfpool start --airdrop admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE --airdrop BafWaymYnNWHA2xpUsBvM6cagw3ougBcMgpG2qVBdESQ \
+  --feature s512oDwgx8hjMnaQjXfqqrZroVj4HvC6TkN3iSSWXCh   # 1.5.0 or newer; the example admin and relayer; the sha512 syscall, for pull
 RPC_URL=http://localhost:8899 cargo run --bin deploy
 RPC_URL=http://localhost:8899 cargo run --bin update
+RPC_URL=http://localhost:8899 cargo run --bin pull             # a pull feed: deploy, sign as the admin, land as the relayer
 RPC_URL=http://localhost:8899 bun examples/kit/deploy.ts       # or examples/web3js
 RPC_URL=http://localhost:8899 bun examples/kit/update.ts
 DOPPLER_RPC=http://localhost:8899 DOPPLER_WS=ws://localhost:8900 bun test   # deploy, update, read, subscribe
@@ -337,13 +388,16 @@ payload, and the sizes. That is what `deploy` does:
 let elf = doppler::generate(admin.pubkey().as_array(), doppler::Price::SIZE);
 ```
 
-After editing a listing:
+After editing a listing, or `program-extended/`:
 
 ```bash
 cargo install sbpf --version 0.3.0 --locked
 UPDATE_TEMPLATES=1 cargo test -p doppler --test templates
 UPDATE_VECTORS=1 cargo test -p doppler --test vectors
 ```
+
+The pull programs are rebuilt too when `CARGO_BUILD_SBF` names a `cargo-build-sbf` with
+platform-tools v1.53 or newer, Agave 4.0's; without it they are left as checked in.
 
 The reference program in `program/` is the same logic in Rust, for `cargo build-sbf`:
 

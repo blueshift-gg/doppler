@@ -15,7 +15,7 @@ crate-type = ["lib", "cdylib"]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
 
 [dev-dependencies]
-doppler = { workspace = true }
+doppler = { workspace = true, features = ["std"] }
 mollusk-svm = { workspace = true }
 mollusk-svm-bencher = { workspace = true }
 solana-account = { workspace = true }

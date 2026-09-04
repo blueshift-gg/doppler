@@ -20,9 +20,13 @@ sha2 = { workspace = true, optional = true }
 
 [dev-dependencies]
 bs58 = { workspace = true }
+doppler-sdk = { workspace = true }
+solana-client = { workspace = true }
 solana-rent = { workspace = true }
 mollusk-svm = { workspace = true }
 solana-account = { workspace = true }
 solana-instruction = { workspace = true }
+solana-keypair = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-sdk-ids = { workspace = true }
+solana-signer = { workspace = true }

@@ -8,12 +8,14 @@ edition = { workspace = true }
 version = { workspace = true }
 
 [dependencies]
-doppler = { workspace = true }
+doppler = { workspace = true, features = ["std"] }
 solana-client = { workspace = true }
 solana-compute-budget-interface = { workspace = true }
+solana-hash = { workspace = true }
 solana-instruction = { workspace = true }
 solana-loader-v3-interface = { workspace = true }
 solana-message = { workspace = true }
+solana-packet = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-rent = { workspace = true }
 solana-sdk-ids = { workspace = true }
