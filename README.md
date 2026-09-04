@@ -204,6 +204,25 @@ public, so a publisher can follow the fee market.
 `DopplerClient.load(manifest, { rpc: connection, unitPrice })`, `deploy().instructions()` needs no
 signer, and `subscribe({ signal })` uses the connection.
 
+## Pull
+
+`program-extended/` is the program with a second write path. Alongside the admin's signed
+transaction it accepts a detached Ed25519 signature by the admin over
+`0xff ‖ "doppler:pull:v1" ‖ program ‖ sequence ‖ payload`, carried in the instruction data before
+the update, so anyone can land an update the admin only signed. The signer path is unchanged at
+22 CU. A pull verifies on chain in 3,787 CU through the `sol_sha512` and
+`sol_curve_multiscalar_mul` syscalls, the digest reduced mod L in 28-bit limbs, with no account but
+the feed. A repeat of the current sequence with the same payload succeeds without verifying, so
+several relayers may land the same update; an older sequence fails.
+
+```bash
+cargo build-sbf --arch v3 --manifest-path program-extended/Cargo.toml   # platform-tools v1.53 or newer
+cargo test -p doppler-extended-program
+```
+
+The publisher key and the program id are constants of the build. Signing and
+`pull(signed).instruction()` in the SDKs are next.
+
 ## Performance Optimization Tips
 
 ### 1. Compute Budget Configuration

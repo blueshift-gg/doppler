@@ -1,0 +1,28 @@
+[package]
+name = "doppler-extended-program"
+description = "The Doppler program with signer and signed-payload updates."
+repository = { workspace = true }
+readme = { workspace = true }
+license-file = { workspace = true }
+edition = { workspace = true }
+version = { workspace = true }
+publish = false
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[target.'cfg(target_os = "solana")'.dependencies]
+solana-define-syscall = { workspace = true }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
+
+[dev-dependencies]
+curve25519-dalek = { version = "4", default-features = false }
+doppler = { workspace = true }
+mollusk-svm = { workspace = true }
+solana-account = { workspace = true }
+solana-instruction = { workspace = true }
+solana-keypair = { workspace = true }
+solana-pubkey = { workspace = true }
+solana-signer = { workspace = true }

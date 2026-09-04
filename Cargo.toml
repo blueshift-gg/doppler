@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["doppler", "sdk", "program", "examples"]
+members = ["doppler", "sdk", "program", "program-extended", "examples"]
 
 [workspace.package]
 repository = "https://github.com/blueshift-gg/doppler"
@@ -22,6 +22,7 @@ sha2 = "0.11"
 solana-account = "4"
 solana-client = "4"
 solana-compute-budget-interface = "3"
+solana-define-syscall = "5.2"
 solana-hash = "4"
 solana-instruction = "3"
 solana-keypair = "3"

@@ -1452,6 +1452,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "doppler-extended-program"
+version = "0.1.0"
+dependencies = [
+ "curve25519-dalek",
+ "doppler",
+ "mollusk-svm",
+ "solana-account 4.3.2",
+ "solana-define-syscall 5.2.0",
+ "solana-instruction",
+ "solana-keypair",
+ "solana-pubkey 4.2.1",
+ "solana-signer",
+]
+
+[[package]]
 name = "doppler-program"
 version = "0.1.0"
 dependencies = [
