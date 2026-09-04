@@ -13,6 +13,7 @@ jobs:
         with:
           toolchain: stable
           components: rustfmt, clippy
+      - run: cargo install sbpf --version 0.3.0 --locked
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test -p doppler -p doppler-sdk

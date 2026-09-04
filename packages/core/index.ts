@@ -1,8 +1,9 @@
-// Doppler feeds: `HEADER` bytes of `sequence` (little-endian u64, strictly increasing), then a packed payload.
+// Doppler feeds: `HEADER` bytes of `sequence` (little-endian u64, strictly increasing), then the packed payload,
+// padded to 8 bytes.
 
-import { HEADER, generate, updateCu } from './program.js';
+import { HEADER, generate, padded, updateCu } from './program.js';
 
-export { HEADER, generate, updateCu };
+export { HEADER, generate, padded, updateCu };
 
 export const FEED_SEED = 'feed';
 /** The buffer lives only inside the deploy transaction, so one seed serves every deploy. */
@@ -223,7 +224,7 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
   /** One update: the program, its programdata and the feed; the admin signs. */
   updateBudget(unitPrice: number | bigint): Budget {
     const programdata = PROGRAMDATA_HEADER + this.elf().length;
-    return budget(updateCu(this.size), 3 * ACCOUNT_OVERHEAD + PROGRAM_LEN + programdata + HEADER + this.size, 1, unitPrice);
+    return budget(updateCu(this.size), 3 * ACCOUNT_OVERHEAD + PROGRAM_LEN + programdata + HEADER + padded(this.size), 1, unitPrice);
   }
 
   /** One deploy: buffer, program, programdata, feed, the system and loader programs, two sysvars; the admin signs. */
@@ -231,10 +232,10 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
     return budget(DEPLOY_CU, 8 * ACCOUNT_OVERHEAD + DEPLOY_LOADED_DATA, 1, unitPrice);
   }
 
-  /** Update instruction data, which is also the feed account layout. */
+  /** Update instruction data, which is also the feed account layout: the payload padded to 8 bytes. */
   encode(sequence: number, value: Payload<F>): Uint8Array {
     if (!Number.isInteger(sequence) || sequence < 0) throw new RangeError('sequence: expected a non-negative integer');
-    const data = new Uint8Array(HEADER + this.size);
+    const data = new Uint8Array(HEADER + padded(this.size));
     const view = new DataView(data.buffer);
     view.setBigUint64(0, BigInt(sequence), true);
     const fields = value as Record<string, unknown>;
@@ -254,7 +255,7 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
   /** Feed account data; `owner` must be the program. */
   decode(data: ArrayBufferView, owner: string): Reading<Payload<F>> {
     if (owner !== this.program) throw new Error('the account is not owned by the feed program');
-    if (data.byteLength !== HEADER + this.size) throw new Error('the account size does not match the payload');
+    if (data.byteLength !== HEADER + padded(this.size)) throw new Error('the account size does not match the payload');
     const view = new DataView(data.buffer, data.byteOffset, data.byteLength);
     const value: Record<string, unknown> = {};
     for (const { name, type, len, offset } of this.slots) {

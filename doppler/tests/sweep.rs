@@ -1,6 +1,6 @@
 //! Every payload size from 1 to 64 through Mollusk, pinned to `update_cu`.
 
-use doppler::{generate, update_cu, update_data, HEADER};
+use doppler::{generate, padded, update_cu, update_data, HEADER};
 use mollusk_svm::{
     result::{InstructionResult, ProgramResult},
     Mollusk,
@@ -86,7 +86,7 @@ fn every_payload_size_from_1_to_64() {
     for size in 1..=64 {
         let rig = Rig::new(size);
         let payload: Vec<u8> = (0..size).map(|i| (i * 37 + 11) as u8).collect();
-        let empty = vec![0u8; HEADER + size];
+        let empty = vec![0u8; HEADER + padded(size)];
 
         let ok = rig.update(rig.admin, true, 7, &payload, &empty);
         assert!(
