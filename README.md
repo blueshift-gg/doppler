@@ -216,14 +216,18 @@ for await (const reading of doppler.subscribe(createSolanaRpcSubscriptions('wss:
 }
 
 const { instruction, budget } = doppler.update(Date.now(), value).instruction();
-const { instructions, budget: deployBudget } = await doppler.deploy().instructions([admin]);
+for (const { instructions, budget } of await doppler.deploy().instructions([admin])) { /* one transaction each */ }
+
+// With `pull: true` in the manifest: the admin signs anywhere, whoever holds the bytes sends and pays.
+const { signed } = await doppler.update(Date.now(), value).sign(admin);   // 96 bytes to publish
+await doppler.pull(signed).send([relayer]);
 ```
 
 `load` validates the manifest and derives `program` and `address`. Written inline, the manifest types
 the value: `{ price: bigint; conf: bigint; expo: number }`, arrays for `len > 1`. A `doppler.json`
 import is validated the same way and typed loosely. Signers are `TransactionSigner`s, so a wallet
-works like a keypair; `send` resolves once the transaction is confirmed. `doppler.options` is
-public, so a publisher can follow the fee market.
+works like a keypair, and `sign` takes any signer that signs messages; `send` resolves once the
+transaction is confirmed. `doppler.options` is public, so a publisher can follow the fee market.
 
 `@blueshift-gg/doppler-web3js` is identical over `Connection`, `Keypair` and `PublicKey`:
 `DopplerClient.load(manifest, { rpc: connection, unitPrice })`, `deploy().instructions()` needs no

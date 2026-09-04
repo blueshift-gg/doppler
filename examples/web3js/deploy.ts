@@ -21,7 +21,7 @@ const doppler = await DopplerClient.load(
   { rpc, unitPrice: 1_000 },
 );
 
-const signature = await doppler.deploy().send([admin]);
+for (const signature of await doppler.deploy().send([admin])) console.log(`deploy ${signature}`);
 mkdirSync('target', { recursive: true });
 writeFileSync('target/doppler.json', JSON.stringify(doppler.manifest, null, 2));
-console.log(`program ${doppler.program} feed ${doppler.address} in ${signature}`);
+console.log(`program ${doppler.program} feed ${doppler.address}`);

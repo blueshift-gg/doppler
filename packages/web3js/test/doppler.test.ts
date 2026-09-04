@@ -35,7 +35,9 @@ test('the addresses, the update instruction and its budget match the vectors', a
 test('deploy is one transaction signed by the admin that ends immutable with the feed', async () => {
   const [admin, stranger] = await Promise.all([Keypair.generate(), Keypair.generate()]);
   const d = await DopplerClient.load({ admin: admin.address, seed: 'SOL/USD', fields }, { rpc: noRpc, unitPrice: 1000 });
-  const { instructions, budget } = await d.deploy().instructions();
+  const deploy = await d.deploy().instructions();
+  expect(deploy.length).toBe(1);
+  const { instructions, budget } = deploy[0]!;
   expect(instructions.length).toBe(7);
   expect(instructions[3]!.keys[1]!.pubkey.equals(d.program)).toBe(true);
   expect(instructions[5]!.keys.length).toBe(2);
@@ -70,12 +72,12 @@ test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live clust
     (await rpc.getTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 }))?.meta?.computeUnitsConsumed;
 
   const funded = await rpc.getBalance(admin.publicKey);
-  const { budget } = await d.deploy().instructions();
-  const deploy = await d.deploy().send([admin]);
+  const { budget } = (await d.deploy().instructions())[0]!;
+  const [deploy] = await d.deploy().send([admin]);
   const deployed = await rpc.getBalance(admin.publicKey);
   const rent = rentExempt(PROGRAM_LEN) + rentExempt(PROGRAMDATA_HEADER + d.feed.elf().length) + rentExempt(HEADER + padded(d.feed.size));
   expect(funded - deployed).toBe(budget.lamports + rent);
-  expect(await consumed(deploy)).toBe(BigInt(budget.requestedComputeUnits));
+  expect(await consumed(deploy!)).toBe(BigInt(budget.requestedComputeUnits));
   const [programdata] = await PublicKey.findProgramAddress([d.program.toBytes()], LoaderV3Program.programId);
   const account = await rpc.getAccountInfo(programdata);
   expect([account?.data.length, account?.data[12]]).toEqual([45 + d.feed.elf().length, 0]);

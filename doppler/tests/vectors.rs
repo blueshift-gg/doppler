@@ -2,9 +2,11 @@
 
 use doppler::{
     feed_address, generate, generate_pull, padded, program_address, pull_cu, pull_message,
-    update_cu, update_data, Price, HEADER, PROGRAMDATA_HEADER,
+    update_cu, update_data, Field, Manifest, Price, Ty, HEADER, PROGRAMDATA_HEADER,
 };
+use doppler_sdk::{DopplerClient, SendOptions};
 use sha2::{Digest, Sha256};
+use solana_client::rpc_client::RpcClient;
 use solana_keypair::Keypair;
 use solana_rent::Rent;
 use solana_signer::{EncodableKey, Signer};
@@ -64,6 +66,44 @@ fn vectors_json_matches() {
     .unwrap();
     assert_eq!(admin.pubkey().to_bytes(), ADMIN);
     let signature = admin.sign_message(&pull_message(&program, &update));
+
+    // How the SDK packs the pull program's deploy: the write of each transaction, and whether the
+    // finishing instructions fit the last one.
+    let rpc = RpcClient::new("http://localhost:8899");
+    let client = DopplerClient::<Price>::load(
+        Manifest {
+            admin: ADMIN,
+            seed: SEED.into(),
+            pull: true,
+            fields: [("price", Ty::I64), ("conf", Ty::U64), ("expo", Ty::I32)]
+                .map(|(name, ty)| Field {
+                    name: name.into(),
+                    ty,
+                    len: 1,
+                })
+                .to_vec(),
+        },
+        SendOptions {
+            rpc: &rpc,
+            unit_price: 0,
+        },
+    )
+    .unwrap();
+    let deploy = client.deploy().instructions();
+    let writes: Vec<String> = deploy
+        .iter()
+        .flat_map(|tx| tx.instructions.iter())
+        .filter(|ix| ix.data.len() > 16 && ix.data[..4] == [1, 0, 0, 0])
+        .map(|ix| {
+            format!(
+                "[{}, {}]",
+                u32::from_le_bytes(ix.data[4..8].try_into().unwrap()),
+                ix.data.len() - 16
+            )
+        })
+        .collect();
+    assert_eq!(writes.len(), deploy.len(), "every transaction writes once");
+    let finishes_in_the_last = deploy.last().unwrap().instructions.len() == 5;
     let json = format!(
         r#"{{
   "admin": "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
@@ -82,7 +122,8 @@ fn vectors_json_matches() {
     "signed": "{}",
     "computeUnits": {},
     "loadedBytes": {},
-    "bufferLamports": {}
+    "bufferLamports": {},
+    "deploy": {{ "writes": [{}], "finishesInTheLast": {} }}
   }}
 }}
 "#,
@@ -100,6 +141,8 @@ fn vectors_json_matches() {
         3 * 150 + pull_cu(Price::SIZE),
         loaded(&pull_elf),
         rent.minimum_balance(37 + pull_elf.len()),
+        writes.join(", "),
+        finishes_in_the_last,
     );
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/vectors.json");
     if std::env::var_os("UPDATE_VECTORS").is_some() {

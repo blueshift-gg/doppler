@@ -1443,11 +1443,13 @@ version = "0.1.0"
 dependencies = [
  "bs58",
  "bytemuck",
+ "doppler-sdk",
  "mollusk-svm",
  "serde",
  "serde_json",
  "sha2 0.11.0",
  "solana-account 4.3.2",
+ "solana-client",
  "solana-instruction",
  "solana-keypair",
  "solana-pubkey 4.2.1",

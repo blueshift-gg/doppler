@@ -2,8 +2,9 @@
 // padded to 8 bytes.
 
 import { HEADER, generate, padded, updateCu } from './program.js';
+import { DOMAIN, generatePull, pullCu } from './pull.js';
 
-export { HEADER, generate, padded, updateCu };
+export { DOMAIN, HEADER, generate, generatePull, padded, pullCu, updateCu };
 
 export const FEED_SEED = 'feed';
 /** The buffer lives only inside the deploy transaction, so one seed serves every deploy. */
@@ -16,20 +17,21 @@ export const BUFFER_HEADER = 4 + 1 + 32;
 export const PROGRAM_LEN = 4 + 32;
 
 /** `DEFAULT_COMPUTE_UNITS` of the system and compute-budget builtins. */
-const BUILTIN_IX_CU = 150;
+export const BUILTIN_IX_CU = 150;
+/** `DEFAULT_COMPUTE_UNITS` of loader v3; its deploy also CPIs one system `create_account`. */
+export const LOADER_IX_CU = 2_370;
 /**
- * A deploy's own units: three `create_account`s, the loader's `create_account` CPI, and four loader-v3
- * instructions at 2_370 each. Measured at 10_230 with the price instruction on surfpool 1.5.0 for 328,
- * 336 and 360-byte programs; pinned by the live tests.
+ * Builtin and sysvar data as loaded, by address: the system program, 21 bytes on mainnet and 14 on
+ * devnet, where a limit only needs to cover the larger; the loader; the rent and clock sysvars.
  */
-const DEPLOY_CU = 4 * BUILTIN_IX_CU + 4 * 2_370;
-/**
- * Builtin and sysvar data a deploy loads: the system program, 21 bytes on mainnet and 14 on devnet,
- * where a limit only needs to cover the larger; the loader; the rent and clock sysvars.
- */
-const DEPLOY_LOADED_DATA = 21 + 37 + 17 + 40;
+export const BUILTIN_LEN: Readonly<Record<string, number>> = {
+  '11111111111111111111111111111111': 21,
+  BPFLoaderUpgradeab1e11111111111111111111111: 37,
+  SysvarRent111111111111111111111111111111111: 17,
+  SysvarC1ock11111111111111111111111111111111: 40,
+};
 /** SIMD-0186. */
-const ACCOUNT_OVERHEAD = 64;
+export const ACCOUNT_OVERHEAD = 64;
 const COMPUTE_BUDGET_PROGRAM_LEN = 'compute_budget_program'.length;
 /** `FeeStructure::default()`. */
 const LAMPORTS_PER_SIGNATURE = 5_000n;
@@ -57,11 +59,13 @@ export type Field = { readonly name: string; readonly type: Ty; readonly len?: n
 export type FieldLike = { readonly name: string; readonly type: string; readonly len?: number };
 /**
  * `doppler.json`: a feed is its admin and its seed. The program is `createWithSeed(admin, seed, loader)`,
- * the feed account `createWithSeed(admin, 'feed', program)`.
+ * the feed account `createWithSeed(admin, 'feed', program)`. `pull` is the program with the second write
+ * path: the admin's detached signature over an update, from anyone.
  */
 export type Manifest<F extends readonly FieldLike[] = readonly Field[]> = {
   readonly admin: string;
   readonly seed: string;
+  readonly pull?: boolean;
   readonly fields: F;
 };
 
@@ -125,7 +129,7 @@ function base58(bytes: Uint8Array): string {
 type Slot = { name: string; type: Ty; len: number; offset: number };
 
 /** `unitPrice` is micro-lamports per compute unit; the fee is `5000` per signature plus `ceil(unitPrice * units / 1e6)`. */
-function budget(computeUnits: number, loadedBytes: number, signatures: number, unitPrice: number | bigint): Budget {
+export function budget(computeUnits: number, loadedBytes: number, signatures: number, unitPrice: number | bigint): Budget {
   const requestedComputeUnits = computeUnits + 3 * BUILTIN_IX_CU;
   const priority = (BigInt(unitPrice) * BigInt(requestedComputeUnits) + 999_999n) / 1_000_000n;
   return {
@@ -218,18 +222,37 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
   }
 
   elf(): Uint8Array {
-    return generate(this.adminKey, this.size);
+    return this.manifest.pull ? generatePull(this.adminKey, key(this.program, 'program'), this.size) : generate(this.adminKey, this.size);
   }
 
-  /** One update: the program, its programdata and the feed; the admin signs. */
+  /** What a write to the feed loads: the program, its programdata, the feed. */
+  private feedLoadedBytes(): number {
+    return 3 * ACCOUNT_OVERHEAD + PROGRAM_LEN + PROGRAMDATA_HEADER + this.elf().length + HEADER + padded(this.size);
+  }
+
+  /** One update; the admin signs. */
   updateBudget(unitPrice: number | bigint): Budget {
-    const programdata = PROGRAMDATA_HEADER + this.elf().length;
-    return budget(updateCu(this.size), 3 * ACCOUNT_OVERHEAD + PROGRAM_LEN + programdata + HEADER + padded(this.size), 1, unitPrice);
+    return budget(updateCu(this.size), this.feedLoadedBytes(), 1, unitPrice);
   }
 
-  /** One deploy: buffer, program, programdata, feed, the system and loader programs, two sysvars; the admin signs. */
-  deployBudget(unitPrice: number | bigint): Budget {
-    return budget(DEPLOY_CU, 8 * ACCOUNT_OVERHEAD + DEPLOY_LOADED_DATA, 1, unitPrice);
+  /** One pull; whoever pays signs. */
+  pullBudget(unitPrice: number | bigint): Budget {
+    if (!this.manifest.pull) throw new Error('the manifest has no pull path');
+    return budget(pullCu(this.size), this.feedLoadedBytes(), 1, unitPrice);
+  }
+
+  /** What the admin signs for a pull: `DOMAIN`, the program id, then the update. */
+  pullMessage(update: Uint8Array): Uint8Array {
+    if (!this.manifest.pull) throw new Error('the manifest has no pull path');
+    return new Uint8Array([...DOMAIN, ...key(this.program, 'program'), ...update]);
+  }
+
+  /** `Update.sign`'s bytes: the signature, then the update, exactly the feed's size. */
+  checkSigned(signed: Uint8Array): Uint8Array {
+    if (!this.manifest.pull) throw new Error('the manifest has no pull path');
+    const expected = 64 + HEADER + padded(this.size);
+    if (signed.length !== expected) throw new RangeError(`a signed update is ${expected} bytes, got ${signed.length}`);
+    return signed;
   }
 
   /** Update instruction data, which is also the feed account layout: the payload padded to 8 bytes. */

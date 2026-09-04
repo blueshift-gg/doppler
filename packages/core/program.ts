@@ -4,7 +4,7 @@
 
 export const HEADER = 8;
 /** Six inline chunks cost what `sol_memcpy_` costs; the memcpy program is 72 bytes smaller. */
-const MEMCPY_THRESHOLD = 6;
+export const MEMCPY_THRESHOLD = 6;
 
 /** The payload as stored: one 8-byte chunk per started 8 bytes, so the copy is one load/store pair per chunk. */
 export const padded = (payloadSize: number) => Math.ceil(payloadSize / 8) * 8;
