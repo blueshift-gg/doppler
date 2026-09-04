@@ -15,11 +15,11 @@ crate-type = ["lib", "cdylib"]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
 
 [dev-dependencies]
-doppler-sdk = { workspace = true }
+doppler = { workspace = true }
 mollusk-svm = { workspace = true }
 mollusk-svm-bencher = { workspace = true }
 solana-account = { workspace = true }
-solana-client = { workspace = true }
+solana-instruction = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-rent = { workspace = true }
 solana-sdk-ids = { workspace = true }

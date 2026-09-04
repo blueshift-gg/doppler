@@ -77,13 +77,13 @@ pub fn layout(fields: &[Field]) -> Result<Layout, Error> {
     Ok(Layout { offsets, size })
 }
 
-/// `doppler.json`.
+/// `doppler.json`: a feed is its admin and its seed. The program is
+/// `create_with_seed(admin, seed, loader)`, the feed account `create_with_seed(admin, "feed", program)`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Manifest {
     #[serde(with = "base58")]
-    pub program: [u8; 32],
-    #[serde(with = "base58")]
     pub admin: [u8; 32],
+    pub seed: String,
     pub fields: Vec<Field>,
 }
 
@@ -116,6 +116,25 @@ mod base58 {
             _ => Err(D::Error::custom("a key is 32 bytes in base58")),
         }
     }
+}
+
+/// `BPFLoaderUpgradeab1e11111111111111111111111`.
+const LOADER: [u8; 32] = [
+    0x02, 0xa8, 0xf6, 0x91, 0x4e, 0x88, 0xa1, 0xb0, 0xe2, 0x10, 0x15, 0x3e, 0xf7, 0x63, 0xae, 0x2b,
+    0x00, 0xc2, 0xb9, 0x3d, 0x16, 0xc1, 0x24, 0xd2, 0xc0, 0x53, 0x7a, 0x10, 0x04, 0x80, 0x00, 0x00,
+];
+
+/// `create_with_seed(admin, seed, loader)`: the program, and nothing to keep but the manifest.
+pub fn program_address(admin: &[u8; 32], seed: &str) -> Result<[u8; 32], Error> {
+    if seed.is_empty() || seed.len() > 32 {
+        return Err(Error::Schema("a seed is 1 to 32 bytes"));
+    }
+    Ok(Sha256::new()
+        .chain_update(admin)
+        .chain_update(seed)
+        .chain_update(LOADER)
+        .finalize()
+        .into())
 }
 
 /// `create_with_seed(admin, FEED_SEED, program)`: one feed per program.
@@ -184,15 +203,38 @@ mod tests {
 
     #[test]
     fn manifest_round_trips_json() {
-        let json = r#"{"program":"fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm","admin":"admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE","fields":[{"name":"price","type":"u64"},{"name":"id","type":"u8","len":32}]}"#;
+        let json = r#"{"admin":"admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE","seed":"SOL/USD","fields":[{"name":"price","type":"u64"},{"name":"id","type":"u8","len":32}]}"#;
         let manifest: Manifest = json.parse().unwrap();
         assert_eq!(manifest.fields[0].len, 1);
         assert_eq!(manifest.admin[..4], [0x08, 0x9d, 0xbe, 0xc9]);
         assert_eq!(serde_json::to_string(&manifest).unwrap(), json);
         assert!(
-            r#"{"program":"short","admin":"x","fields":[],"program_data_len":0}"#
+            r#"{"admin":"x","seed":"SOL/USD","fields":[],"program":"fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm"}"#
                 .parse::<Manifest>()
                 .is_err()
         );
+    }
+
+    #[test]
+    fn program_address_is_create_with_seed_under_the_loader() {
+        use solana_pubkey::Pubkey;
+        let loader = solana_sdk_ids::bpf_loader_upgradeable::id();
+        assert_eq!(LOADER, loader.to_bytes());
+        let admin = Pubkey::new_unique();
+        assert_eq!(
+            program_address(admin.as_array(), "SOL/USD").unwrap(),
+            Pubkey::create_with_seed(&admin, "SOL/USD", &loader)
+                .unwrap()
+                .to_bytes()
+        );
+        assert!(matches!(
+            program_address(admin.as_array(), ""),
+            Err(Error::Schema(_))
+        ));
+        assert!(matches!(
+            program_address(admin.as_array(), &"s".repeat(33)),
+            Err(Error::Schema(_))
+        ));
+        assert!(program_address(admin.as_array(), &"s".repeat(32)).is_ok());
     }
 }

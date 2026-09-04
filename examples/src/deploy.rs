@@ -1,4 +1,4 @@
-//! Deploy a Price feed with a fresh program keypair and write its manifest to `target/doppler.json`.
+//! Deploy a Price feed named SOL/USD and write its manifest to `target/doppler.json`.
 //! `RPC_URL` overrides mainnet, for surfpool: `RPC_URL=http://localhost:8899`.
 
 use doppler_sdk::{
@@ -17,11 +17,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         env!("CARGO_MANIFEST_DIR"),
         "/keys/admin-keypair.json"
     ))?;
-    let program = Keypair::new();
     let doppler = DopplerClient::<Price>::from_manifest(
         Manifest {
-            program: program.pubkey().to_bytes(),
             admin: admin.pubkey().to_bytes(),
+            seed: "SOL/USD".into(),
             fields: vec![
                 Field {
                     name: "price".into(),
@@ -46,11 +45,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     )?;
 
-    let signature = doppler.deploy().send(&[&admin, &program])?;
+    let signature = doppler.deploy().send(&[&admin])?;
     std::fs::write("target/doppler.json", doppler.manifest.to_string())?;
     println!(
         "program {} feed {} in {signature}",
-        program.pubkey(),
+        doppler.program(),
         doppler.address()
     );
     Ok(())

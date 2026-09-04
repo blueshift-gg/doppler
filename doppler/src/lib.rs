@@ -14,7 +14,7 @@ pub use bytemuck::{self, Pod, Zeroable};
 #[cfg(feature = "std")]
 pub use elf::generate;
 #[cfg(feature = "std")]
-pub use schema::{feed_address, layout, update_data, Field, Layout, Manifest, Ty};
+pub use schema::{feed_address, layout, program_address, update_data, Field, Layout, Manifest, Ty};
 
 pub const HEADER: usize = 8;
 pub const FEED_SEED: &str = "feed";

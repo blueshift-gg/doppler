@@ -9,8 +9,8 @@ use std::{
 
 pub use doppler;
 use doppler::{
-    feed_address, generate, layout, read, update_cu, update_data, Manifest, Pod, FEED_SEED, HEADER,
-    PROGRAMDATA_HEADER,
+    feed_address, generate, layout, program_address, read, update_cu, update_data, Manifest, Pod,
+    FEED_SEED, HEADER, PROGRAMDATA_HEADER,
 };
 use solana_client::{client_error::ClientError, rpc_client::RpcClient};
 use solana_compute_budget_interface::ComputeBudgetInstruction;
@@ -173,7 +173,7 @@ pub struct UpdateInstruction {
 }
 
 /// The raw deploy instructions and their budget: create and fill the buffer, create the program,
-/// deploy it immutable, create the feed. The admin pays; the program keypair signs too.
+/// deploy it immutable, create the feed. The admin pays and is the only signer.
 pub struct DeployInstructions {
     pub instructions: Vec<Instruction>,
     pub budget: Budget,
@@ -207,7 +207,7 @@ impl<'a, T: Pod> DopplerClient<'a, T> {
             });
         }
         Ok(Self {
-            program: Pubkey::from(manifest.program),
+            program: Pubkey::from(program_address(&manifest.admin, &manifest.seed)?),
             admin: Pubkey::from(manifest.admin),
             options,
             value: PhantomData,
@@ -218,6 +218,11 @@ impl<'a, T: Pod> DopplerClient<'a, T> {
     /// The feed account.
     pub fn address(&self) -> Pubkey {
         Pubkey::from(feed_address(self.admin.as_array(), self.program.as_array()))
+    }
+
+    /// `create_with_seed(admin, seed, loader)`.
+    pub fn program(&self) -> Pubkey {
+        self.program
     }
 
     pub fn deploy(&self) -> Deploy<'_, T> {
@@ -338,8 +343,8 @@ pub struct Deploy<'a, T> {
 }
 
 impl<T: Pod> Deploy<'_, T> {
-    /// The raw instructions and their budget, for your own transaction. The buffer is a seeded
-    /// account of the admin, so nothing but the admin and the program keypair signs.
+    /// The raw instructions and their budget, for your own transaction. The program and the buffer
+    /// are seeded accounts of the admin, so nothing but the admin signs.
     pub fn instructions(&self) -> DeployInstructions {
         let d = self.doppler;
         let elf = d.elf();
@@ -363,17 +368,28 @@ impl<T: Pod> Deploy<'_, T> {
                 .pop(),
         );
         instructions.push(loader::write(&buffer, &d.admin, 0, elf.clone()));
+        let program_len = UpgradeableLoaderState::size_of_program();
+        instructions.push(create_account_with_seed(
+            &d.admin,
+            &d.program,
+            &d.admin,
+            &d.manifest.seed,
+            rent.minimum_balance(program_len),
+            program_len as u64,
+            &loader,
+        ));
         instructions.extend(
             loader::deploy_with_max_program_len(
                 &d.admin,
                 &d.program,
                 &buffer,
                 &d.admin,
-                rent.minimum_balance(UpgradeableLoaderState::size_of_program()),
+                0,
                 elf.len(),
                 true,
             )
-            .expect("loader instruction"),
+            .expect("loader instruction")
+            .pop(),
         );
         instructions.push(loader::set_upgrade_authority(&d.program, &d.admin, None));
         let space = HEADER + size_of::<T>();
@@ -388,16 +404,15 @@ impl<T: Pod> Deploy<'_, T> {
         ));
         DeployInstructions {
             instructions,
-            budget: d.budget(DEPLOY_CU, 8 * ACCOUNT_OVERHEAD + DEPLOY_LOADED_DATA, 2),
+            budget: d.budget(DEPLOY_CU, 8 * ACCOUNT_OVERHEAD + DEPLOY_LOADED_DATA, 1),
         }
     }
 
     /// Exact budget, one transaction: writes the program, deploys it immutable, and creates the
-    /// feed account. `signers` are the admin, who pays, and the program keypair, needed only here.
+    /// feed account. The admin signs and pays.
     pub fn send<S: Signers + ?Sized>(&self, signers: &S) -> Result<Signature, Error> {
         let d = self.doppler;
         expect(signers, d.admin)?;
-        expect(signers, d.program)?;
         let DeployInstructions {
             instructions,
             budget,
@@ -425,8 +440,8 @@ mod tests {
 
     fn manifest(fields: Vec<Field>) -> Manifest {
         Manifest {
-            program: Pubkey::new_unique().to_bytes(),
             admin: Pubkey::new_unique().to_bytes(),
+            seed: "SOL/USD".into(),
             fields,
         }
     }
@@ -488,6 +503,10 @@ mod tests {
         let rpc = rpc();
         let d = DopplerClient::<u64>::from_manifest(manifest(u64_fields()), options(&rpc)).unwrap();
         assert_eq!(
+            d.program(),
+            Pubkey::create_with_seed(&d.admin, "SOL/USD", &bpf_loader_upgradeable::id()).unwrap()
+        );
+        assert_eq!(
             d.address(),
             Pubkey::create_with_seed(&d.admin, FEED_SEED, &d.program).unwrap()
         );
@@ -541,11 +560,11 @@ mod tests {
     #[test]
     fn sign_places_each_signature_where_the_message_wants_it() {
         let rpc = rpc();
-        let (admin, program, stranger) = (Keypair::new(), Keypair::new(), Keypair::new());
+        let (admin, stranger) = (Keypair::new(), Keypair::new());
         let d = DopplerClient::<Price>::from_manifest(
             Manifest {
-                program: program.pubkey().to_bytes(),
                 admin: admin.pubkey().to_bytes(),
+                seed: "SOL/USD".into(),
                 fields: price_fields(),
             },
             options(&rpc),
@@ -560,11 +579,11 @@ mod tests {
             ))
         };
         let mut deploy = unsigned(&instructions);
-        sign(&mut deploy, &[&admin, &program, &stranger]).unwrap();
+        sign(&mut deploy, &[&admin, &stranger]).unwrap();
         assert!(deploy.is_signed());
         let mut lacking = unsigned(&instructions);
         assert!(
-            matches!(sign(&mut lacking, &[&admin]), Err(Error::Missing(k)) if k == program.pubkey())
+            matches!(sign(&mut lacking, &[&stranger]), Err(Error::Missing(k)) if k == admin.pubkey())
         );
         let mut update = unsigned(&[d
             .update(
@@ -602,7 +621,7 @@ mod tests {
                 loaded_bytes: 8 * 64 + 21 + 37 + 17 + 40,
                 requested_compute_units: 10_530,
                 requested_loaded_bytes: 10 * 64 + 21 + 37 + 17 + 40 + 22,
-                lamports: 2 * 5_000 + 11,
+                lamports: 5_000 + 11,
             }
         );
         let tx = Transaction::new_unsigned(Message::new_with_blockhash(
@@ -614,7 +633,7 @@ mod tests {
             .map(|n| generate(d.admin.as_array(), n).len())
             .max()
             .unwrap();
-        let size = 1 + 64 * 2 + tx.message_data().len() + largest - d.elf().len();
+        let size = 1 + 64 + tx.message_data().len() + largest - d.elf().len();
         assert!(size <= PACKET_DATA_SIZE, "{size}");
     }
 }

@@ -16,6 +16,7 @@ Doppler is an ultra-optimized oracle program for Solana, achieving unparalleled 
 - **Zero Dependencies**: Pure no_std Rust implementation for minimal overhead
 - **Direct Memory Operations**: Optimized assembly-level exits for maximum efficiency
 - **No Toolchain**: `doppler::generate` emits your program as a 328-byte sBPF v3 ELF, with your admin key in the bytecode
+- **No Keypairs**: a feed is its admin and a seed; the program and the feed account derive from them, and `deploy` is one transaction signed by the admin alone
 
 ## Installation
 
@@ -43,8 +44,8 @@ that the publisher, every SDK and every consumer share:
 
 ```json
 {
-  "program": "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
   "admin": "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
+  "seed": "SOL/USD",
   "fields": [
     { "name": "price", "type": "i64" },
     { "name": "conf", "type": "u64" },
@@ -53,7 +54,9 @@ that the publisher, every SDK and every consumer share:
 }
 ```
 
-The feed account is derived from the admin and the program, so there is nothing else to look up.
+A feed is its admin and its seed. The program is `create_with_seed(admin, seed, loader)` and the
+feed account `create_with_seed(admin, "feed", program)`, so there is no program keypair to make or
+keep, nothing else to look up, and one admin runs as many feeds as it has seeds.
 
 ## Architecture
 
@@ -94,11 +97,11 @@ can follow the fee market.
 ### 2. Deploy
 
 ```rust
-doppler.deploy().send(&[&admin, &program_keypair])?;
+doppler.deploy().send(&[&admin])?;
 ```
 
-One transaction writes the program, makes it immutable, and creates the feed account. The program
-keypair is needed only here; the admin pays.
+One transaction writes the program, makes it immutable, and creates the feed account. The admin is
+the only signer and pays; `doppler.program()` is the address.
 
 ### 3. Update
 
