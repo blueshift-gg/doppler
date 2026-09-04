@@ -3,14 +3,13 @@
 use std::{
     fmt,
     marker::PhantomData,
-    path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 pub use doppler;
 use doppler::{
-    feed_address, generate, layout, program_address, read, update_cu, update_data, Manifest, Pod,
-    FEED_SEED, HEADER, PROGRAMDATA_HEADER,
+    feed_address, generate, payload_size, program_address, read, update_cu, update_data, Manifest,
+    Pod, FEED_SEED, HEADER, PROGRAMDATA_HEADER,
 };
 use solana_client::{client_error::ClientError, rpc_client::RpcClient};
 use solana_compute_budget_interface::ComputeBudgetInstruction;
@@ -46,8 +45,6 @@ const LAMPORTS_PER_SIGNATURE: u64 = 5_000;
 
 #[derive(Debug)]
 pub enum Error {
-    Io(std::io::Error),
-    Manifest(serde_json::Error),
     Doppler(doppler::Error),
     Rpc(ClientError),
     Payload { manifest: usize, value: usize },
@@ -58,8 +55,6 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Error::Io(e) => write!(f, "manifest: {e}"),
-            Error::Manifest(e) => write!(f, "manifest: {e}"),
             Error::Doppler(e) => e.fmt(f),
             Error::Rpc(e) => e.fmt(f),
             Error::Payload { manifest, value } => {
@@ -75,18 +70,6 @@ impl fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
-
-impl From<std::io::Error> for Error {
-    fn from(e: std::io::Error) -> Self {
-        Error::Io(e)
-    }
-}
-
-impl From<serde_json::Error> for Error {
-    fn from(e: serde_json::Error) -> Self {
-        Error::Manifest(e)
-    }
-}
 
 impl From<doppler::Error> for Error {
     fn from(e: doppler::Error) -> Self {
@@ -128,14 +111,6 @@ fn sign<S: Signers + ?Sized>(tx: &mut Transaction, signers: &S) -> Result<(), Er
     {
         Some(missing) => Err(Error::Missing(tx.message.account_keys[missing])),
         None => Ok(()),
-    }
-}
-
-fn expect<S: Signers + ?Sized>(signers: &S, key: Pubkey) -> Result<(), Error> {
-    if signers.pubkeys().contains(&key) {
-        Ok(())
-    } else {
-        Err(Error::Missing(key))
     }
 }
 
@@ -194,12 +169,9 @@ pub struct DopplerClient<'a, T> {
 }
 
 impl<'a, T: Pod> DopplerClient<'a, T> {
-    pub fn load(manifest: impl AsRef<Path>, options: SendOptions<'a>) -> Result<Self, Error> {
-        Self::from_manifest(std::fs::read_to_string(manifest)?.parse()?, options)
-    }
-
-    pub fn from_manifest(manifest: Manifest, options: SendOptions<'a>) -> Result<Self, Error> {
-        let size = layout(&manifest.fields)?.size;
+    /// Checks `T` against the manifest's fields and derives the program and the feed account.
+    pub fn load(manifest: Manifest, options: SendOptions<'a>) -> Result<Self, Error> {
+        let size = payload_size(&manifest.fields)?;
         if size != size_of::<T>() {
             return Err(Error::Payload {
                 manifest: size,
@@ -329,7 +301,6 @@ impl<T: Pod> Update<'_, T> {
     /// Exact budget, signed by the admin, who pays, confirmed.
     pub fn send<S: Signers + ?Sized>(&self, signers: &S) -> Result<Signature, Error> {
         let d = self.doppler;
-        expect(signers, d.admin)?;
         let UpdateInstruction {
             instruction,
             budget,
@@ -412,7 +383,6 @@ impl<T: Pod> Deploy<'_, T> {
     /// feed account. The admin signs and pays.
     pub fn send<S: Signers + ?Sized>(&self, signers: &S) -> Result<Signature, Error> {
         let d = self.doppler;
-        expect(signers, d.admin)?;
         let DeployInstructions {
             instructions,
             budget,
@@ -489,19 +459,19 @@ mod tests {
     fn load_checks_the_payload_type_against_the_schema() {
         let rpc = rpc();
         assert!(matches!(
-            DopplerClient::<u32>::from_manifest(manifest(u64_fields()), options(&rpc)),
+            DopplerClient::<u32>::load(manifest(u64_fields()), options(&rpc)),
             Err(Error::Payload {
                 manifest: 8,
                 value: 4
             })
         ));
-        assert!(DopplerClient::<u64>::from_manifest(manifest(u64_fields()), options(&rpc)).is_ok());
+        assert!(DopplerClient::<u64>::load(manifest(u64_fields()), options(&rpc)).is_ok());
     }
 
     #[test]
     fn address_is_create_with_seed() {
         let rpc = rpc();
-        let d = DopplerClient::<u64>::from_manifest(manifest(u64_fields()), options(&rpc)).unwrap();
+        let d = DopplerClient::<u64>::load(manifest(u64_fields()), options(&rpc)).unwrap();
         assert_eq!(
             d.program(),
             Pubkey::create_with_seed(&d.admin, "SOL/USD", &bpf_loader_upgradeable::id()).unwrap()
@@ -515,7 +485,7 @@ mod tests {
     #[test]
     fn one_update_is_21_cu_of_471_and_617_bytes_of_767() {
         let rpc = rpc();
-        let d = DopplerClient::<u64>::from_manifest(manifest(u64_fields()), options(&rpc)).unwrap();
+        let d = DopplerClient::<u64>::load(manifest(u64_fields()), options(&rpc)).unwrap();
         assert_eq!(d.elf().len(), 328);
         let UpdateInstruction {
             instruction,
@@ -539,8 +509,7 @@ mod tests {
     #[test]
     fn update_round_trips_packed_through_the_wire_format() {
         let rpc = rpc();
-        let d =
-            DopplerClient::<Price>::from_manifest(manifest(price_fields()), options(&rpc)).unwrap();
+        let d = DopplerClient::<Price>::load(manifest(price_fields()), options(&rpc)).unwrap();
         let price = Price {
             price: 17_234_000_000,
             conf: 5_000_000,
@@ -561,7 +530,7 @@ mod tests {
     fn sign_places_each_signature_where_the_message_wants_it() {
         let rpc = rpc();
         let (admin, stranger) = (Keypair::new(), Keypair::new());
-        let d = DopplerClient::<Price>::from_manifest(
+        let d = DopplerClient::<Price>::load(
             Manifest {
                 admin: admin.pubkey().to_bytes(),
                 seed: "SOL/USD".into(),
@@ -604,8 +573,7 @@ mod tests {
     #[test]
     fn deploy_fits_one_transaction_for_every_payload_size_and_ends_immutable_with_the_feed() {
         let rpc = rpc();
-        let d =
-            DopplerClient::<Price>::from_manifest(manifest(price_fields()), options(&rpc)).unwrap();
+        let d = DopplerClient::<Price>::load(manifest(price_fields()), options(&rpc)).unwrap();
         let DeployInstructions {
             instructions,
             budget,

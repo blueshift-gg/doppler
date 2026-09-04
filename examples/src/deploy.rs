@@ -17,7 +17,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         env!("CARGO_MANIFEST_DIR"),
         "/keys/admin-keypair.json"
     ))?;
-    let doppler = DopplerClient::<Price>::from_manifest(
+    let doppler = DopplerClient::<Price>::load(
         Manifest {
             admin: admin.pubkey().to_bytes(),
             seed: "SOL/USD".into(),

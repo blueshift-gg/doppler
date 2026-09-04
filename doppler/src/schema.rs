@@ -47,17 +47,11 @@ fn is_one(len: &u16) -> bool {
     *len == 1
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Layout {
-    pub offsets: Vec<usize>,
-    pub size: usize,
-}
-
-pub fn layout(fields: &[Field]) -> Result<Layout, Error> {
+/// Validates the fields and gives the packed payload size.
+pub fn payload_size(fields: &[Field]) -> Result<usize, Error> {
     if fields.is_empty() {
         return Err(Error::Schema("a payload needs at least one field"));
     }
-    let mut offsets = Vec::with_capacity(fields.len());
     let mut size = 0;
     for field in fields {
         let mut chars = field.name.chars();
@@ -71,10 +65,9 @@ pub fn layout(fields: &[Field]) -> Result<Layout, Error> {
         if field.len == 0 {
             return Err(Error::Schema("a field length must be at least 1"));
         }
-        offsets.push(size);
         size += field.ty.size() * field.len as usize;
     }
-    Ok(Layout { offsets, size })
+    Ok(size)
 }
 
 /// `doppler.json`: a feed is its admin and its seed. The program is
@@ -157,7 +150,6 @@ pub fn update_data(sequence: u64, payload: &[u8]) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::vec;
 
     fn field(name: &str, ty: Ty, len: u16) -> Field {
         Field {
@@ -168,35 +160,29 @@ mod tests {
     }
 
     #[test]
-    fn layout_is_packed() {
+    fn payload_size_is_packed() {
         let fields = [
             field("price", Ty::U64, 1),
             field("conf", Ty::U32, 1),
             field("slot", Ty::U64, 1),
         ];
-        assert_eq!(
-            layout(&fields).unwrap(),
-            Layout {
-                offsets: vec![0, 8, 12],
-                size: 20
-            }
-        );
-        assert_eq!(layout(&[field("id", Ty::U8, 32)]).unwrap().size, 32);
+        assert_eq!(payload_size(&fields).unwrap(), 20);
+        assert_eq!(payload_size(&[field("id", Ty::U8, 32)]).unwrap(), 32);
     }
 
     #[test]
-    fn layout_rejects_bad_schemas() {
-        assert!(matches!(layout(&[]), Err(Error::Schema(_))));
+    fn payload_size_rejects_bad_schemas() {
+        assert!(matches!(payload_size(&[]), Err(Error::Schema(_))));
         assert!(matches!(
-            layout(&[field("bad-name", Ty::U8, 1)]),
+            payload_size(&[field("bad-name", Ty::U8, 1)]),
             Err(Error::Schema(_))
         ));
         assert!(matches!(
-            layout(&[field("1st", Ty::U8, 1)]),
+            payload_size(&[field("1st", Ty::U8, 1)]),
             Err(Error::Schema(_))
         ));
         assert!(matches!(
-            layout(&[field("x", Ty::U8, 0)]),
+            payload_size(&[field("x", Ty::U8, 0)]),
             Err(Error::Schema(_))
         ));
     }

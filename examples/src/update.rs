@@ -14,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "/keys/admin-keypair.json"
     ))?;
     let doppler = DopplerClient::<Price>::load(
-        "target/doppler.json",
+        std::fs::read_to_string("target/doppler.json")?.parse()?,
         SendOptions {
             rpc: &rpc,
             unit_price: 1_000,

@@ -87,7 +87,8 @@ use doppler_sdk::{doppler::Price, now_ms, DopplerClient, Reading, SendOptions};
 use solana_client::rpc_client::RpcClient;
 
 let rpc = RpcClient::new("https://api.mainnet-beta.solana.com");
-let doppler = DopplerClient::<Price>::load("doppler.json", SendOptions { rpc: &rpc, unit_price: 1_000 })?;
+let manifest = std::fs::read_to_string("doppler.json")?.parse()?;
+let doppler = DopplerClient::<Price>::load(manifest, SendOptions { rpc: &rpc, unit_price: 1_000 })?;
 ```
 
 `load` checks that `Price` is the size the manifest's fields describe, so a mismatched payload

@@ -1470,7 +1470,6 @@ name = "doppler-sdk"
 version = "0.1.0"
 dependencies = [
  "doppler",
- "serde_json",
  "solana-client",
  "solana-compute-budget-interface",
  "solana-instruction",
