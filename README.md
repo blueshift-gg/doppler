@@ -15,7 +15,7 @@ Doppler is an ultra-optimized oracle program for Solana, achieving unparalleled 
 - **Sequenced Updates**: a strictly increasing sequence gives replay protection and ordering; the SDK uses unix milliseconds
 - **Zero Dependencies**: Pure no_std Rust implementation for minimal overhead
 - **Direct Memory Operations**: Optimized assembly-level exits for maximum efficiency
-- **No Toolchain**: `doppler::generate` emits your program as a 328-byte sBPF v3 ELF, with your admin key in the bytecode
+- **No Toolchain**: `doppler::generate` emits your program as an sBPF v3 ELF, 328 bytes for a `u64` feed and at most 392, with your admin key in the bytecode
 - **No Keypairs**: a feed is its admin and a seed; the program and the feed account derive from them, and `deploy` is one transaction signed by the admin alone
 
 ## Installation
@@ -75,14 +75,15 @@ Doppler uses a simple yet powerful architecture:
 
 An update instruction carries the same bytes. The program checks that the admin signed and that
 the sequence grew, then copies them in. Nothing else happens on-chain, which is where the 21
-compute units come from.
+compute units of a `u64` feed come from; `doppler::update_cu` gives the number for any payload,
+25 for `Price`.
 
 ## Usage Guide
 
 ### 1. Load the Manifest
 
 ```rust
-use doppler_sdk::{doppler::Price, now_ms, DopplerClient, SendOptions};
+use doppler_sdk::{doppler::Price, now_ms, DopplerClient, Reading, SendOptions};
 use solana_client::rpc_client::RpcClient;
 
 let rpc = RpcClient::new("https://api.mainnet-beta.solana.com");
@@ -117,8 +118,8 @@ transaction, signs with the admin, sends, and returns once confirmed. Signers ar
 ### 4. Read
 
 ```rust
-let reading = doppler.read()?;                      // Reading<Price>
-println!("{} at {} ms", reading.value.price, reading.sequence);
+let Reading { sequence, value: Price { price, .. } } = doppler.read()?;   // fields copied out: Price is packed
+println!("{price} at {sequence} ms");
 ```
 
 On-chain, from any framework:
@@ -274,7 +275,7 @@ cargo build-sbf --manifest-path program/Cargo.toml
 or generate it, which is what `deploy` does:
 
 ```rust
-let elf = doppler::generate(&admin, doppler::Price::SIZE);
+let elf = doppler::generate(admin.pubkey().as_array(), doppler::Price::SIZE);
 ```
 
 ## Security Considerations
@@ -362,7 +363,7 @@ pub struct MarketData {
 ## FAQ
 
 **Q: Why only 21 CUs?**
-A: Doppler uses direct memory operations, inline assembly optimizations, and zero-overhead abstractions to achieve minimal compute usage.
+A: Doppler uses direct memory operations, inline assembly optimizations, and zero-overhead abstractions to achieve minimal compute usage. 21 is a `u64` feed; every 8 bytes of payload adds 2, so `Price` is 25, and from six chunks the copy is one `sol_memcpy_` at 31. `doppler::update_cu` gives the number for any size.
 
 **Q: Can I use custom payload types?**
 A: Yes! Doppler is generic over any packed `Pod` type. Define your structure, list its fields in the manifest, and use it with the SDK.
@@ -371,7 +372,7 @@ A: Yes! Doppler is generic over any packed `Pod` type. Define your structure, li
 A: `deploy` creates it in the same transaction as the program, with `create_account_with_seed` and the admin as the base key, which is the cheapest way.
 
 **Q: What's the maximum update frequency?**
-A: Limited only by Solana's throughput. With 21 CUs, you can update as fast as you land. The sequence is any strictly increasing u64; the SDK uses unix milliseconds, so many updates per second stay ordered, and a publisher that needs more picks microseconds or a counter.
+A: Limited only by Solana's throughput. With 21 CUs, you can update as fast as you land. The sequence is any strictly increasing u64; the examples pass unix milliseconds, so many updates per second stay ordered, and a publisher that needs more picks microseconds or a counter.
 
 **Q: Which Solana version do I need?**
 A: The program is sBPF v3. Mainnet, devnet and testnet run it; locally you need Agave 4.0 or newer, which is surfpool 1.5.0 or newer.
