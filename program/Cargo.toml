@@ -19,6 +19,7 @@ doppler-sdk = { workspace = true }
 mollusk-svm = { workspace = true }
 mollusk-svm-bencher = { workspace = true }
 solana-account = { workspace = true }
+solana-client = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-rent = { workspace = true }
 solana-sdk-ids = { workspace = true }

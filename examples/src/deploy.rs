@@ -3,7 +3,7 @@
 
 use doppler_sdk::{
     doppler::{Field, Manifest, Price, Ty},
-    Doppler, SendOptions,
+    DopplerClient, SendOptions,
 };
 use solana_client::rpc_client::RpcClient;
 use solana_keypair::Keypair;
@@ -18,35 +18,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "/keys/admin-keypair.json"
     ))?;
     let program = Keypair::new();
-    let doppler = Doppler::<Price>::from_manifest(Manifest {
-        program: program.pubkey().to_bytes(),
-        admin: admin.pubkey().to_bytes(),
-        fields: vec![
-            Field {
-                name: "price".into(),
-                ty: Ty::I64,
-                len: 1,
-            },
-            Field {
-                name: "conf".into(),
-                ty: Ty::U64,
-                len: 1,
-            },
-            Field {
-                name: "expo".into(),
-                ty: Ty::I32,
-                len: 1,
-            },
-        ],
-    })?;
-
-    let signature = doppler.deploy().send(
-        &[&admin, &program],
+    let doppler = DopplerClient::<Price>::from_manifest(
+        Manifest {
+            program: program.pubkey().to_bytes(),
+            admin: admin.pubkey().to_bytes(),
+            fields: vec![
+                Field {
+                    name: "price".into(),
+                    ty: Ty::I64,
+                    len: 1,
+                },
+                Field {
+                    name: "conf".into(),
+                    ty: Ty::U64,
+                    len: 1,
+                },
+                Field {
+                    name: "expo".into(),
+                    ty: Ty::I32,
+                    len: 1,
+                },
+            ],
+        },
         SendOptions {
             rpc: &rpc,
             unit_price: 1_000,
         },
     )?;
+
+    let signature = doppler.deploy().send(&[&admin, &program])?;
     std::fs::write("target/doppler.json", doppler.manifest.to_string())?;
     println!(
         "program {} feed {} in {signature}",

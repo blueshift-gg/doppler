@@ -1458,6 +1458,7 @@ dependencies = [
  "mollusk-svm",
  "mollusk-svm-bencher",
  "solana-account 4.3.2",
+ "solana-client",
  "solana-pubkey 4.2.1",
  "solana-rent",
  "solana-sdk-ids",

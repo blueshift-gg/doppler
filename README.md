@@ -79,18 +79,22 @@ compute units come from.
 ### 1. Load the Manifest
 
 ```rust
-use doppler_sdk::{doppler::Price, now_ms, Doppler, SendOptions};
+use doppler_sdk::{doppler::Price, now_ms, DopplerClient, SendOptions};
+use solana_client::rpc_client::RpcClient;
 
-let doppler = Doppler::<Price>::load("doppler.json")?;
+let rpc = RpcClient::new("https://api.mainnet-beta.solana.com");
+let doppler = DopplerClient::<Price>::load("doppler.json", SendOptions { rpc: &rpc, unit_price: 1_000 })?;
 ```
 
 `load` checks that `Price` is the size the manifest's fields describe, so a mismatched payload
-type is an error here and not a corrupted account later.
+type is an error here and not a corrupted account later. `unit_price` is the priority fee in
+micro-lamports per compute unit, used by every `send`; `doppler.options` is public, so a publisher
+can follow the fee market.
 
 ### 2. Deploy
 
 ```rust
-doppler.deploy().send(&[&admin, &program_keypair], SendOptions { rpc: &rpc, unit_price: 1_000 })?;
+doppler.deploy().send(&[&admin, &program_keypair])?;
 ```
 
 One transaction writes the program, makes it immutable, and creates the feed account. The program
@@ -100,17 +104,17 @@ keypair is needed only here; the admin pays.
 
 ```rust
 doppler.update(now_ms(), &Price { price: 17_234_000_000, conf: 5_000_000, expo: -8 })
-    .send(&[&admin], SendOptions { rpc: &rpc, unit_price: 1_000 })?;   // micro-lamports per CU
+    .send(&[&admin])?;
 ```
 
-`update` takes the sequence, unix milliseconds by convention, sets the exact compute budget for the transaction, signs with
-the admin, sends, and returns once confirmed. Signers are passed the way
+`update` takes the sequence, unix milliseconds by convention, sets the exact compute budget for the
+transaction, signs with the admin, sends, and returns once confirmed. Signers are passed the way
 `Transaction::new_signed_with_payer` takes them, so a wallet or HSM works as well as a keypair.
 
 ### 4. Read
 
 ```rust
-let reading = doppler.read(&rpc)?;                  // Reading<Price>
+let reading = doppler.read()?;                      // Reading<Price>
 println!("{} at {} ms", reading.value.price, reading.sequence);
 ```
 
@@ -127,14 +131,20 @@ own time in the payload, or offers no freshness.
 
 ### 5. Your Own Transaction
 
-For a custom sender, `.instructions(unit_price)` is the compute budget plus the update, ready
-for a transaction that holds only this update. For batching or versioned transactions, take the
-raw instruction and set the budget yourself:
+`.instruction()` is the raw instruction with everything a transaction builder needs:
 
 ```rust
-let ixs = doppler.update(now_ms(), &price).instructions(1_000);          // [price, loaded size, limit, update]
-let ix = doppler.update(now_ms(), &price).instruction();                // just the update
-let cu = doppler::update_cu(doppler::Price::SIZE);              // 25 for Price
+let update = doppler.update(now_ms(), &price).instruction();
+update.instruction;                 // the admin signs
+update.compute_units;               // 25 for Price: what the program consumes
+update.loaded_bytes;                // 661: its program, programdata and feed, per SIMD-0186
+update.requested_compute_units;     // 475: what `send` sets, with the three compute-budget builtins
+update.requested_loaded_bytes;      // 811: with the payer and the compute-budget program
+update.lamports;                    // that transaction's fee at `unit_price`
+
+let deploy = doppler.deploy().instruction();
+deploy.write;                       // create and fill the buffer; `deploy.buffer` signs
+deploy.deploy;                      // create the program, deploy it immutable, create the feed; the program keypair signs
 ```
 
 ## Performance Optimization Tips
@@ -142,23 +152,24 @@ let cu = doppler::update_cu(doppler::Price::SIZE);              // 25 for Price
 ### 1. Compute Budget Configuration
 
 - **Exact CU Request**: `update(..).send(..)` requests exactly what the transaction consumes
-- **Priority Fees**: the `unit_price` you pass to `send` is the one knob; pick it from network congestion
+- **Priority Fees**: `doppler.options.unit_price` is the one knob; pick it from network congestion
 - **Account Data Size**: the loaded-accounts-data-size limit is computed from the program and the feed, per SIMD-0186
 
 ### 2. Batching Updates
 
 Each program is one feed. To update several feeds in one transaction, collect their
-`.instruction()`s and set one budget for the transaction: `doppler::update_cu` per update, and
-per SIMD-0186 every unique account costs 64 bytes plus its data.
+`.instruction()`s and set one budget: the sum of their `compute_units` plus 150 per compute-budget
+instruction, and the sum of their `loaded_bytes` plus 64 for the payer and 86 for the
+compute-budget program.
 
 ### 3. Network Optimization
 
 ```rust
 // Use getRecentPrioritizationFees to determine your fee
-let recent_fees = client.get_recent_prioritization_fees(&[doppler.address()])?;
-let unit_price = choose_fee(recent_fees);
+let recent_fees = rpc.get_recent_prioritization_fees(&[doppler.address()])?;
+doppler.options.unit_price = choose_fee(recent_fees);
 
-doppler.update(now_ms(), &price).send(&[&admin], SendOptions { rpc: &rpc, unit_price })?;
+doppler.update(now_ms(), &price).send(&[&admin])?;
 ```
 
 ## Testing
