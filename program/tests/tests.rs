@@ -43,7 +43,7 @@ fn create_then_update() {
     );
 
     let result = mollusk.process_instruction_chain(
-        &[create, d.update(&1_100_000u64).instruction()],
+        &[create, d.update(1, &1_100_000u64).instruction()],
         &[
             (
                 admin,

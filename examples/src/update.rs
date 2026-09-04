@@ -1,6 +1,6 @@
 //! Write SOL/USD to the feed from `target/doppler.json` and read it back.
 
-use doppler_sdk::{doppler::Price, Doppler, Reading, SendOptions};
+use doppler_sdk::{doppler::Price, now_ms, Doppler, Reading, SendOptions};
 use solana_client::rpc_client::RpcClient;
 use solana_keypair::Keypair;
 use solana_signer::EncodableKey as _;
@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         conf: 5_000_000,
         expo: -8,
     };
-    let signature = doppler.update(&price).send(
+    let signature = doppler.update(now_ms(), &price).send(
         &[&admin],
         SendOptions {
             rpc: &rpc,

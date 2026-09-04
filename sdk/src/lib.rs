@@ -188,10 +188,11 @@ impl<T: Pod> Doppler<T> {
         Deploy { doppler: self }
     }
 
-    pub fn update(&self, value: &T) -> Update<'_, T> {
+    /// `sequence` is any strictly increasing u64; unix milliseconds, `now_ms()`, is the convention.
+    pub fn update(&self, sequence: u64, value: &T) -> Update<'_, T> {
         Update {
             doppler: self,
-            sequence: now_ms(),
+            sequence,
             value: *value,
         }
     }
@@ -230,8 +231,7 @@ impl<T: Pod> Doppler<T> {
 
 pub struct Update<'a, T> {
     doppler: &'a Doppler<T>,
-    /// Unix milliseconds by default; any strictly increasing u64 works.
-    pub sequence: u64,
+    sequence: u64,
     value: T,
 }
 
@@ -434,7 +434,7 @@ mod tests {
         let d = Doppler::<u64>::from_manifest(manifest(u64_fields())).unwrap();
         assert_eq!(d.elf().len(), 328);
         assert_eq!(d.budget(), (471, 5 * 64 + 22 + 36 + (45 + 328) + 16));
-        assert_eq!(d.update(&1u64).instructions(1_000).len(), 4);
+        assert_eq!(d.update(1, &1u64).instructions(1_000).len(), 4);
     }
 
     #[test]
@@ -445,7 +445,7 @@ mod tests {
             conf: 5_000_000,
             expo: -8,
         };
-        let ix = d.update(&price).instruction();
+        let ix = d.update(5, &price).instruction();
         assert_eq!(ix.accounts[1].pubkey, d.address());
         assert_eq!(ix.data.len(), HEADER + 20);
         let feed = read(&ix.data, d.program.as_array(), d.program.as_array(), 20).unwrap();
@@ -489,11 +489,14 @@ mod tests {
             matches!(sign(&mut lacking, &[&admin], Some(&buffer)), Err(Error::Missing(k)) if k == program.pubkey())
         );
         let mut update = unsigned(&[d
-            .update(&Price {
-                price: 1,
-                conf: 1,
-                expo: 0,
-            })
+            .update(
+                1,
+                &Price {
+                    price: 1,
+                    conf: 1,
+                    expo: 0,
+                },
+            )
             .instruction()]);
         assert!(
             matches!(sign(&mut update, &[&stranger], None), Err(Error::Missing(k)) if k == admin.pubkey())

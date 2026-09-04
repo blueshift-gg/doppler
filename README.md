@@ -79,7 +79,7 @@ compute units come from.
 ### 1. Load the Manifest
 
 ```rust
-use doppler_sdk::{doppler::Price, Doppler, SendOptions};
+use doppler_sdk::{doppler::Price, now_ms, Doppler, SendOptions};
 
 let doppler = Doppler::<Price>::load("doppler.json")?;
 ```
@@ -99,11 +99,11 @@ keypair is needed only here; the admin pays.
 ### 3. Update
 
 ```rust
-doppler.update(&Price { price: 17_234_000_000, conf: 5_000_000, expo: -8 })
+doppler.update(now_ms(), &Price { price: 17_234_000_000, conf: 5_000_000, expo: -8 })
     .send(&[&admin], SendOptions { rpc: &rpc, unit_price: 1_000 })?;   // micro-lamports per CU
 ```
 
-`update` stamps the current time, sets the exact compute budget for the transaction, signs with
+`update` takes the sequence, unix milliseconds by convention, sets the exact compute budget for the transaction, signs with
 the admin, sends, and returns once confirmed. Signers are passed the way
 `Transaction::new_signed_with_payer` takes them, so a wallet or HSM works as well as a keypair.
 
@@ -132,8 +132,8 @@ for a transaction that holds only this update. For batching or versioned transac
 raw instruction and set the budget yourself:
 
 ```rust
-let ixs = doppler.update(&price).instructions(1_000);          // [price, loaded size, limit, update]
-let ix = doppler.update(&price).instruction();                  // just the update
+let ixs = doppler.update(now_ms(), &price).instructions(1_000);          // [price, loaded size, limit, update]
+let ix = doppler.update(now_ms(), &price).instruction();                // just the update
 let cu = doppler::update_cu(doppler::Price::SIZE);              // 25 for Price
 ```
 
@@ -158,7 +158,7 @@ per SIMD-0186 every unique account costs 64 bytes plus its data.
 let recent_fees = client.get_recent_prioritization_fees(&[doppler.address()])?;
 let unit_price = choose_fee(recent_fees);
 
-doppler.update(&price).send(&[&admin], SendOptions { rpc: &rpc, unit_price })?;
+doppler.update(now_ms(), &price).send(&[&admin], SendOptions { rpc: &rpc, unit_price })?;
 ```
 
 ## Testing
