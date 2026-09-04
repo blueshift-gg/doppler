@@ -128,9 +128,9 @@ pub fn feed_address(admin: &[u8; 32], program: &[u8; 32]) -> [u8; 32] {
         .into()
 }
 
-pub fn update_data(last_updated_ms: u64, payload: &[u8]) -> Vec<u8> {
+pub fn update_data(sequence: u64, payload: &[u8]) -> Vec<u8> {
     let mut data = Vec::with_capacity(HEADER + payload.len());
-    data.extend_from_slice(&last_updated_ms.to_le_bytes());
+    data.extend_from_slice(&sequence.to_le_bytes());
     data.extend_from_slice(payload);
     data
 }

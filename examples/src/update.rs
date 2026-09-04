@@ -30,9 +30,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("sent {signature}");
 
     let Reading {
-        last_updated_ms,
+        sequence,
         value: Price { price, conf, expo },
     } = doppler.read(&rpc)?;
-    println!("SOL/USD = {price}e{expo} ± {conf}e{expo} at {last_updated_ms} ms");
+    println!("SOL/USD = {price}e{expo} ± {conf}e{expo} at {sequence} ms");
     Ok(())
 }

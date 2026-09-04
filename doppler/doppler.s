@@ -1,6 +1,6 @@
 ; Doppler, as `doppler::generate` emits it for a one-u64 payload. sBPF v3.
 ; r1 = serialized input (account 0: admin, account 1: feed), r2 = instruction data.
-; Instruction data and feed data share one layout: last_updated_ms (u64 LE), then the payload.
+; Instruction data and feed data share one layout: sequence (u64 LE, strictly increasing), then the payload.
 ; Assumed, not checked: account 0 carries no data (so account 1's data sits at 0x28c0), the feed
 ; account is 8 + payload bytes, the instruction data is 8 + payload bytes. Only the admin's own
 ; signed transaction reaches the write path, and `deploy` sizes the feed account.
@@ -19,13 +19,13 @@
   ldxdw  r3, [r1+0x28]
   lddw   r4, ADMIN[24..32]
   jne    r3, r4, fail
-  ldxdw  r3, [r1+0x28c0]      ; stored last_updated_ms
-  ldxdw  r4, [r2+0x00]        ; new last_updated_ms
+  ldxdw  r3, [r1+0x28c0]      ; stored sequence
+  ldxdw  r4, [r2+0x00]        ; new sequence
   jlt    r3, r4, ok           ; must strictly increase
 fail:
   mov64  r0, 1                ; falls through; a non-zero exit discards the writes below
 ok:
-  stxdw  [r1+0x28c0], r4      ; write the timestamp
+  stxdw  [r1+0x28c0], r4      ; write the sequence
   ldxdw  r4, [r2+0x08]        ; copy the payload: one load/store pair per 8, 4, 2 or 1 bytes
   stxdw  [r1+0x28c8], r4
   exit                        ; 22 instructions, 21 executed, 21 compute units
@@ -38,5 +38,5 @@ ok:
 ; ok:
 ;   mov64  r3, 8 + payload_size
 ;   add64  r1, 0x28c0
-;   call   sol_memcpy_         ; (dst = r1, src = r2, n = r3): timestamp and payload at once
+;   call   sol_memcpy_         ; (dst = r1, src = r2, n = r3): sequence and payload at once
 ;   exit

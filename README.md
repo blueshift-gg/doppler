@@ -12,7 +12,7 @@ Doppler is an ultra-optimized oracle program for Solana, achieving unparalleled 
 
 - **21 CU Oracle Updates**: The most efficient oracle implementation on Solana
 - **Generic Payload Support**: Flexible data structure supporting any fixed-size payload type
-- **Timestamp-Based Updates**: Built-in replay protection and ordering guarantees
+- **Sequenced Updates**: a strictly increasing sequence gives replay protection and ordering; the SDK uses unix milliseconds
 - **Zero Dependencies**: Pure no_std Rust implementation for minimal overhead
 - **Direct Memory Operations**: Optimized assembly-level exits for maximum efficiency
 - **No Toolchain**: `doppler::generate` emits your program as a 328-byte sBPF v3 ELF, with your admin key in the bytecode
@@ -60,18 +60,18 @@ The feed account is derived from the admin and the program, so there is nothing 
 Doppler uses a simple yet powerful architecture:
 
 1. **Admin Account**: Controls oracle updates (hardcoded in the bytecode for security)
-2. **Feed Account**: Stores the last-updated timestamp and payload data
-3. **Timestamp Validation**: Ensures updates are monotonically increasing
+2. **Feed Account**: Stores the sequence and payload data
+3. **Sequence Validation**: Ensures updates are monotonically increasing
 
 ### Data Structure
 
-| bytes    | field             |                                             |
-| -------- | ----------------- | ------------------------------------------- |
-| `0..8`   | `last_updated_ms` | `u64`, little-endian, must grow every write |
-| `8..8+N` | payload           | your schema, packed, no padding             |
+| bytes    | field      |                                             |
+| -------- | ---------- | ------------------------------------------- |
+| `0..8`   | `sequence` | `u64`, little-endian, must grow every write |
+| `8..8+N` | payload    | your schema, packed, no padding             |
 
 An update instruction carries the same bytes. The program checks that the admin signed and that
-the timestamp grew, then copies them in. Nothing else happens on-chain, which is where the 21
+the sequence grew, then copies them in. Nothing else happens on-chain, which is where the 21
 compute units come from.
 
 ## Usage Guide
@@ -111,7 +111,7 @@ the admin, sends, and returns once confirmed. Signers are passed the way
 
 ```rust
 let reading = doppler.read(&rpc)?;                  // Reading<Price>
-println!("{} at {} ms", reading.value.price, reading.last_updated_ms);
+println!("{} at {} ms", reading.value.price, reading.sequence);
 ```
 
 On-chain, from any framework:
@@ -120,6 +120,10 @@ On-chain, from any framework:
 let feed = doppler::read(account.data(), account.owner(), &FEED_PROGRAM, doppler::Price::SIZE)?;
 let price = doppler::price_no_older_than(&feed, clock.unix_timestamp as u64 * 1000, 5_000)?;
 ```
+
+The sequence is any strictly increasing `u64` the publisher chooses. The SDK writes unix
+milliseconds, which is what `price_no_older_than` assumes; a feed that counts instead carries its
+own time in the payload, or offers no freshness.
 
 ### 5. Your Own Transaction
 
@@ -265,7 +269,7 @@ let elf = doppler::generate(&admin, doppler::Price::SIZE);
 5. **Immutable Programs**: `deploy` removes the upgrade authority; a new admin or payload is a new program
 
 Doppler is a signed on-chain cache, not a decentralized oracle. One hot admin key writes every
-update, there is no quorum, and the timestamp is set by the publisher. Consumers must check
+update, there is no quorum, and the sequence is set by the publisher. Consumers must check
 freshness, which `price_no_older_than` does.
 
 ## Benchmarks
@@ -350,7 +354,7 @@ A: Yes! Doppler is generic over any packed `Pod` type. Define your structure, li
 A: `deploy` creates it in the same transaction as the program, with `create_account_with_seed` and the admin as the base key, which is the cheapest way.
 
 **Q: What's the maximum update frequency?**
-A: Limited only by Solana's throughput. With 21 CUs, you can update as fast as you land. Timestamps are in milliseconds, so many updates per second stay ordered.
+A: Limited only by Solana's throughput. With 21 CUs, you can update as fast as you land. The sequence is any strictly increasing u64; the SDK uses unix milliseconds, so many updates per second stay ordered, and a publisher that needs more picks microseconds or a counter.
 
 **Q: Which Solana version do I need?**
 A: The program is sBPF v3. Mainnet, devnet and testnet run it; locally you need Agave 4.0 or newer, which is surfpool 1.5.0 or newer.

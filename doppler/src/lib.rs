@@ -1,4 +1,4 @@
-//! Doppler feeds: `HEADER` bytes of `last_updated_ms` (little-endian u64), then a packed payload.
+//! Doppler feeds: `HEADER` bytes of `sequence` (little-endian u64, strictly increasing), then a packed payload.
 
 #![no_std]
 
@@ -62,7 +62,8 @@ impl std::error::Error for Error {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Feed<'a> {
-    pub last_updated_ms: u64,
+    /// Any strictly increasing u64 the publisher chooses; the SDK writes unix milliseconds.
+    pub sequence: u64,
     pub payload: &'a [u8],
 }
 
@@ -72,8 +73,9 @@ impl Feed<'_> {
         bytemuck::pod_read_unaligned(self.payload)
     }
 
+    /// For feeds whose sequence is unix milliseconds.
     pub const fn age_ms(&self, now_ms: u64) -> u64 {
-        now_ms.saturating_sub(self.last_updated_ms)
+        now_ms.saturating_sub(self.sequence)
     }
 }
 
@@ -88,7 +90,7 @@ pub fn read<'a>(
     }
     match data.split_first_chunk::<HEADER>() {
         Some((ts, payload)) if payload.len() == payload_size => Ok(Feed {
-            last_updated_ms: u64::from_le_bytes(*ts),
+            sequence: u64::from_le_bytes(*ts),
             payload,
         }),
         _ => Err(Error::WrongSize),
@@ -108,6 +110,7 @@ impl Price {
     pub const SIZE: usize = core::mem::size_of::<Self>();
 }
 
+/// For feeds whose sequence is unix milliseconds, as the SDK writes them.
 pub fn price_no_older_than(feed: &Feed, now_ms: u64, max_age_ms: u64) -> Result<Price, Error> {
     if feed.payload.len() != Price::SIZE {
         return Err(Error::WrongSize);

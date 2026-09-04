@@ -61,6 +61,6 @@ fn create_then_update() {
 
     let account = result.get_account(&feed).unwrap();
     let feed = read(&account.data, account.owner.as_array(), &ID, 8).unwrap();
-    assert!(feed.last_updated_ms > 0);
+    assert!(feed.sequence > 0);
     assert_eq!(feed.value::<u64>(), 1_100_000);
 }

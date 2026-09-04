@@ -146,7 +146,7 @@ pub struct SendOptions<'a> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Reading<T> {
-    pub last_updated_ms: u64,
+    pub sequence: u64,
     pub value: T,
 }
 
@@ -191,7 +191,7 @@ impl<T: Pod> Doppler<T> {
     pub fn update(&self, value: &T) -> Update<'_, T> {
         Update {
             doppler: self,
-            last_updated_ms: now_ms(),
+            sequence: now_ms(),
             value: *value,
         }
     }
@@ -205,7 +205,7 @@ impl<T: Pod> Doppler<T> {
             size_of::<T>(),
         )?;
         Ok(Reading {
-            last_updated_ms: feed.last_updated_ms,
+            sequence: feed.sequence,
             value: feed.value(),
         })
     }
@@ -230,7 +230,8 @@ impl<T: Pod> Doppler<T> {
 
 pub struct Update<'a, T> {
     doppler: &'a Doppler<T>,
-    last_updated_ms: u64,
+    /// Unix milliseconds by default; any strictly increasing u64 works.
+    pub sequence: u64,
     value: T,
 }
 
@@ -244,10 +245,7 @@ impl<T: Pod> Update<'_, T> {
                 AccountMeta::new_readonly(d.admin, true),
                 AccountMeta::new(d.address(), false),
             ],
-            data: update_data(
-                self.last_updated_ms,
-                doppler::bytemuck::bytes_of(&self.value),
-            ),
+            data: update_data(self.sequence, doppler::bytemuck::bytes_of(&self.value)),
         }
     }
 
@@ -453,7 +451,7 @@ mod tests {
         let feed = read(&ix.data, d.program.as_array(), d.program.as_array(), 20).unwrap();
         assert_eq!(feed.value::<Price>(), price);
         assert_eq!(
-            price_no_older_than(&feed, feed.last_updated_ms + 100, 100),
+            price_no_older_than(&feed, feed.sequence + 100, 100),
             Ok(price)
         );
     }

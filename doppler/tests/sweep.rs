@@ -104,11 +104,11 @@ fn every_payload_size_from_1_to_64() {
 
         assert!(
             failed(&rig.update(rig.admin, true, 7, &payload, &written)),
-            "size {size}: same timestamp"
+            "size {size}: same sequence"
         );
         assert!(
             failed(&rig.update(rig.admin, true, 6, &payload, &written)),
-            "size {size}: older timestamp"
+            "size {size}: older sequence"
         );
         assert!(
             failed(&rig.update(rig.admin, false, 8, &payload, &written)),
