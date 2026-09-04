@@ -10,16 +10,18 @@ edition = "2021"
 version = "0.1.0"
 
 [workspace.dependencies]
-doppler = { path = "doppler" }
+doppler = { path = "doppler", default-features = false }
 doppler-sdk = { path = "sdk" }
+brine-ed25519 = "0.9.3"
 bs58 = "0.5"
-bytemuck = { version = "1", features = ["derive"] }
+bytemuck = { version = "1", features = ["derive", "min_const_generics"] }
 mollusk-svm = "0.15"
 mollusk-svm-bencher = "0.15"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.11"
 solana-account = "4"
+solana-address = "2.2"
 solana-client = "4"
 solana-compute-budget-interface = "3"
 solana-define-syscall = "5.2"
@@ -28,6 +30,7 @@ solana-instruction = "3"
 solana-keypair = "3"
 solana-loader-v3-interface = { version = "~8.0", features = ["wincode"] }
 solana-message = "4"
+solana-packet = "3"
 solana-pubkey = { version = "4", features = ["curve25519", "sha2"] }
 solana-rent = "4"
 solana-sdk-ids = "3"

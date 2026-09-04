@@ -21,3 +21,7 @@ path = "src/deploy.rs"
 [[bin]]
 name = "update"
 path = "src/update.rs"
+
+[[bin]]
+name = "pull"
+path = "src/pull.rs"

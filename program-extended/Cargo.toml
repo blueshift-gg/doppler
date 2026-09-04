@@ -1,6 +1,6 @@
 [package]
 name = "doppler-extended-program"
-description = "The Doppler program with signer and signed-payload updates."
+description = "The Doppler program with a pull path: the admin's detached signature, verified on chain."
 repository = { workspace = true }
 readme = { workspace = true }
 license-file = { workspace = true }
@@ -11,18 +11,14 @@ publish = false
 [lib]
 crate-type = ["lib", "cdylib"]
 
+[features]
+memcpy = []
+
 [target.'cfg(target_os = "solana")'.dependencies]
+brine-ed25519 = { workspace = true }
+doppler = { workspace = true, default-features = false }
+solana-address = { workspace = true }
 solana-define-syscall = { workspace = true }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
-
-[dev-dependencies]
-curve25519-dalek = { version = "4", default-features = false }
-doppler = { workspace = true }
-mollusk-svm = { workspace = true }
-solana-account = { workspace = true }
-solana-instruction = { workspace = true }
-solana-keypair = { workspace = true }
-solana-pubkey = { workspace = true }
-solana-signer = { workspace = true }

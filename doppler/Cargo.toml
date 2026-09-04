@@ -24,5 +24,7 @@ solana-rent = { workspace = true }
 mollusk-svm = { workspace = true }
 solana-account = { workspace = true }
 solana-instruction = { workspace = true }
+solana-keypair = { workspace = true }
 solana-pubkey = { workspace = true }
 solana-sdk-ids = { workspace = true }
+solana-signer = { workspace = true }

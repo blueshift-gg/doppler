@@ -77,6 +77,9 @@ pub struct Manifest {
     #[serde(with = "base58")]
     pub admin: [u8; 32],
     pub seed: String,
+    /// The program also takes the admin's detached signature over an update, from anyone.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub pull: bool,
     pub fields: Vec<Field>,
 }
 
