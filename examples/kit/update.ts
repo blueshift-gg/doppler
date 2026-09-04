@@ -10,7 +10,7 @@ const admin = await createKeyPairSignerFromBytes(Uint8Array.from(JSON.parse(read
 const doppler = await Doppler.load(JSON.parse(readFileSync('target/doppler.json', 'utf8')) as Manifest);
 
 const price = { price: 17_234_000_000n, conf: 5_000_000n, expo: -8 };
-const signature = await doppler.update(price).send([admin], { rpc, unitPrice: 1_000 });
+const signature = await doppler.update(Date.now(), price).send([admin], { rpc, unitPrice: 1_000 });
 console.log(`sent ${signature}`);
 
 const { sequence, value } = await doppler.read(rpc);

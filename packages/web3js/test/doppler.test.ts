@@ -15,7 +15,7 @@ const noRpc = {} as never;
 test('the address and the update instruction match the vectors', async () => {
   const d = await Doppler.load({ program: vectors.program, admin: vectors.admin, fields });
   expect(d.address.toString()).toBe(vectors.feed);
-  const ix = d.update(value).instruction();
+  const ix = d.update(5, value).instruction();
   expect(ix.programId.toString()).toBe(vectors.program);
   expect(ix.keys.map((k) => [k.pubkey.toString(), k.isSigner, k.isWritable])).toEqual([
     [vectors.admin, true, false],
@@ -26,7 +26,7 @@ test('the address and the update instruction match the vectors', async () => {
 
 test('instructions carry the exact budget', async () => {
   const d = await Doppler.load({ program: vectors.program, admin: vectors.admin, fields });
-  const [price, loaded, limit, update] = d.update(value).instructions({ unitPrice: 1000 });
+  const [price, loaded, limit, update] = d.update(5, value).instructions({ unitPrice: 1000 });
   const view = (ix: { data: Uint8Array }) => new DataView(ix.data.buffer, ix.data.byteOffset, ix.data.byteLength);
   expect([price!.data[0], view(price!).getBigUint64(1, true)]).toEqual([3, 1000n]);
   expect([loaded!.data[0], view(loaded!).getUint32(1, true)]).toEqual([4, vectors.price.loadedBytes]);
@@ -50,7 +50,7 @@ test('deploy fits one transaction and ends immutable with the feed', async () =>
   expect(message.header.numRequiredSignatures).toBe(3);
   expect(1 + 64 * 3 + message.serialize().length).toBeLessThanOrEqual(PACKET_DATA_SIZE);
   await expect(d.deploy().send([admin], { rpc: noRpc, unitPrice: 1 })).rejects.toThrow(`${program.publicKey} must sign`);
-  await expect(d.update(value).send([program], { rpc: noRpc, unitPrice: 1 })).rejects.toThrow(`${admin.publicKey} must sign`);
+  await expect(d.update(1, value).send([program], { rpc: noRpc, unitPrice: 1 })).rejects.toThrow(`${admin.publicKey} must sign`);
 });
 
 const url = process.env.DOPPLER_RPC;
@@ -69,7 +69,7 @@ test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live clust
   const readings = d.subscribe(rpc, { signal: controller.signal });
   const first = readings.next();
   await new Promise((r) => setTimeout(r, 500));
-  const signature = await d.update(value).send([admin], { rpc, unitPrice: 1 });
+  const signature = await d.update(Date.now(), value).send([admin], { rpc, unitPrice: 1 });
   const reading = await d.read(rpc);
   expect(reading.value).toEqual(value);
   expect(reading.sequence).toBeGreaterThan(1_700_000_000_000);

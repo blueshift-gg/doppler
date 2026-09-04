@@ -43,7 +43,7 @@ const feed = address(vectors.feed);
 test('the address and the update instruction match the vectors', async () => {
   const d = await Doppler.load({ program: vectors.program, admin: vectors.admin, fields });
   expect(d.address).toBe(feed);
-  const ix = d.update(value).instruction();
+  const ix = d.update(5, value).instruction();
   expect(ix.programAddress).toBe(program);
   expect(ix.accounts).toEqual([
     { address: admin, role: AccountRole.READONLY_SIGNER },
@@ -54,7 +54,7 @@ test('the address and the update instruction match the vectors', async () => {
 
 test('instructions carry the exact budget', async () => {
   const d = await Doppler.load({ program: vectors.program, admin: vectors.admin, fields });
-  const [price, loaded, limit, update] = d.update(value).instructions({ unitPrice: 1000 });
+  const [price, loaded, limit, update] = d.update(5, value).instructions({ unitPrice: 1000 });
   expect(getSetComputeUnitPriceInstructionDataDecoder().decode(price!.data!).microLamports).toBe(1000n);
   expect(getSetLoadedAccountsDataSizeLimitInstructionDataDecoder().decode(loaded!.data!).accountDataSizeLimit).toBe(vectors.price.loadedBytes);
   expect(getSetComputeUnitLimitInstructionDataDecoder().decode(limit!.data!).units).toBe(vectors.price.computeUnits);
@@ -76,7 +76,7 @@ test('deploy fits one transaction and ends immutable with the feed', async () =>
   );
   expect(isTransactionWithinSizeLimit(compileTransaction(message))).toBe(true);
   await expect(d.deploy().send([admin], { rpc: noRpc, unitPrice: 1 })).rejects.toThrow(`${program.address} must sign`);
-  await expect(d.update(value).send([program], { rpc: noRpc, unitPrice: 1 })).rejects.toThrow(`${admin.address} must sign`);
+  await expect(d.update(1, value).send([program], { rpc: noRpc, unitPrice: 1 })).rejects.toThrow(`${admin.address} must sign`);
 });
 
 const url = process.env.DOPPLER_RPC;
@@ -100,7 +100,7 @@ test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live clust
   const readings = d.subscribe(rpcSubscriptions, { signal: controller.signal });
   const first = readings.next();
   await new Promise((r) => setTimeout(r, 500));
-  const signature = await d.update(value).send([admin], { rpc, unitPrice: 1 });
+  const signature = await d.update(Date.now(), value).send([admin], { rpc, unitPrice: 1 });
   const reading = await d.read(rpc);
   expect(reading.value).toEqual(value);
   expect(reading.sequence).toBeGreaterThan(1_700_000_000_000);

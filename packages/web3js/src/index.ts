@@ -81,8 +81,8 @@ export class Doppler<F extends readonly FieldLike[] = readonly Field[]> {
     return new Deploy(this);
   }
 
-  /** `sequence` is unix milliseconds by default; any strictly increasing integer works. */
-  update(value: Payload<F>, sequence: number = Date.now()): Update<F> {
+  /** `sequence` is any strictly increasing integer; unix milliseconds, `Date.now()`, is the convention. */
+  update(sequence: number, value: Payload<F>): Update<F> {
     return new Update(this, sequence, value);
   }
 
