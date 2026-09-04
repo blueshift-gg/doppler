@@ -5,6 +5,8 @@ import { HEADER, generate, updateCu } from './program.js';
 export { HEADER, generate, updateCu };
 
 export const FEED_SEED = 'feed';
+/** The buffer lives only inside the deploy transaction, so one seed serves every deploy. */
+export const BUFFER_SEED = 'buf';
 /** Loader-v3 programdata: tag, slot, optional authority. */
 export const PROGRAMDATA_HEADER = 4 + 8 + 1 + 32;
 /** Loader-v3 buffer: tag, optional authority. */
@@ -12,8 +14,19 @@ export const BUFFER_HEADER = 4 + 1 + 32;
 /** Loader-v3 program: tag, programdata address. */
 export const PROGRAM_LEN = 4 + 32;
 
-/** `DEFAULT_COMPUTE_UNITS` of the compute-budget builtin. */
+/** `DEFAULT_COMPUTE_UNITS` of the system and compute-budget builtins. */
 const BUILTIN_IX_CU = 150;
+/**
+ * A deploy's own units: three `create_account`s, the loader's `create_account` CPI, and four loader-v3
+ * instructions at 2_370 each. Measured at 10_230 with the price instruction on surfpool 1.5.0 for 328,
+ * 336 and 360-byte programs; pinned by the live tests.
+ */
+const DEPLOY_CU = 4 * BUILTIN_IX_CU + 4 * 2_370;
+/**
+ * Builtin and sysvar data a deploy loads: the system program, 21 bytes on mainnet and 14 on devnet,
+ * where a limit only needs to cover the larger; the loader; the rent and clock sysvars.
+ */
+const DEPLOY_LOADED_DATA = 21 + 37 + 17 + 40;
 /** SIMD-0186. */
 const ACCOUNT_OVERHEAD = 64;
 const COMPUTE_BUDGET_PROGRAM_LEN = 'compute_budget_program'.length;
@@ -41,10 +54,13 @@ export type Ty = keyof typeof TYPES;
 export type Field = { readonly name: string; readonly type: Ty; readonly len?: number };
 /** What `DopplerClient.load` accepts before validation: a `doppler.json` import types `type` as `string`. */
 export type FieldLike = { readonly name: string; readonly type: string; readonly len?: number };
-/** `doppler.json`. */
+/**
+ * `doppler.json`: a feed is its admin and its seed. The program is `createWithSeed(admin, seed, loader)`,
+ * the feed account `createWithSeed(admin, 'feed', program)`.
+ */
 export type Manifest<F extends readonly FieldLike[] = readonly Field[]> = {
-  readonly program: string;
   readonly admin: string;
+  readonly seed: string;
   readonly fields: F;
 };
 
@@ -77,6 +93,7 @@ export type Budget = {
 };
 
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const LOADER = 'BPFLoaderUpgradeab1e11111111111111111111111';
 
 function key(text: unknown, what: string): Uint8Array {
   let n = 0n;
@@ -105,6 +122,19 @@ function base58(bytes: Uint8Array): string {
 }
 
 type Slot = { name: string; type: Ty; len: number; offset: number };
+
+/** `unitPrice` is micro-lamports per compute unit; the fee is `5000` per signature plus `ceil(unitPrice * units / 1e6)`. */
+function budget(computeUnits: number, loadedBytes: number, signatures: number, unitPrice: number | bigint): Budget {
+  const requestedComputeUnits = computeUnits + 3 * BUILTIN_IX_CU;
+  const priority = (BigInt(unitPrice) * BigInt(requestedComputeUnits) + 999_999n) / 1_000_000n;
+  return {
+    computeUnits,
+    loadedBytes,
+    requestedComputeUnits,
+    requestedLoadedBytes: loadedBytes + 2 * ACCOUNT_OVERHEAD + COMPUTE_BUDGET_PROGRAM_LEN,
+    lamports: BigInt(signatures) * LAMPORTS_PER_SIGNATURE + priority,
+  };
+}
 
 function layout(fields: unknown): { slots: Slot[]; size: number } {
   if (!Array.isArray(fields) || fields.length === 0) throw new TypeError('a payload needs at least one field');
@@ -159,6 +189,8 @@ function put(view: DataView, at: number, { name, type }: Slot, x: unknown): void
 export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
   private constructor(
     readonly manifest: Manifest<F>,
+    /** `createWithSeed(admin, seed, loader)`. */
+    readonly program: string,
     /** The feed account: `createWithSeed(admin, FEED_SEED, program)`. */
     readonly address: string,
     /** Payload bytes. */
@@ -167,18 +199,17 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
     private readonly adminKey: Uint8Array,
   ) {}
 
-  /** Validates the manifest and derives the feed address. */
+  /** Validates the manifest and derives the program and the feed address. */
   static async load<const F extends readonly FieldLike[]>(manifest: Manifest<F>): Promise<Feed<F>> {
-    const program = key(manifest.program, 'program');
     const admin = key(manifest.admin, 'admin');
+    const seed = new TextEncoder().encode(typeof manifest.seed === 'string' ? manifest.seed : '');
+    if (seed.length < 1 || seed.length > 32) throw new TypeError('seed: a seed is 1 to 32 bytes');
     const { slots, size } = layout(manifest.fields);
-    const seed = new Uint8Array([...admin, ...new TextEncoder().encode(FEED_SEED), ...program]);
-    const address = base58(new Uint8Array(await crypto.subtle.digest('SHA-256', seed)));
-    return new Feed(manifest, address, size, slots, admin);
-  }
-
-  get program(): string {
-    return this.manifest.program;
+    const withSeed = async (base: Uint8Array, seed: Uint8Array, owner: Uint8Array) =>
+      new Uint8Array(await crypto.subtle.digest('SHA-256', new Uint8Array([...base, ...seed, ...owner])));
+    const program = await withSeed(admin, seed, key(LOADER, 'loader'));
+    const address = await withSeed(admin, new TextEncoder().encode(FEED_SEED), program);
+    return new Feed(manifest, base58(program), base58(address), size, slots, admin);
   }
 
   get admin(): string {
@@ -189,15 +220,15 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
     return generate(this.adminKey, this.size);
   }
 
-  /** `unitPrice` is micro-lamports per compute unit; the fee is `5000` per signature plus `ceil(unitPrice * units / 1e6)`. */
-  budget(unitPrice: number | bigint): Budget {
+  /** One update: the program, its programdata and the feed; the admin signs. */
+  updateBudget(unitPrice: number | bigint): Budget {
     const programdata = PROGRAMDATA_HEADER + this.elf().length;
-    const computeUnits = updateCu(this.size);
-    const loadedBytes = 3 * ACCOUNT_OVERHEAD + PROGRAM_LEN + programdata + HEADER + this.size;
-    const requestedComputeUnits = computeUnits + 3 * BUILTIN_IX_CU;
-    const requestedLoadedBytes = loadedBytes + 2 * ACCOUNT_OVERHEAD + COMPUTE_BUDGET_PROGRAM_LEN;
-    const priority = (BigInt(unitPrice) * BigInt(requestedComputeUnits) + 999_999n) / 1_000_000n;
-    return { computeUnits, loadedBytes, requestedComputeUnits, requestedLoadedBytes, lamports: LAMPORTS_PER_SIGNATURE + priority };
+    return budget(updateCu(this.size), 3 * ACCOUNT_OVERHEAD + PROGRAM_LEN + programdata + HEADER + this.size, 1, unitPrice);
+  }
+
+  /** One deploy: buffer, program, programdata, feed, the system and loader programs, two sysvars; the admin signs. */
+  deployBudget(unitPrice: number | bigint): Budget {
+    return budget(DEPLOY_CU, 8 * ACCOUNT_OVERHEAD + DEPLOY_LOADED_DATA, 1, unitPrice);
   }
 
   /** Update instruction data, which is also the feed account layout. */

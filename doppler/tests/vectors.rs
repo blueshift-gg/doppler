@@ -1,6 +1,9 @@
 //! Bytes the TypeScript packages must reproduce. `UPDATE_VECTORS=1 cargo test -p doppler` rewrites the file.
 
-use doppler::{feed_address, generate, update_cu, update_data, Price, HEADER, PROGRAMDATA_HEADER};
+use doppler::{
+    feed_address, generate, program_address, update_cu, update_data, Price, HEADER,
+    PROGRAMDATA_HEADER,
+};
 use solana_rent::Rent;
 
 /// admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE
@@ -8,11 +11,7 @@ const ADMIN: [u8; 32] = [
     0x08, 0x9d, 0xbe, 0xc9, 0x64, 0x97, 0xab, 0xd0, 0xdb, 0x21, 0x79, 0x52, 0x69, 0xba, 0xb9, 0x4b,
     0xc8, 0xb8, 0x49, 0xcc, 0x05, 0xaa, 0x94, 0x54, 0xd0, 0xa5, 0xdc, 0x76, 0xec, 0xcb, 0x51, 0xd1,
 ];
-/// fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
-const PROGRAM: [u8; 32] = [
-    0x09, 0xe2, 0x60, 0x40, 0xff, 0x10, 0xec, 0xcf, 0xc1, 0x6a, 0xf6, 0x16, 0x9a, 0x68, 0x04, 0x78,
-    0x15, 0x14, 0x33, 0x02, 0xac, 0x6e, 0x98, 0x5f, 0x70, 0x85, 0x53, 0xe1, 0x0a, 0xb6, 0xf9, 0x22,
-];
+const SEED: &str = "SOL/USD";
 
 fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
@@ -25,7 +24,7 @@ fn vectors_json_matches() {
         conf: 5_000_000,
         expo: -8,
     };
-    let programs: Vec<String> = [1usize, 8, 20, 32, 39, 56, 64]
+    let programs: Vec<String> = [1usize, 8, 20, 32, 39, 40, 48, 56, 64]
         .iter()
         .map(|&size| {
             format!(
@@ -36,12 +35,14 @@ fn vectors_json_matches() {
         })
         .collect();
     let elf = generate(&ADMIN, Price::SIZE);
+    let program = program_address(&ADMIN, SEED).unwrap();
     let loaded = 5 * 64 + 22 + 36 + (PROGRAMDATA_HEADER + elf.len()) + (HEADER + Price::SIZE);
     let rent = Rent::default();
     let json = format!(
         r#"{{
   "admin": "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
-  "program": "fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm",
+  "seed": "{SEED}",
+  "program": "{}",
   "feed": "{}",
   "programs": [
 {}
@@ -50,7 +51,8 @@ fn vectors_json_matches() {
   "deploy": {{ "bufferLamports": {}, "programLamports": {}, "feedLamports": {} }}
 }}
 "#,
-        bs58::encode(feed_address(&ADMIN, &PROGRAM)).into_string(),
+        bs58::encode(program).into_string(),
+        bs58::encode(feed_address(&ADMIN, &program)).into_string(),
         programs.join(",\n"),
         hex(&update_data(5, doppler::bytemuck::bytes_of(&price))),
         3 * 150 + update_cu(Price::SIZE),

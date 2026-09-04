@@ -14,4 +14,4 @@ const signature = await doppler.update(Date.now(), price).send([admin]);
 console.log(`sent ${signature}`);
 
 const { sequence, value } = await doppler.read();
-console.log(`SOL/USD = ${value.price}e${value.expo} ± ${value.conf}e${value.expo} at ${sequence} ms`);
+console.log(`${doppler.manifest.seed} = ${value.price}e${value.expo} ± ${value.conf}e${value.expo} at ${sequence} ms`);

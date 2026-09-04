@@ -175,14 +175,14 @@ import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
 const doppler = await DopplerClient.load(
   {
-    program: 'fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm',
     admin: 'admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE',
+    seed: 'SOL/USD',
     fields: [{ name: 'price', type: 'i64' }, { name: 'conf', type: 'u64' }, { name: 'expo', type: 'i32' }],
   },
   { rpc, unitPrice: 1_000 },
 );
 
-await doppler.deploy().send([admin, programKeypair]);       // once
+await doppler.deploy().send([admin]);                          // once
 await doppler.update(Date.now(), { price: 17_234_000_000n, conf: 5_000_000n, expo: -8 }).send([admin]);
 
 const { sequence, value } = await doppler.read();
@@ -190,21 +190,19 @@ for await (const reading of doppler.subscribe(createSolanaRpcSubscriptions('wss:
   console.log(reading.value.price, reading.sequence);
 }
 
-const update = doppler.update(Date.now(), value).instruction();
-// update.instruction, and its budget: computeUnits 25, loadedBytes 661, requestedComputeUnits 475,
-// requestedLoadedBytes 811, lamports: what `send` would pay at unitPrice
-const { write, deploy, buffer } = await doppler.deploy().instruction([admin, programKeypair]);
+const { instruction, budget } = doppler.update(Date.now(), value).instruction();
+const { instructions, budget: deployBudget } = await doppler.deploy().instructions([admin]);
 ```
 
-`load` validates the manifest and derives the feed address. Written inline, the manifest types the
-value: `{ price: bigint; conf: bigint; expo: number }`, arrays for `len > 1`. A `doppler.json` import
-is validated the same way and typed loosely. Signers are `TransactionSigner`s, so a wallet works
-like a keypair; `send` resolves once the transaction is confirmed. `doppler.options` is public, so
-a publisher can follow the fee market.
+`load` validates the manifest and derives `program` and `address`. Written inline, the manifest types
+the value: `{ price: bigint; conf: bigint; expo: number }`, arrays for `len > 1`. A `doppler.json`
+import is validated the same way and typed loosely. Signers are `TransactionSigner`s, so a wallet
+works like a keypair; `send` resolves once the transaction is confirmed. `doppler.options` is
+public, so a publisher can follow the fee market.
 
 `@blueshift-gg/doppler-web3js` is identical over `Connection`, `Keypair` and `PublicKey`:
-`DopplerClient.load(manifest, { rpc: connection, unitPrice })`, and `subscribe({ signal })` uses
-the connection.
+`DopplerClient.load(manifest, { rpc: connection, unitPrice })`, `deploy().instructions()` needs no
+signer, and `subscribe({ signal })` uses the connection.
 
 ## Performance Optimization Tips
 

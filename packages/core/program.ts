@@ -1,7 +1,8 @@
 // The program as an sBPF v3 ELF, byte for byte what doppler/src/elf.rs emits. Listing: doppler/doppler.s.
 
 export const HEADER = 8;
-const MEMCPY_THRESHOLD = 7;
+/** Six inline chunks cost what `sol_memcpy_` costs; the memcpy program is 72 bytes smaller. */
+const MEMCPY_THRESHOLD = 6;
 
 const chunks = (n: number) => (n >> 3) + (n & 1) + ((n >> 1) & 1) + ((n >> 2) & 1);
 

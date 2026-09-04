@@ -1,21 +1,19 @@
 // @solana/kit client for Doppler feeds: `load` a manifest, `deploy` once, then `update`, `read`, `subscribe`.
 
-import { BUFFER_HEADER, FEED_SEED, Feed, HEADER, PROGRAM_LEN, rentExempt } from '../../core/index.js';
+import { BUFFER_HEADER, BUFFER_SEED, FEED_SEED, Feed, HEADER, PROGRAM_LEN, rentExempt } from '../../core/index.js';
 import type { Budget, Field, FieldLike, Manifest, Payload, Reading } from '../../core/index.js';
 import {
   AccountRole,
   address,
   appendTransactionMessageInstructions,
-  compileTransaction,
+  createAddressWithSeed,
   createTransactionMessage,
   fetchEncodedAccount,
-  generateKeyPairSigner,
   getAddressEncoder,
   getBase64EncodedWireTransaction,
   getBase64Encoder,
   getProgramDerivedAddress,
   getSignatureFromTransaction,
-  isTransactionWithinSizeLimit,
   pipe,
   setTransactionMessageFeePayerSigner,
   setTransactionMessageLifetimeUsingBlockhash,
@@ -30,7 +28,6 @@ import type {
   GetLatestBlockhashApi,
   GetSignatureStatusesApi,
   Instruction,
-  KeyPairSigner,
   Rpc,
   RpcSubscriptions,
   SendTransactionApi,
@@ -49,7 +46,7 @@ import {
   getSetAuthorityInstruction,
   getWriteInstruction,
 } from '@solana-program/loader-v3';
-import { getCreateAccountInstruction, getCreateAccountWithSeedInstruction } from '@solana-program/system';
+import { getCreateAccountWithSeedInstruction } from '@solana-program/system';
 
 export type { Budget, Feed, Field, FieldLike, Manifest, Payload, Reading, Ty } from '../../core/index.js';
 
@@ -58,14 +55,13 @@ export type DopplerRpc = Rpc<
 >;
 /** `unitPrice` is the priority fee in micro-lamports per compute unit. */
 export type SendOptions = { rpc: DopplerRpc; unitPrice: number | bigint };
-/** The raw instruction and its budget. */
-export type UpdateInstruction = Budget & { instruction: Instruction };
+/** The raw update instruction, which the admin signs, and its budget. */
+export type UpdateInstruction = { instruction: Instruction; budget: Budget };
 /**
- * `write` creates and fills the buffer, `deploy` creates the program, deploys it immutable and creates the feed;
- * one transaction holds both when it fits. The admin pays and signs both, `buffer` signs `write`, the program
- * keypair signs `deploy`.
+ * The raw deploy instructions and their budget: create and fill the buffer, create the program, deploy it
+ * immutable, create the feed. The admin pays and is the only signer.
  */
-export type DeployInstruction = { write: Instruction[]; deploy: Instruction[]; buffer: KeyPairSigner };
+export type DeployInstructions = { instructions: Instruction[]; budget: Budget };
 
 type Lifetime = { blockhash: Blockhash; lastValidBlockHeight: bigint };
 
@@ -80,16 +76,24 @@ function immutable<T extends Instruction>(setAuthority: T): T {
   return { ...setAuthority, accounts: setAuthority.accounts?.slice(0, 2) };
 }
 
-function message(payer: TransactionSigner, lifetime: Lifetime, instructions: readonly Instruction[]) {
-  return pipe(
-    createTransactionMessage({ version: 'legacy' }),
-    (m) => setTransactionMessageFeePayerSigner(payer, m),
-    (m) => setTransactionMessageLifetimeUsingBlockhash(lifetime, m),
-    (m) => appendTransactionMessageInstructions(instructions, m),
-  );
+/** The compute budget `send` sets, then the instructions. */
+function budgeted(unitPrice: number | bigint, budget: Budget, instructions: readonly Instruction[]): Instruction[] {
+  return [
+    getSetComputeUnitPriceInstruction({ microLamports: unitPrice }),
+    getSetLoadedAccountsDataSizeLimitInstruction({ accountDataSizeLimit: budget.requestedLoadedBytes }),
+    getSetComputeUnitLimitInstruction({ units: budget.requestedComputeUnits }),
+    ...instructions,
+  ];
 }
 
-async function send(rpc: DopplerRpc, transactionMessage: ReturnType<typeof message>): Promise<Signature> {
+async function send(rpc: DopplerRpc, payer: TransactionSigner, instructions: readonly Instruction[]): Promise<Signature> {
+  const { value: lifetime } = await rpc.getLatestBlockhash().send();
+  const transactionMessage = pipe(
+    createTransactionMessage({ version: 'legacy' }),
+    (m) => setTransactionMessageFeePayerSigner(payer, m),
+    (m) => setTransactionMessageLifetimeUsingBlockhash(lifetime as Lifetime, m),
+    (m) => appendTransactionMessageInstructions(instructions, m),
+  );
   const transaction = await signTransactionMessageWithSigners(transactionMessage);
   const signature = getSignatureFromTransaction(transaction);
   await rpc.sendTransaction(getBase64EncodedWireTransaction(transaction), { encoding: 'base64' }).send();
@@ -97,15 +101,14 @@ async function send(rpc: DopplerRpc, transactionMessage: ReturnType<typeof messa
     const { value: [status] } = await rpc.getSignatureStatuses([signature]).send();
     if (status?.err) throw new Error(`transaction ${signature} failed: ${JSON.stringify(status.err)}`);
     if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized') return signature;
-    if ((await rpc.getBlockHeight().send()) > transactionMessage.lifetimeConstraint.lastValidBlockHeight) {
-      throw new Error(`transaction ${signature} expired`);
-    }
+    if ((await rpc.getBlockHeight().send()) > lifetime.lastValidBlockHeight) throw new Error(`transaction ${signature} expired`);
     await new Promise((resolve) => setTimeout(resolve, 400));
   }
 }
 
 /** One program, one admin, one payload layout, one feed account, one way to send. */
 export class DopplerClient<F extends readonly FieldLike[] = readonly Field[]> {
+  /** `createWithSeed(admin, seed, loader)`. */
   readonly program: Address;
   readonly admin: Address;
   /** The feed account. */
@@ -169,7 +172,7 @@ export class Update<F extends readonly FieldLike[]> {
     readonly value: Payload<F>,
   ) {}
 
-  /** The raw instruction and its budget, for your own transaction. The admin signs. */
+  /** The raw instruction and its budget, for your own transaction. */
   instruction(): UpdateInstruction {
     const d = this.doppler;
     return {
@@ -181,25 +184,16 @@ export class Update<F extends readonly FieldLike[]> {
         ],
         data: d.feed.encode(this.sequence, this.value),
       },
-      ...d.feed.budget(d.options.unitPrice),
+      budget: d.feed.updateBudget(d.options.unitPrice),
     };
   }
 
   /** Exact budget, signed by the admin, who pays, confirmed. */
   async send(signers: readonly TransactionSigner[]): Promise<Signature> {
-    const { rpc, unitPrice } = this.doppler.options;
-    const admin = expect(signers, this.doppler.admin);
-    const { instruction, requestedComputeUnits, requestedLoadedBytes } = this.instruction();
-    const { value: lifetime } = await rpc.getLatestBlockhash().send();
-    return send(
-      rpc,
-      message(admin, lifetime, [
-        getSetComputeUnitPriceInstruction({ microLamports: unitPrice }),
-        getSetLoadedAccountsDataSizeLimitInstruction({ accountDataSizeLimit: requestedLoadedBytes }),
-        getSetComputeUnitLimitInstruction({ units: requestedComputeUnits }),
-        instruction,
-      ]),
-    );
+    const d = this.doppler;
+    const admin = expect(signers, d.admin);
+    const { instruction, budget } = this.instruction();
+    return send(d.options.rpc, admin, budgeted(d.options.unitPrice, budget, [instruction]));
   }
 }
 
@@ -207,73 +201,46 @@ export class Deploy<F extends readonly FieldLike[]> {
   constructor(private readonly doppler: DopplerClient<F>) {}
 
   /**
-   * Writes the program, deploys it immutable, and creates the feed account, in one transaction when it
-   * fits. `signers` are the admin, who pays, and the program keypair, needed only here.
+   * The raw instructions and their budget, for your own transaction. The program and the buffer are seeded
+   * accounts of the admin, so nothing but the admin signs.
    */
-  async send(signers: readonly TransactionSigner[]): Promise<Signature> {
-    const { rpc, unitPrice } = this.doppler.options;
-    const admin = expect(signers, this.doppler.admin);
-    expect(signers, this.doppler.program);
-    const { write, deploy } = await this.instruction(signers);
-    const { value: lifetime } = await rpc.getLatestBlockhash().send();
-    const fee = getSetComputeUnitPriceInstruction({ microLamports: unitPrice });
-    const single = message(admin, lifetime, [fee, ...write, ...deploy]);
-    if (isTransactionWithinSizeLimit(compileTransaction(single))) return send(rpc, single);
-    await send(rpc, message(admin, lifetime, [fee, ...write]));
-    return send(rpc, message(admin, lifetime, [fee, ...deploy]));
-  }
-
-  /** The raw instructions and the buffer signer, for your own transactions. */
-  async instruction(signers: readonly TransactionSigner[]): Promise<DeployInstruction> {
+  async instructions(signers: readonly TransactionSigner[]): Promise<DeployInstructions> {
     const d = this.doppler;
     const admin = expect(signers, d.admin);
-    const program = expect(signers, d.program);
-    const buffer = await generateKeyPairSigner();
     const elf = d.feed.elf();
-    const [programdata] = await getProgramDerivedAddress({
-      programAddress: LOADER_V3_PROGRAM_ADDRESS,
-      seeds: [getAddressEncoder().encode(d.program)],
-    });
+    const loader = LOADER_V3_PROGRAM_ADDRESS;
+    const buffer = await createAddressWithSeed({ baseAddress: admin.address, programAddress: loader, seed: BUFFER_SEED });
+    const [programdata] = await getProgramDerivedAddress({ programAddress: loader, seeds: [getAddressEncoder().encode(d.program)] });
     const bufferLen = BUFFER_HEADER + elf.length;
     const feedLen = HEADER + d.feed.size;
-    const write = [
-        getCreateAccountInstruction({
-          payer: admin,
-          newAccount: buffer,
-          lamports: rentExempt(bufferLen),
-          space: bufferLen,
-          programAddress: LOADER_V3_PROGRAM_ADDRESS,
-        }),
-        getInitializeBufferInstruction({ sourceAccount: buffer.address, bufferAuthority: admin.address }),
-        getWriteInstruction({ bufferAccount: buffer.address, bufferAuthority: admin, offset: 0, bytes: elf }),
-    ];
-    const deploy = [
-        getCreateAccountInstruction({
-          payer: admin,
-          newAccount: program,
-          lamports: rentExempt(PROGRAM_LEN),
-          space: PROGRAM_LEN,
-          programAddress: LOADER_V3_PROGRAM_ADDRESS,
-        }),
+    const create = (newAccount: Address, seed: string, space: number, programAddress: Address) =>
+      getCreateAccountWithSeedInstruction({ payer: admin, newAccount, base: admin.address, seed, amount: rentExempt(space), space, programAddress });
+    return {
+      instructions: [
+        create(buffer, BUFFER_SEED, bufferLen, loader),
+        getInitializeBufferInstruction({ sourceAccount: buffer, bufferAuthority: admin.address }),
+        getWriteInstruction({ bufferAccount: buffer, bufferAuthority: admin, offset: 0, bytes: elf }),
+        create(d.program, d.manifest.seed, PROGRAM_LEN, loader),
         getDeployWithMaxDataLenInstruction({
           payerAccount: admin,
           programDataAccount: programdata,
           programAccount: d.program,
-          bufferAccount: buffer.address,
+          bufferAccount: buffer,
           authority: admin,
           maxDataLen: elf.length,
         }),
         immutable(getSetAuthorityInstruction({ bufferOrProgramDataAccount: programdata, currentAuthority: admin })),
-        getCreateAccountWithSeedInstruction({
-          payer: admin,
-          newAccount: d.address,
-          base: d.admin,
-          seed: FEED_SEED,
-          amount: rentExempt(feedLen),
-          space: feedLen,
-          programAddress: d.program,
-        }),
-    ];
-    return { write, deploy, buffer };
+        create(d.address, FEED_SEED, feedLen, d.program),
+      ],
+      budget: d.feed.deployBudget(d.options.unitPrice),
+    };
+  }
+
+  /** Exact budget, one transaction: writes the program, deploys it immutable, and creates the feed account. The admin signs and pays. */
+  async send(signers: readonly TransactionSigner[]): Promise<Signature> {
+    const d = this.doppler;
+    const admin = expect(signers, d.admin);
+    const { instructions, budget } = await this.instructions(signers);
+    return send(d.options.rpc, admin, budgeted(d.options.unitPrice, budget, instructions));
   }
 }
