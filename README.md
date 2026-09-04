@@ -169,35 +169,42 @@ the payer and the compute-budget program. `lamports` is that transaction's fee a
 The same client, with the same four calls, for `@solana/kit` and for `@solana/web3.js` 3:
 
 ```ts
-import { Doppler } from '@blueshift-gg/doppler-kit';
+import { DopplerClient } from '@blueshift-gg/doppler-kit';
 import { createSolanaRpc, createSolanaRpcSubscriptions } from '@solana/kit';
 
 const rpc = createSolanaRpc('https://api.mainnet-beta.solana.com');
-const doppler = await Doppler.load({
-  program: 'fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm',
-  admin: 'admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE',
-  fields: [{ name: 'price', type: 'i64' }, { name: 'conf', type: 'u64' }, { name: 'expo', type: 'i32' }],
-});
+const doppler = await DopplerClient.load(
+  {
+    program: 'fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm',
+    admin: 'admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE',
+    fields: [{ name: 'price', type: 'i64' }, { name: 'conf', type: 'u64' }, { name: 'expo', type: 'i32' }],
+  },
+  { rpc, unitPrice: 1_000 },
+);
 
-await doppler.deploy().send([admin, programKeypair], { rpc, unitPrice: 1_000 });          // once
-await doppler.update(Date.now(), { price: 17_234_000_000n, conf: 5_000_000n, expo: -8 }).send([admin], { rpc, unitPrice: 1_000 });
+await doppler.deploy().send([admin, programKeypair]);       // once
+await doppler.update(Date.now(), { price: 17_234_000_000n, conf: 5_000_000n, expo: -8 }).send([admin]);
 
-const { sequence, value } = await doppler.read(rpc);
+const { sequence, value } = await doppler.read();
 for await (const reading of doppler.subscribe(createSolanaRpcSubscriptions('wss://...'), { signal })) {
   console.log(reading.value.price, reading.sequence);
 }
 
-const ixs = doppler.update(Date.now(), value).instructions({ unitPrice: 1_000 }); // [price, loaded size, limit, update]
-const ix = doppler.update(Date.now(), value).instruction();                        // just the update
+const update = doppler.update(Date.now(), value).instruction();
+// update.instruction, and its budget: computeUnits 25, loadedBytes 661, requestedComputeUnits 475,
+// requestedLoadedBytes 811, lamports: what `send` would pay at unitPrice
+const { write, deploy, buffer } = await doppler.deploy().instruction([admin, programKeypair]);
 ```
 
 `load` validates the manifest and derives the feed address. Written inline, the manifest types the
 value: `{ price: bigint; conf: bigint; expo: number }`, arrays for `len > 1`. A `doppler.json` import
 is validated the same way and typed loosely. Signers are `TransactionSigner`s, so a wallet works
-like a keypair; `send` resolves once the transaction is confirmed.
+like a keypair; `send` resolves once the transaction is confirmed. `doppler.options` is public, so
+a publisher can follow the fee market.
 
 `@blueshift-gg/doppler-web3js` is identical over `Connection`, `Keypair` and `PublicKey`:
-`send([admin], { rpc: connection, unitPrice })`, `read(connection)`, `subscribe(connection)`.
+`DopplerClient.load(manifest, { rpc: connection, unitPrice })`, and `subscribe({ signal })` uses
+the connection.
 
 ## Performance Optimization Tips
 

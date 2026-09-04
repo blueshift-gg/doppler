@@ -1,7 +1,7 @@
 // @solana/kit client for Doppler feeds: `load` a manifest, `deploy` once, then `update`, `read`, `subscribe`.
 
 import { BUFFER_HEADER, FEED_SEED, Feed, HEADER, PROGRAM_LEN, rentExempt } from '../../core/index.js';
-import type { Field, FieldLike, Manifest, Payload, Reading } from '../../core/index.js';
+import type { Budget, Field, FieldLike, Manifest, Payload, Reading } from '../../core/index.js';
 import {
   AccountRole,
   address,
@@ -30,6 +30,7 @@ import type {
   GetLatestBlockhashApi,
   GetSignatureStatusesApi,
   Instruction,
+  KeyPairSigner,
   Rpc,
   RpcSubscriptions,
   SendTransactionApi,
@@ -50,11 +51,21 @@ import {
 } from '@solana-program/loader-v3';
 import { getCreateAccountInstruction, getCreateAccountWithSeedInstruction } from '@solana-program/system';
 
-export type { Feed, Field, FieldLike, Manifest, Payload, Reading, Ty } from '../../core/index.js';
+export type { Budget, Feed, Field, FieldLike, Manifest, Payload, Reading, Ty } from '../../core/index.js';
 
-export type SendRpc = Rpc<GetLatestBlockhashApi & SendTransactionApi & GetSignatureStatusesApi & GetBlockHeightApi>;
+export type DopplerRpc = Rpc<
+  GetAccountInfoApi & GetLatestBlockhashApi & SendTransactionApi & GetSignatureStatusesApi & GetBlockHeightApi
+>;
 /** `unitPrice` is the priority fee in micro-lamports per compute unit. */
-export type SendOptions = { rpc: SendRpc; unitPrice: number | bigint };
+export type SendOptions = { rpc: DopplerRpc; unitPrice: number | bigint };
+/** The raw instruction and its budget. */
+export type UpdateInstruction = Budget & { instruction: Instruction };
+/**
+ * `write` creates and fills the buffer, `deploy` creates the program, deploys it immutable and creates the feed;
+ * one transaction holds both when it fits. The admin pays and signs both, `buffer` signs `write`, the program
+ * keypair signs `deploy`.
+ */
+export type DeployInstruction = { write: Instruction[]; deploy: Instruction[]; buffer: KeyPairSigner };
 
 type Lifetime = { blockhash: Blockhash; lastValidBlockHeight: bigint };
 
@@ -78,7 +89,7 @@ function message(payer: TransactionSigner, lifetime: Lifetime, instructions: rea
   );
 }
 
-async function send(rpc: SendRpc, transactionMessage: ReturnType<typeof message>): Promise<Signature> {
+async function send(rpc: DopplerRpc, transactionMessage: ReturnType<typeof message>): Promise<Signature> {
   const transaction = await signTransactionMessageWithSigners(transactionMessage);
   const signature = getSignatureFromTransaction(transaction);
   await rpc.sendTransaction(getBase64EncodedWireTransaction(transaction), { encoding: 'base64' }).send();
@@ -93,21 +104,24 @@ async function send(rpc: SendRpc, transactionMessage: ReturnType<typeof message>
   }
 }
 
-/** One program, one admin, one payload layout, one feed account. */
-export class Doppler<F extends readonly FieldLike[] = readonly Field[]> {
+/** One program, one admin, one payload layout, one feed account, one way to send. */
+export class DopplerClient<F extends readonly FieldLike[] = readonly Field[]> {
   readonly program: Address;
   readonly admin: Address;
   /** The feed account. */
   readonly address: Address;
 
-  private constructor(readonly feed: Feed<F>) {
+  private constructor(
+    readonly feed: Feed<F>,
+    public options: SendOptions,
+  ) {
     this.program = address(feed.program);
     this.admin = address(feed.admin);
     this.address = address(feed.address);
   }
 
-  static async load<const F extends readonly FieldLike[]>(manifest: Manifest<F>): Promise<Doppler<F>> {
-    return new Doppler(await Feed.load(manifest));
+  static async load<const F extends readonly FieldLike[]>(manifest: Manifest<F>, options: SendOptions): Promise<DopplerClient<F>> {
+    return new DopplerClient(await Feed.load(manifest), options);
   }
 
   get manifest(): Manifest<F> {
@@ -123,8 +137,8 @@ export class Doppler<F extends readonly FieldLike[] = readonly Field[]> {
     return new Update(this, sequence, value);
   }
 
-  async read(rpc: Rpc<GetAccountInfoApi>): Promise<Reading<Payload<F>>> {
-    const account = await fetchEncodedAccount(rpc, this.address);
+  async read(): Promise<Reading<Payload<F>>> {
+    const account = await fetchEncodedAccount(this.options.rpc, this.address);
     if (!account.exists) throw new Error(`no feed account at ${this.address}`);
     return this.feed.decode(account.data, account.programAddress);
   }
@@ -150,54 +164,57 @@ export class Doppler<F extends readonly FieldLike[] = readonly Field[]> {
 
 export class Update<F extends readonly FieldLike[]> {
   constructor(
-    private readonly doppler: Doppler<F>,
+    private readonly doppler: DopplerClient<F>,
     readonly sequence: number,
     readonly value: Payload<F>,
   ) {}
 
-  /** The raw instruction, for your own transaction and budget. The admin signs. */
-  instruction(): Instruction {
+  /** The raw instruction and its budget, for your own transaction. The admin signs. */
+  instruction(): UpdateInstruction {
     const d = this.doppler;
     return {
-      programAddress: d.program,
-      accounts: [
-        { address: d.admin, role: AccountRole.READONLY_SIGNER },
-        { address: d.address, role: AccountRole.WRITABLE },
-      ],
-      data: d.feed.encode(this.sequence, this.value),
+      instruction: {
+        programAddress: d.program,
+        accounts: [
+          { address: d.admin, role: AccountRole.READONLY_SIGNER },
+          { address: d.address, role: AccountRole.WRITABLE },
+        ],
+        data: d.feed.encode(this.sequence, this.value),
+      },
+      ...d.feed.budget(d.options.unitPrice),
     };
   }
 
-  /** The compute-budget instructions and the update, for a transaction that holds only this update. */
-  instructions({ unitPrice }: { unitPrice: number | bigint }): Instruction[] {
-    const { computeUnits, loadedBytes } = this.doppler.feed.budget();
-    return [
-      getSetComputeUnitPriceInstruction({ microLamports: unitPrice }),
-      getSetLoadedAccountsDataSizeLimitInstruction({ accountDataSizeLimit: loadedBytes }),
-      getSetComputeUnitLimitInstruction({ units: computeUnits }),
-      this.instruction(),
-    ];
-  }
-
   /** Exact budget, signed by the admin, who pays, confirmed. */
-  async send(signers: readonly TransactionSigner[], { rpc, unitPrice }: SendOptions): Promise<Signature> {
+  async send(signers: readonly TransactionSigner[]): Promise<Signature> {
+    const { rpc, unitPrice } = this.doppler.options;
     const admin = expect(signers, this.doppler.admin);
+    const { instruction, requestedComputeUnits, requestedLoadedBytes } = this.instruction();
     const { value: lifetime } = await rpc.getLatestBlockhash().send();
-    return send(rpc, message(admin, lifetime, this.instructions({ unitPrice })));
+    return send(
+      rpc,
+      message(admin, lifetime, [
+        getSetComputeUnitPriceInstruction({ microLamports: unitPrice }),
+        getSetLoadedAccountsDataSizeLimitInstruction({ accountDataSizeLimit: requestedLoadedBytes }),
+        getSetComputeUnitLimitInstruction({ units: requestedComputeUnits }),
+        instruction,
+      ]),
+    );
   }
 }
 
 export class Deploy<F extends readonly FieldLike[]> {
-  constructor(private readonly doppler: Doppler<F>) {}
+  constructor(private readonly doppler: DopplerClient<F>) {}
 
   /**
    * Writes the program, deploys it immutable, and creates the feed account, in one transaction when it
    * fits. `signers` are the admin, who pays, and the program keypair, needed only here.
    */
-  async send(signers: readonly TransactionSigner[], { rpc, unitPrice }: SendOptions): Promise<Signature> {
+  async send(signers: readonly TransactionSigner[]): Promise<Signature> {
+    const { rpc, unitPrice } = this.doppler.options;
     const admin = expect(signers, this.doppler.admin);
     expect(signers, this.doppler.program);
-    const [write, deploy] = await this.instructions(signers, await generateKeyPairSigner());
+    const { write, deploy } = await this.instruction(signers);
     const { value: lifetime } = await rpc.getLatestBlockhash().send();
     const fee = getSetComputeUnitPriceInstruction({ microLamports: unitPrice });
     const single = message(admin, lifetime, [fee, ...write, ...deploy]);
@@ -206,11 +223,12 @@ export class Deploy<F extends readonly FieldLike[]> {
     return send(rpc, message(admin, lifetime, [fee, ...deploy]));
   }
 
-  /** `[buffer create + write, program create + deploy + finalize + feed create]`, for your own transactions. */
-  async instructions(signers: readonly TransactionSigner[], buffer: TransactionSigner): Promise<[Instruction[], Instruction[]]> {
+  /** The raw instructions and the buffer signer, for your own transactions. */
+  async instruction(signers: readonly TransactionSigner[]): Promise<DeployInstruction> {
     const d = this.doppler;
     const admin = expect(signers, d.admin);
     const program = expect(signers, d.program);
+    const buffer = await generateKeyPairSigner();
     const elf = d.feed.elf();
     const [programdata] = await getProgramDerivedAddress({
       programAddress: LOADER_V3_PROGRAM_ADDRESS,
@@ -218,8 +236,7 @@ export class Deploy<F extends readonly FieldLike[]> {
     });
     const bufferLen = BUFFER_HEADER + elf.length;
     const feedLen = HEADER + d.feed.size;
-    return [
-      [
+    const write = [
         getCreateAccountInstruction({
           payer: admin,
           newAccount: buffer,
@@ -229,8 +246,8 @@ export class Deploy<F extends readonly FieldLike[]> {
         }),
         getInitializeBufferInstruction({ sourceAccount: buffer.address, bufferAuthority: admin.address }),
         getWriteInstruction({ bufferAccount: buffer.address, bufferAuthority: admin, offset: 0, bytes: elf }),
-      ],
-      [
+    ];
+    const deploy = [
         getCreateAccountInstruction({
           payer: admin,
           newAccount: program,
@@ -256,7 +273,7 @@ export class Deploy<F extends readonly FieldLike[]> {
           space: feedLen,
           programAddress: d.program,
         }),
-      ],
     ];
+    return { write, deploy, buffer };
   }
 }

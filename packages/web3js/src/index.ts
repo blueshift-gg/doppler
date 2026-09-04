@@ -1,7 +1,7 @@
 // @solana/web3.js 3 client for Doppler feeds: `load` a manifest, `deploy` once, then `update`, `read`, `subscribe`.
 
 import { BUFFER_HEADER, FEED_SEED, Feed, HEADER, PROGRAM_LEN, rentExempt } from '../../core/index.js';
-import type { Field, FieldLike, Manifest, Payload, Reading } from '../../core/index.js';
+import type { Budget, Field, FieldLike, Manifest, Payload, Reading } from '../../core/index.js';
 import {
   ComputeBudgetProgram,
   Connection,
@@ -15,10 +15,18 @@ import {
 } from '@solana/web3.js';
 import type { BlockhashWithExpiryBlockHeight, Signer, TransactionSignature } from '@solana/web3.js';
 
-export type { Feed, Field, FieldLike, Manifest, Payload, Reading, Ty } from '../../core/index.js';
+export type { Budget, Feed, Field, FieldLike, Manifest, Payload, Reading, Ty } from '../../core/index.js';
 
 /** `unitPrice` is the priority fee in micro-lamports per compute unit. */
 export type SendOptions = { rpc: Connection; unitPrice: number | bigint };
+/** The raw instruction and its budget. */
+export type UpdateInstruction = Budget & { instruction: TransactionInstruction };
+/**
+ * `write` creates and fills the buffer, `deploy` creates the program, deploys it immutable and creates the feed;
+ * one transaction holds both when it fits. The admin pays and signs both, `buffer` signs `write`, the program
+ * keypair signs `deploy`.
+ */
+export type DeployInstruction = { write: TransactionInstruction[]; deploy: TransactionInstruction[]; buffer: Keypair };
 
 function expect(signers: readonly Signer[], key: PublicKey): Signer {
   const signer = signers.find((s) => s.address === key.toString());
@@ -56,21 +64,24 @@ async function send(
   return signature;
 }
 
-/** One program, one admin, one payload layout, one feed account. */
-export class Doppler<F extends readonly FieldLike[] = readonly Field[]> {
+/** One program, one admin, one payload layout, one feed account, one way to send. */
+export class DopplerClient<F extends readonly FieldLike[] = readonly Field[]> {
   readonly program: PublicKey;
   readonly admin: PublicKey;
   /** The feed account. */
   readonly address: PublicKey;
 
-  private constructor(readonly feed: Feed<F>) {
+  private constructor(
+    readonly feed: Feed<F>,
+    public options: SendOptions,
+  ) {
     this.program = new PublicKey(feed.program);
     this.admin = new PublicKey(feed.admin);
     this.address = new PublicKey(feed.address);
   }
 
-  static async load<const F extends readonly FieldLike[]>(manifest: Manifest<F>): Promise<Doppler<F>> {
-    return new Doppler(await Feed.load(manifest));
+  static async load<const F extends readonly FieldLike[]>(manifest: Manifest<F>, options: SendOptions): Promise<DopplerClient<F>> {
+    return new DopplerClient(await Feed.load(manifest), options);
   }
 
   get manifest(): Manifest<F> {
@@ -86,14 +97,15 @@ export class Doppler<F extends readonly FieldLike[] = readonly Field[]> {
     return new Update(this, sequence, value);
   }
 
-  async read(rpc: Connection): Promise<Reading<Payload<F>>> {
-    const account = await rpc.getAccountInfo(this.address);
+  async read(): Promise<Reading<Payload<F>>> {
+    const account = await this.options.rpc.getAccountInfo(this.address);
     if (!account) throw new Error(`no feed account at ${this.address}`);
     return this.feed.decode(account.data, account.owner.toString());
   }
 
   /** Every confirmed write to the feed, until `signal` aborts or the loop breaks. */
-  async *subscribe(rpc: Connection, { signal }: { signal?: AbortSignal } = {}): AsyncGenerator<Reading<Payload<F>>> {
+  async *subscribe({ signal }: { signal?: AbortSignal } = {}): AsyncGenerator<Reading<Payload<F>>> {
+    const rpc = this.options.rpc;
     const queue: { data: Uint8Array; owner: string }[] = [];
     let wake = () => {};
     const id = rpc.onAccountChange(this.address, ({ data, owner }) => {
@@ -115,57 +127,57 @@ export class Doppler<F extends readonly FieldLike[] = readonly Field[]> {
 
 export class Update<F extends readonly FieldLike[]> {
   constructor(
-    private readonly doppler: Doppler<F>,
+    private readonly doppler: DopplerClient<F>,
     readonly sequence: number,
     readonly value: Payload<F>,
   ) {}
 
-  /** The raw instruction, for your own transaction and budget. The admin signs. */
-  instruction(): TransactionInstruction {
+  /** The raw instruction and its budget, for your own transaction. The admin signs. */
+  instruction(): UpdateInstruction {
     const d = this.doppler;
-    return new TransactionInstruction({
-      programId: d.program,
-      keys: [
-        { pubkey: d.admin, isSigner: true, isWritable: false },
-        { pubkey: d.address, isSigner: false, isWritable: true },
-      ],
-      data: d.feed.encode(this.sequence, this.value),
-    });
-  }
-
-  /** The compute-budget instructions and the update, for a transaction that holds only this update. */
-  instructions({ unitPrice }: { unitPrice: number | bigint }): TransactionInstruction[] {
-    const { computeUnits, loadedBytes } = this.doppler.feed.budget();
-    return [
-      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: unitPrice }),
-      ComputeBudgetProgram.setLoadedAccountsDataSizeLimit({ accountDataSizeLimit: loadedBytes }),
-      ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnits }),
-      this.instruction(),
-    ];
+    return {
+      instruction: new TransactionInstruction({
+        programId: d.program,
+        keys: [
+          { pubkey: d.admin, isSigner: true, isWritable: false },
+          { pubkey: d.address, isSigner: false, isWritable: true },
+        ],
+        data: d.feed.encode(this.sequence, this.value),
+      }),
+      ...d.feed.budget(d.options.unitPrice),
+    };
   }
 
   /** Exact budget, signed by the admin, who pays, confirmed. */
-  async send(signers: readonly Signer[], { rpc, unitPrice }: SendOptions): Promise<TransactionSignature> {
+  async send(signers: readonly Signer[]): Promise<TransactionSignature> {
     const d = this.doppler;
+    const { rpc, unitPrice } = d.options;
     expect(signers, d.admin);
+    const { instruction, requestedComputeUnits, requestedLoadedBytes } = this.instruction();
     const lifetime = await rpc.getLatestBlockhash();
-    return send(rpc, signers, lifetime, transaction(d.admin, lifetime, this.instructions({ unitPrice })));
+    const tx = transaction(d.admin, lifetime, [
+      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: unitPrice }),
+      ComputeBudgetProgram.setLoadedAccountsDataSizeLimit({ accountDataSizeLimit: requestedLoadedBytes }),
+      ComputeBudgetProgram.setComputeUnitLimit({ units: requestedComputeUnits }),
+      instruction,
+    ]);
+    return send(rpc, signers, lifetime, tx);
   }
 }
 
 export class Deploy<F extends readonly FieldLike[]> {
-  constructor(private readonly doppler: Doppler<F>) {}
+  constructor(private readonly doppler: DopplerClient<F>) {}
 
   /**
    * Writes the program, deploys it immutable, and creates the feed account, in one transaction when it
    * fits. `signers` are the admin, who pays, and the program keypair, needed only here.
    */
-  async send(signers: readonly Signer[], { rpc, unitPrice }: SendOptions): Promise<TransactionSignature> {
+  async send(signers: readonly Signer[]): Promise<TransactionSignature> {
     const d = this.doppler;
+    const { rpc, unitPrice } = d.options;
     expect(signers, d.admin);
     expect(signers, d.program);
-    const buffer = await Keypair.generate();
-    const [write, deploy] = await this.instructions(buffer.publicKey);
+    const { write, deploy, buffer } = await this.instruction();
     const lifetime = await rpc.getLatestBlockhash();
     const fee = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: unitPrice });
     const all = [...signers, buffer];
@@ -175,26 +187,26 @@ export class Deploy<F extends readonly FieldLike[]> {
     return send(rpc, all, lifetime, transaction(d.admin, lifetime, [fee, ...deploy]));
   }
 
-  /** `[buffer create + write, program create + deploy + finalize + feed create]`, for your own transactions. */
-  async instructions(buffer: PublicKey): Promise<[TransactionInstruction[], TransactionInstruction[]]> {
+  /** The raw instructions and the buffer keypair, for your own transactions. */
+  async instruction(): Promise<DeployInstruction> {
     const d = this.doppler;
+    const buffer = await Keypair.generate();
     const elf = d.feed.elf();
     const [programdata] = await PublicKey.findProgramAddress([d.program.toBytes()], LoaderV3Program.programId);
     const bufferLen = BUFFER_HEADER + elf.length;
     const feedLen = HEADER + d.feed.size;
-    return [
-      [
+    const write = [
         SystemProgram.createAccount({
           fromPubkey: d.admin,
-          newAccountPubkey: buffer,
+          newAccountPubkey: buffer.publicKey,
           lamports: rentExempt(bufferLen),
           space: bufferLen,
           programId: LoaderV3Program.programId,
         }),
-        LoaderV3Program.initializeBuffer({ sourceAccount: buffer, bufferAuthority: d.admin }),
-        LoaderV3Program.write({ bufferAccount: buffer, bufferAuthority: d.admin, offset: 0, bytes: elf }),
-      ],
-      [
+        LoaderV3Program.initializeBuffer({ sourceAccount: buffer.publicKey, bufferAuthority: d.admin }),
+        LoaderV3Program.write({ bufferAccount: buffer.publicKey, bufferAuthority: d.admin, offset: 0, bytes: elf }),
+    ];
+    const deploy = [
         SystemProgram.createAccount({
           fromPubkey: d.admin,
           newAccountPubkey: d.program,
@@ -206,7 +218,7 @@ export class Deploy<F extends readonly FieldLike[]> {
           payerAccount: d.admin,
           programDataAccount: programdata,
           programAccount: d.program,
-          bufferAccount: buffer,
+          bufferAccount: buffer.publicKey,
           authority: d.admin,
           maxDataLen: BigInt(elf.length),
         }),
@@ -220,7 +232,7 @@ export class Deploy<F extends readonly FieldLike[]> {
           space: feedLen,
           programId: d.program,
         }),
-      ],
     ];
+    return { write, deploy, buffer };
   }
 }

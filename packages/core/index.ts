@@ -17,6 +17,8 @@ const BUILTIN_IX_CU = 150;
 /** SIMD-0186. */
 const ACCOUNT_OVERHEAD = 64;
 const COMPUTE_BUDGET_PROGRAM_LEN = 'compute_budget_program'.length;
+/** `FeeStructure::default()`. */
+const LAMPORTS_PER_SIGNATURE = 5_000n;
 
 /** `Rent::default().minimum_balance`: `(ACCOUNT_STORAGE_OVERHEAD + bytes) * DEFAULT_LAMPORTS_PER_BYTE` (solana-rent). */
 export function rentExempt(bytes: number): bigint {
@@ -37,7 +39,7 @@ const TYPES = {
 
 export type Ty = keyof typeof TYPES;
 export type Field = { readonly name: string; readonly type: Ty; readonly len?: number };
-/** What `Doppler.load` accepts before validation: a `doppler.json` import types `type` as `string`. */
+/** What `DopplerClient.load` accepts before validation: a `doppler.json` import types `type` as `string`. */
 export type FieldLike = { readonly name: string; readonly type: string; readonly len?: number };
 /** `doppler.json`. */
 export type Manifest<F extends readonly FieldLike[] = readonly Field[]> = {
@@ -59,6 +61,20 @@ export type Payload<F extends readonly FieldLike[]> = { [K in F[number] as K['na
 
 /** `sequence` is whatever the publisher writes; the clients write unix milliseconds. */
 export type Reading<T> = { sequence: number; value: T };
+
+/**
+ * What an update needs. `computeUnits` and `loadedBytes` are the instruction's own: the program's units,
+ * and its program, programdata and feed at SIMD-0186's 64 bytes plus data. The `requested` pair is what
+ * `send` sets for a transaction holding only the update: three compute-budget builtins at 150 units, and
+ * the payer and the compute-budget program. `lamports` is that transaction's fee at the unit price.
+ */
+export type Budget = {
+  computeUnits: number;
+  loadedBytes: number;
+  requestedComputeUnits: number;
+  requestedLoadedBytes: number;
+  lamports: bigint;
+};
 
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
@@ -173,13 +189,15 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
     return generate(this.adminKey, this.size);
   }
 
-  /** Compute units and loaded bytes of one update: the admin, the compute-budget program, the program, its exact-fit programdata, and the feed. */
-  budget(): { computeUnits: number; loadedBytes: number } {
+  /** `unitPrice` is micro-lamports per compute unit; the fee is `5000` per signature plus `ceil(unitPrice * units / 1e6)`. */
+  budget(unitPrice: number | bigint): Budget {
     const programdata = PROGRAMDATA_HEADER + this.elf().length;
-    return {
-      computeUnits: 3 * BUILTIN_IX_CU + updateCu(this.size),
-      loadedBytes: 5 * ACCOUNT_OVERHEAD + COMPUTE_BUDGET_PROGRAM_LEN + PROGRAM_LEN + programdata + HEADER + this.size,
-    };
+    const computeUnits = updateCu(this.size);
+    const loadedBytes = 3 * ACCOUNT_OVERHEAD + PROGRAM_LEN + programdata + HEADER + this.size;
+    const requestedComputeUnits = computeUnits + 3 * BUILTIN_IX_CU;
+    const requestedLoadedBytes = loadedBytes + 2 * ACCOUNT_OVERHEAD + COMPUTE_BUDGET_PROGRAM_LEN;
+    const priority = (BigInt(unitPrice) * BigInt(requestedComputeUnits) + 999_999n) / 1_000_000n;
+    return { computeUnits, loadedBytes, requestedComputeUnits, requestedLoadedBytes, lamports: LAMPORTS_PER_SIGNATURE + priority };
   }
 
   /** Update instruction data, which is also the feed account layout. */

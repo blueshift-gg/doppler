@@ -29,7 +29,15 @@ test('price round trips through the wire format with the exact budget', async ()
   const data = feed.encode(vectors.price.sequence, value);
   expect(hex(data)).toBe(vectors.price.data);
   expect(feed.decode(fromHex(vectors.price.data), program)).toEqual({ sequence: 5, value });
-  expect(feed.budget()).toEqual({ computeUnits: vectors.price.computeUnits, loadedBytes: vectors.price.loadedBytes });
+  expect(feed.budget(1000)).toEqual({
+    computeUnits: 25,
+    loadedBytes: vectors.price.loadedBytes - 2 * 64 - 22,
+    requestedComputeUnits: vectors.price.computeUnits,
+    requestedLoadedBytes: vectors.price.loadedBytes,
+    lamports: 5_001n,
+  });
+  expect(feed.budget(0).lamports).toBe(5_000n);
+  expect(feed.budget(1_000_000).lamports).toBe(5_000n + BigInt(vectors.price.computeUnits));
   expect(rentExempt(BUFFER_HEADER + feed.elf().length)).toBe(BigInt(vectors.deploy.bufferLamports));
   expect(rentExempt(PROGRAM_LEN)).toBe(BigInt(vectors.deploy.programLamports));
   expect(rentExempt(HEADER + feed.size)).toBe(BigInt(vectors.deploy.feedLamports));

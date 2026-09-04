@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { ComputeBudgetProgram, Connection, Keypair, LoaderV3Program, PACKET_DATA_SIZE, PublicKey, Transaction } from '@solana/web3.js';
 import vectors from '../../../doppler/tests/vectors.json' with { type: 'json' };
-import { Doppler, Update } from '../src/index.js';
+import { DopplerClient, Update } from '../src/index.js';
 
 const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 const fields = [
@@ -12,32 +12,30 @@ const fields = [
 const value = { price: 17_234_000_000n, conf: 5_000_000n, expo: -8 };
 const noRpc = {} as never;
 
-test('the address and the update instruction match the vectors', async () => {
-  const d = await Doppler.load({ program: vectors.program, admin: vectors.admin, fields });
+test('the address, the update instruction and its budget match the vectors', async () => {
+  const d = await DopplerClient.load({ program: vectors.program, admin: vectors.admin, fields }, { rpc: noRpc, unitPrice: 1000 });
   expect(d.address.toString()).toBe(vectors.feed);
-  const ix = d.update(5, value).instruction();
+  const { instruction: ix, ...budget } = d.update(5, value).instruction();
   expect(ix.programId.toString()).toBe(vectors.program);
   expect(ix.keys.map((k) => [k.pubkey.toString(), k.isSigner, k.isWritable])).toEqual([
     [vectors.admin, true, false],
     [vectors.feed, false, true],
   ]);
   expect(hex(ix.data.subarray(8))).toBe(vectors.price.data.slice(16));
-});
-
-test('instructions carry the exact budget', async () => {
-  const d = await Doppler.load({ program: vectors.program, admin: vectors.admin, fields });
-  const [price, loaded, limit, update] = d.update(5, value).instructions({ unitPrice: 1000 });
-  const view = (ix: { data: Uint8Array }) => new DataView(ix.data.buffer, ix.data.byteOffset, ix.data.byteLength);
-  expect([price!.data[0], view(price!).getBigUint64(1, true)]).toEqual([3, 1000n]);
-  expect([loaded!.data[0], view(loaded!).getUint32(1, true)]).toEqual([4, vectors.price.loadedBytes]);
-  expect([limit!.data[0], view(limit!).getUint32(1, true)]).toEqual([2, vectors.price.computeUnits]);
-  expect(update!.programId.toString()).toBe(vectors.program);
+  expect(budget).toEqual({
+    computeUnits: 25,
+    loadedBytes: vectors.price.loadedBytes - 2 * 64 - 22,
+    requestedComputeUnits: vectors.price.computeUnits,
+    requestedLoadedBytes: vectors.price.loadedBytes,
+    lamports: 5_001n,
+  });
 });
 
 test('deploy fits one transaction and ends immutable with the feed', async () => {
-  const [admin, program, buffer] = await Promise.all([Keypair.generate(), Keypair.generate(), Keypair.generate()]);
-  const d = await Doppler.load({ program: program.address, admin: admin.address, fields });
-  const [write, deploy] = await d.deploy().instructions(buffer.publicKey);
+  const [admin, program] = await Promise.all([Keypair.generate(), Keypair.generate()]);
+  const d = await DopplerClient.load({ program: program.address, admin: admin.address, fields }, { rpc: noRpc, unitPrice: 1 });
+  const { write, deploy, buffer } = await d.deploy().instruction();
+  expect(write[0]!.keys[1]!.pubkey.equals(buffer.publicKey)).toBe(true);
   expect([write.length, deploy.length]).toEqual([3, 4]);
   expect(deploy[2]!.keys.length).toBe(2);
   expect(deploy[3]!.keys[1]!.pubkey.equals(d.address)).toBe(true);
@@ -49,33 +47,38 @@ test('deploy fits one transaction and ends immutable with the feed', async () =>
   const message = tx.compileMessage();
   expect(message.header.numRequiredSignatures).toBe(3);
   expect(1 + 64 * 3 + message.serialize().length).toBeLessThanOrEqual(PACKET_DATA_SIZE);
-  await expect(d.deploy().send([admin], { rpc: noRpc, unitPrice: 1 })).rejects.toThrow(`${program.publicKey} must sign`);
-  await expect(d.update(1, value).send([program], { rpc: noRpc, unitPrice: 1 })).rejects.toThrow(`${admin.publicKey} must sign`);
+  await expect(d.deploy().send([admin])).rejects.toThrow(`${program.publicKey} must sign`);
+  await expect(d.update(1, value).send([program])).rejects.toThrow(`${admin.publicKey} must sign`);
 });
 
 const url = process.env.DOPPLER_RPC;
 const ws = process.env.DOPPLER_WS;
 
-test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live cluster', async () => {
+test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live cluster at the priced budget', async () => {
   const rpc = new Connection(url!, { wsEndpoint: ws!, commitment: 'confirmed' });
   const [admin, program] = await Promise.all([Keypair.generate(), Keypair.generate()]);
   await rpc.confirmTransaction(await rpc.requestAirdrop(admin.publicKey, 1_000_000_000));
-  const d = await Doppler.load({ program: program.address, admin: admin.address, fields });
-  await d.deploy().send([admin, program], { rpc, unitPrice: 1 });
+  const d = await DopplerClient.load({ program: program.address, admin: admin.address, fields }, { rpc, unitPrice: 1 });
+
+  await d.deploy().send([admin, program]);
+  const deployed = await rpc.getBalance(admin.publicKey);
   const [programdata] = await PublicKey.findProgramAddress([program.publicKey.toBytes()], LoaderV3Program.programId);
-  const deployed = await rpc.getAccountInfo(programdata);
-  expect([deployed?.data.length, deployed?.data[12]]).toEqual([45 + d.feed.elf().length, 0]);
+  const account = await rpc.getAccountInfo(programdata);
+  expect([account?.data.length, account?.data[12]]).toEqual([45 + d.feed.elf().length, 0]);
+
   const controller = new AbortController();
-  const readings = d.subscribe(rpc, { signal: controller.signal });
+  const readings = d.subscribe({ signal: controller.signal });
   const first = readings.next();
   await new Promise((r) => setTimeout(r, 500));
-  const signature = await d.update(Date.now(), value).send([admin], { rpc, unitPrice: 1 });
-  const reading = await d.read(rpc);
+  const update = d.update(Date.now(), value);
+  const signature = await update.send([admin]);
+  expect(deployed - (await rpc.getBalance(admin.publicKey))).toBe(update.instruction().lamports);
+  const reading = await d.read();
   expect(reading.value).toEqual(value);
   expect(reading.sequence).toBeGreaterThan(1_700_000_000_000);
   expect((await first).value).toEqual(reading);
   controller.abort();
   const tx = await rpc.getTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
-  expect(tx?.meta?.computeUnitsConsumed).toBe(BigInt(vectors.price.computeUnits));
-  await expect(new Update(d, reading.sequence, value).send([admin], { rpc, unitPrice: 1 })).rejects.toThrow();
+  expect(tx?.meta?.computeUnitsConsumed).toBe(BigInt(update.instruction().requestedComputeUnits));
+  await expect(new Update(d, reading.sequence, value).send([admin])).rejects.toThrow();
 }, 60_000);
