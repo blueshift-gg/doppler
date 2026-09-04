@@ -81,8 +81,9 @@ export class Doppler<F extends readonly FieldLike[] = readonly Field[]> {
     return new Deploy(this);
   }
 
-  update(value: Payload<F>): Update<F> {
-    return new Update(this, Date.now(), value);
+  /** `sequence` is unix milliseconds by default; any strictly increasing integer works. */
+  update(value: Payload<F>, sequence: number = Date.now()): Update<F> {
+    return new Update(this, sequence, value);
   }
 
   async read(rpc: Connection): Promise<Reading<Payload<F>>> {
@@ -115,7 +116,7 @@ export class Doppler<F extends readonly FieldLike[] = readonly Field[]> {
 export class Update<F extends readonly FieldLike[]> {
   constructor(
     private readonly doppler: Doppler<F>,
-    readonly lastUpdatedMs: number,
+    readonly sequence: number,
     readonly value: Payload<F>,
   ) {}
 
@@ -128,7 +129,7 @@ export class Update<F extends readonly FieldLike[]> {
         { pubkey: d.admin, isSigner: true, isWritable: false },
         { pubkey: d.address, isSigner: false, isWritable: true },
       ],
-      data: d.feed.encode(this.lastUpdatedMs, this.value),
+      data: d.feed.encode(this.sequence, this.value),
     });
   }
 

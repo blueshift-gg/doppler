@@ -72,10 +72,10 @@ test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live clust
   const signature = await d.update(value).send([admin], { rpc, unitPrice: 1 });
   const reading = await d.read(rpc);
   expect(reading.value).toEqual(value);
-  expect(reading.lastUpdatedMs).toBeGreaterThan(1_700_000_000_000);
+  expect(reading.sequence).toBeGreaterThan(1_700_000_000_000);
   expect((await first).value).toEqual(reading);
   controller.abort();
   const tx = await rpc.getTransaction(signature, { commitment: 'confirmed', maxSupportedTransactionVersion: 0 });
   expect(tx?.meta?.computeUnitsConsumed).toBe(BigInt(vectors.price.computeUnits));
-  await expect(new Update(d, reading.lastUpdatedMs, value).send([admin], { rpc, unitPrice: 1 })).rejects.toThrow();
+  await expect(new Update(d, reading.sequence, value).send([admin], { rpc, unitPrice: 1 })).rejects.toThrow();
 }, 60_000);

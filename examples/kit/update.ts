@@ -13,5 +13,5 @@ const price = { price: 17_234_000_000n, conf: 5_000_000n, expo: -8 };
 const signature = await doppler.update(price).send([admin], { rpc, unitPrice: 1_000 });
 console.log(`sent ${signature}`);
 
-const { lastUpdatedMs, value } = await doppler.read(rpc);
-console.log(`SOL/USD = ${value.price}e${value.expo} ± ${value.conf}e${value.expo} at ${lastUpdatedMs} ms`);
+const { sequence, value } = await doppler.read(rpc);
+console.log(`SOL/USD = ${value.price}e${value.expo} ± ${value.conf}e${value.expo} at ${sequence} ms`);

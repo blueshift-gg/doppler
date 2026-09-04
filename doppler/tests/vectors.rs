@@ -46,7 +46,7 @@ fn vectors_json_matches() {
   "programs": [
 {}
   ],
-  "price": {{ "price": "17234000000", "conf": "5000000", "expo": -8, "lastUpdatedMs": 5, "data": "{}", "computeUnits": {}, "loadedBytes": {} }},
+  "price": {{ "price": "17234000000", "conf": "5000000", "expo": -8, "sequence": 5, "data": "{}", "computeUnits": {}, "loadedBytes": {} }},
   "deploy": {{ "bufferLamports": {}, "programLamports": {}, "feedLamports": {} }}
 }}
 "#,

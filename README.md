@@ -182,9 +182,9 @@ const doppler = await Doppler.load({
 await doppler.deploy().send([admin, programKeypair], { rpc, unitPrice: 1_000 });          // once
 await doppler.update({ price: 17_234_000_000n, conf: 5_000_000n, expo: -8 }).send([admin], { rpc, unitPrice: 1_000 });
 
-const { lastUpdatedMs, value } = await doppler.read(rpc);
+const { sequence, value } = await doppler.read(rpc);
 for await (const reading of doppler.subscribe(createSolanaRpcSubscriptions('wss://...'), { signal })) {
-  console.log(reading.value.price, reading.lastUpdatedMs);
+  console.log(reading.value.price, reading.sequence);
 }
 
 const ixs = doppler.update(value).instructions({ unitPrice: 1_000 });   // [price, loaded size, limit, update]

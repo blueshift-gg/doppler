@@ -26,9 +26,9 @@ test('the feed address is create_with_seed(admin, "feed", program)', async () =>
 
 test('price round trips through the wire format with the exact budget', async () => {
   const feed = await Feed.load({ program, admin, fields: price });
-  const data = feed.encode(vectors.price.lastUpdatedMs, value);
+  const data = feed.encode(vectors.price.sequence, value);
   expect(hex(data)).toBe(vectors.price.data);
-  expect(feed.decode(fromHex(vectors.price.data), program)).toEqual({ lastUpdatedMs: 5, value });
+  expect(feed.decode(fromHex(vectors.price.data), program)).toEqual({ sequence: 5, value });
   expect(feed.budget()).toEqual({ computeUnits: vectors.price.computeUnits, loadedBytes: vectors.price.loadedBytes });
   expect(rentExempt(BUFFER_HEADER + feed.elf().length)).toBe(BigInt(vectors.deploy.bufferLamports));
   expect(rentExempt(PROGRAM_LEN)).toBe(BigInt(vectors.deploy.programLamports));
@@ -73,7 +73,7 @@ test('encode and decode reject what does not fit', async () => {
   expect(() => feed.encode(1, { x: [1, 1.5], y: true })).toThrow('x: expected an integer for u8');
   expect(() => feed.encode(1, { x: [1], y: true })).toThrow('x: expected 2 × u8');
   expect(() => feed.encode(1, { x: [1, 2], y: 1 as never })).toThrow('y: expected a boolean');
-  expect(() => feed.encode(-1, { x: [1, 2], y: true })).toThrow('lastUpdatedMs');
+  expect(() => feed.encode(-1, { x: [1, 2], y: true })).toThrow('sequence');
   const data = feed.encode(1, { x: [1, 2], y: false });
   expect(() => feed.decode(data, admin)).toThrow('not owned by the feed program');
   expect(() => feed.decode(data.subarray(1), program)).toThrow('size does not match');

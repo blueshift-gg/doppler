@@ -1,4 +1,4 @@
-// Doppler feeds: `HEADER` bytes of `lastUpdatedMs` (little-endian u64), then a packed payload.
+// Doppler feeds: `HEADER` bytes of `sequence` (little-endian u64, strictly increasing), then a packed payload.
 
 import { HEADER, generate, updateCu } from './program.js';
 
@@ -57,7 +57,8 @@ type Value<K extends FieldLike> = K extends { readonly len: infer L extends numb
 /** The value a manifest describes, one property per field, arrays for `len > 1`, bigints for 64 bits. */
 export type Payload<F extends readonly FieldLike[]> = { [K in F[number] as K['name']]: Value<K> };
 
-export type Reading<T> = { lastUpdatedMs: number; value: T };
+/** `sequence` is whatever the publisher writes; the clients write unix milliseconds. */
+export type Reading<T> = { sequence: number; value: T };
 
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
@@ -182,11 +183,11 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
   }
 
   /** Update instruction data, which is also the feed account layout. */
-  encode(lastUpdatedMs: number, value: Payload<F>): Uint8Array {
-    if (!Number.isInteger(lastUpdatedMs) || lastUpdatedMs < 0) throw new RangeError('lastUpdatedMs: expected a non-negative integer');
+  encode(sequence: number, value: Payload<F>): Uint8Array {
+    if (!Number.isInteger(sequence) || sequence < 0) throw new RangeError('sequence: expected a non-negative integer');
     const data = new Uint8Array(HEADER + this.size);
     const view = new DataView(data.buffer);
-    view.setBigUint64(0, BigInt(lastUpdatedMs), true);
+    view.setBigUint64(0, BigInt(sequence), true);
     const fields = value as Record<string, unknown>;
     for (const slot of this.slots) {
       const x = fields[slot.name];
@@ -211,6 +212,6 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
       const at = HEADER + offset;
       value[name] = len === 1 ? get(view, at, type) : Array.from({ length: len }, (_, i) => get(view, at + i * TYPES[type].size, type));
     }
-    return { lastUpdatedMs: Number(view.getBigUint64(0, true)), value: value as Payload<F> };
+    return { sequence: Number(view.getBigUint64(0, true)), value: value as Payload<F> };
   }
 }

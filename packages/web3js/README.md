@@ -9,7 +9,7 @@ import { Doppler } from '@blueshift-gg/doppler-web3js';
 const doppler = await Doppler.load(manifest);
 await doppler.deploy().send([admin, programKeypair], { rpc: connection, unitPrice: 1_000 });
 await doppler.update({ price: 17_234_000_000n, conf: 5_000_000n, expo: -8 }).send([admin], { rpc: connection, unitPrice: 1_000 });
-const { lastUpdatedMs, value } = await doppler.read(connection);
+const { sequence, value } = await doppler.read(connection);
 for await (const reading of doppler.subscribe(connection, { signal })) { /* ... */ }
 ```
 
