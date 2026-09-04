@@ -141,8 +141,8 @@ mod tests {
 
     #[test]
     fn large_payloads_use_memcpy() {
-        let inline = generate(&ADMIN, 48);
-        let memcpy = generate(&ADMIN, 56);
+        let inline = generate(&ADMIN, 40);
+        let memcpy = generate(&ADMIN, 48);
         assert!(memcpy.len() < inline.len());
         assert!(memcpy
             .windows(8)

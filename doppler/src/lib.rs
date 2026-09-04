@@ -21,7 +21,8 @@ pub const FEED_SEED: &str = "feed";
 /// Loader-v3 programdata: tag, slot, optional authority.
 pub const PROGRAMDATA_HEADER: usize = 4 + 8 + 1 + 32;
 
-const MEMCPY_THRESHOLD: usize = 7;
+/// Six inline chunks cost what `sol_memcpy_` costs; the memcpy program is 72 bytes smaller.
+const MEMCPY_THRESHOLD: usize = 6;
 
 const fn chunks(n: usize) -> usize {
     (n >> 3) + (n & 7).count_ones() as usize

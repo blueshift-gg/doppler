@@ -30,7 +30,7 @@ ok:
   stxdw  [r1+0x28c8], r4
   exit                        ; 22 instructions, 21 executed, 21 compute units
 
-; From seven load/store pairs the copy becomes one syscall, and `fail` must exit before it:
+; From six load/store pairs the copy becomes one syscall, and `fail` must exit before it:
 ;   jlt    r3, r4, ok
 ; fail:
 ;   mov64  r0, 1

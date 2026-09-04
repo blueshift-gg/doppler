@@ -131,36 +131,39 @@ own time in the payload, or offers no freshness.
 
 ### 5. Your Own Transaction
 
-`.instruction()` is the raw instruction with everything a transaction builder needs:
+Both operations hand you their raw instructions and a `Budget`:
 
 ```rust
 let update = doppler.update(now_ms(), &price).instruction();
 update.instruction;                 // the admin signs
-update.compute_units;               // 25 for Price: what the program consumes
-update.loaded_bytes;                // 661: its program, programdata and feed, per SIMD-0186
-update.requested_compute_units;     // 475: what `send` sets, with the three compute-budget builtins
-update.requested_loaded_bytes;      // 811: with the payer and the compute-budget program
-update.lamports;                    // that transaction's fee at `unit_price`
+update.budget;                      // Budget { compute_units: 25, loaded_bytes: 661, requested_compute_units: 475, requested_loaded_bytes: 811, lamports }
 
-let deploy = doppler.deploy().instruction();
-deploy.write;                       // create and fill the buffer; `deploy.buffer` signs
-deploy.deploy;                      // create the program, deploy it immutable, create the feed; the program keypair signs
+let deploy = doppler.deploy().instructions();
+deploy.instructions;                // create and fill the buffer, create the program, deploy it immutable, create the feed
+deploy.budget;                      // Budget { compute_units: 10_080, loaded_bytes: 627, requested_compute_units: 10_530, requested_loaded_bytes: 777, lamports }
 ```
+
+`compute_units` and `loaded_bytes` are the instructions' own: what they add to any transaction, per
+SIMD-0186 every account at 64 bytes plus its data. The `requested_` pair is what `send` sets for a
+transaction holding only them: three compute-budget builtins at 150 units, and two more accounts,
+the payer and the compute-budget program. `lamports` is that transaction's fee at `unit_price`:
+5,000 per signature plus `ceil(unit_price × requested_compute_units / 1e6)`.
 
 ## Performance Optimization Tips
 
 ### 1. Compute Budget Configuration
 
-- **Exact CU Request**: `update(..).send(..)` requests exactly what the transaction consumes
+- **Exact CU Request**: `send` requests exactly what the transaction consumes
+- **Three budget instructions**: price and limit are the usual two; the loaded-accounts-data-size limit costs 150 units and cuts the transaction's scheduling cost for loaded data from 16,384 (the 64 MiB default, 2,048 pages at 8) to 8
 - **Priority Fees**: `doppler.options.unit_price` is the one knob; pick it from network congestion
 - **Account Data Size**: the loaded-accounts-data-size limit is computed from the program and the feed, per SIMD-0186
 
 ### 2. Batching Updates
 
 Each program is one feed. To update several feeds in one transaction, collect their
-`.instruction()`s and set one budget: the sum of their `compute_units` plus 150 per compute-budget
-instruction, and the sum of their `loaded_bytes` plus 64 for the payer and 86 for the
-compute-budget program.
+`.instruction()`s and set one budget: the sum of their `budget.compute_units` plus 150 per
+compute-budget instruction, and the sum of their `budget.loaded_bytes` plus 64 for the payer and
+86 for the compute-budget program.
 
 ### 3. Network Optimization
 
@@ -292,7 +295,7 @@ freshness, which `price_no_older_than` does.
 | Payload Write      | 10            |
 | Admin Verification | 6             |
 
-Larger payloads add one load/store pair per 8, 4, 2 or 1 bytes, and from seven pairs the copy is
+Larger payloads add one load/store pair per 8, 4, 2 or 1 bytes, and from six pairs the copy is
 one `sol_memcpy_` call:
 
 | payload     | bytes | CU  |
