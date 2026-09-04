@@ -22,7 +22,6 @@ import {
 import type {
   AccountNotificationsApi,
   Address,
-  Blockhash,
   GetAccountInfoApi,
   GetBlockHeightApi,
   GetLatestBlockhashApi,
@@ -63,8 +62,6 @@ export type UpdateInstruction = { instruction: Instruction; budget: Budget };
  */
 export type DeployInstructions = { instructions: Instruction[]; budget: Budget };
 
-type Lifetime = { blockhash: Blockhash; lastValidBlockHeight: bigint };
-
 function expect(signers: readonly TransactionSigner[], key: Address): TransactionSigner {
   const signer = signers.find((s) => s.address === key);
   if (!signer) throw new Error(`${key} must sign`);
@@ -91,7 +88,7 @@ async function send(rpc: DopplerRpc, payer: TransactionSigner, instructions: rea
   const transactionMessage = pipe(
     createTransactionMessage({ version: 'legacy' }),
     (m) => setTransactionMessageFeePayerSigner(payer, m),
-    (m) => setTransactionMessageLifetimeUsingBlockhash(lifetime as Lifetime, m),
+    (m) => setTransactionMessageLifetimeUsingBlockhash(lifetime, m),
     (m) => appendTransactionMessageInstructions(instructions, m),
   );
   const transaction = await signTransactionMessageWithSigners(transactionMessage);

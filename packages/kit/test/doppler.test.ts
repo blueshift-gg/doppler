@@ -22,7 +22,7 @@ import { getSetComputeUnitPriceInstruction } from '@solana-program/compute-budge
 import { LOADER_V3_PROGRAM_ADDRESS } from '@solana-program/loader-v3';
 import vectors from '../../../doppler/tests/vectors.json' with { type: 'json' };
 import { HEADER, PROGRAMDATA_HEADER, PROGRAM_LEN, rentExempt } from '../../core/index.js';
-import { DopplerClient, Update } from '../src/index.js';
+import { DopplerClient } from '../src/index.js';
 
 const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 const fields = [
@@ -121,5 +121,5 @@ test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live clust
   expect(reading.sequence).toBeGreaterThan(1_700_000_000_000);
   expect((await first).value).toEqual(reading);
   controller.abort();
-  await expect(new Update(d, reading.sequence, value).send([admin])).rejects.toThrow();
+  await expect(d.update(reading.sequence, value).send([admin])).rejects.toThrow();
 }, 60_000);

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { ComputeBudgetProgram, Connection, Keypair, LoaderV3Program, PACKET_DATA_SIZE, PublicKey, Transaction } from '@solana/web3.js';
 import vectors from '../../../doppler/tests/vectors.json' with { type: 'json' };
 import { HEADER, PROGRAMDATA_HEADER, PROGRAM_LEN, rentExempt } from '../../core/index.js';
-import { DopplerClient, Update } from '../src/index.js';
+import { DopplerClient } from '../src/index.js';
 
 const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 const fields = [
@@ -93,5 +93,5 @@ test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live clust
   expect(reading.sequence).toBeGreaterThan(1_700_000_000_000);
   expect((await first).value).toEqual(reading);
   controller.abort();
-  await expect(new Update(d, reading.sequence, value).send([admin])).rejects.toThrow();
+  await expect(d.update(reading.sequence, value).send([admin])).rejects.toThrow();
 }, 60_000);
