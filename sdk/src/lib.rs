@@ -8,8 +8,8 @@ use std::{
 
 pub use doppler;
 use doppler::{
-    feed_address, generate, payload_size, program_address, read, update_cu, update_data, Manifest,
-    Pod, FEED_SEED, HEADER, PROGRAMDATA_HEADER,
+    feed_address, generate, padded, payload_size, program_address, read, update_cu, update_data,
+    Manifest, Pod, FEED_SEED, HEADER, PROGRAMDATA_HEADER,
 };
 use solana_client::{client_error::ClientError, rpc_client::RpcClient};
 use solana_compute_budget_interface::ComputeBudgetInstruction;
@@ -284,7 +284,7 @@ impl<T: Pod> Update<'_, T> {
         let loaded_bytes = 3 * ACCOUNT_OVERHEAD
             + PROGRAM_ACCOUNT_LEN
             + (PROGRAMDATA_HEADER + d.elf().len()) as u32
-            + (HEADER + size_of::<T>()) as u32;
+            + (HEADER + padded(size_of::<T>())) as u32;
         UpdateInstruction {
             instruction: Instruction {
                 program_id: d.program,
@@ -363,7 +363,7 @@ impl<T: Pod> Deploy<'_, T> {
             .pop(),
         );
         instructions.push(loader::set_upgrade_authority(&d.program, &d.admin, None));
-        let space = HEADER + size_of::<T>();
+        let space = HEADER + padded(size_of::<T>());
         instructions.push(create_account_with_seed(
             &d.admin,
             &d.address(),
@@ -517,7 +517,7 @@ mod tests {
         };
         let ix = d.update(5, &price).instruction().instruction;
         assert_eq!(ix.accounts[1].pubkey, d.address());
-        assert_eq!(ix.data.len(), HEADER + 20);
+        assert_eq!(ix.data.len(), HEADER + 24);
         let feed = read(&ix.data, d.program.as_array(), d.program.as_array(), 20).unwrap();
         assert_eq!(feed.value::<Price>(), price);
         assert_eq!(

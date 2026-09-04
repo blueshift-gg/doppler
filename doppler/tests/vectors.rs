@@ -1,7 +1,7 @@
 //! Bytes the TypeScript packages must reproduce. `UPDATE_VECTORS=1 cargo test -p doppler` rewrites the file.
 
 use doppler::{
-    feed_address, generate, program_address, update_cu, update_data, Price, HEADER,
+    feed_address, generate, padded, program_address, update_cu, update_data, Price, HEADER,
     PROGRAMDATA_HEADER,
 };
 use solana_rent::Rent;
@@ -36,7 +36,8 @@ fn vectors_json_matches() {
         .collect();
     let elf = generate(&ADMIN, Price::SIZE);
     let program = program_address(&ADMIN, SEED).unwrap();
-    let loaded = 5 * 64 + 22 + 36 + (PROGRAMDATA_HEADER + elf.len()) + (HEADER + Price::SIZE);
+    let loaded =
+        5 * 64 + 22 + 36 + (PROGRAMDATA_HEADER + elf.len()) + (HEADER + padded(Price::SIZE));
     let rent = Rent::default();
     let json = format!(
         r#"{{
@@ -59,7 +60,7 @@ fn vectors_json_matches() {
         loaded,
         rent.minimum_balance(37 + elf.len()),
         rent.minimum_balance(36),
-        rent.minimum_balance(HEADER + Price::SIZE),
+        rent.minimum_balance(HEADER + padded(Price::SIZE)),
     );
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/vectors.json");
     if std::env::var_os("UPDATE_VECTORS").is_some() {

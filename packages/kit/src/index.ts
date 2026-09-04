@@ -1,6 +1,6 @@
 // @solana/kit client for Doppler feeds: `load` a manifest, `deploy` once, then `update`, `read`, `subscribe`.
 
-import { BUFFER_HEADER, BUFFER_SEED, FEED_SEED, Feed, HEADER, PROGRAM_LEN, rentExempt } from '../../core/index.js';
+import { BUFFER_HEADER, BUFFER_SEED, FEED_SEED, Feed, HEADER, PROGRAM_LEN, padded, rentExempt } from '../../core/index.js';
 import type { Budget, Field, FieldLike, Manifest, Payload, Reading } from '../../core/index.js';
 import {
   AccountRole,
@@ -209,7 +209,7 @@ export class Deploy<F extends readonly FieldLike[]> {
     const buffer = await createAddressWithSeed({ baseAddress: admin.address, programAddress: loader, seed: BUFFER_SEED });
     const [programdata] = await getProgramDerivedAddress({ programAddress: loader, seeds: [getAddressEncoder().encode(d.program)] });
     const bufferLen = BUFFER_HEADER + elf.length;
-    const feedLen = HEADER + d.feed.size;
+    const feedLen = HEADER + padded(d.feed.size);
     const create = (newAccount: Address, seed: string, space: number, programAddress: Address) =>
       getCreateAccountWithSeedInstruction({ payer: admin, newAccount, base: admin.address, seed, amount: rentExempt(space), space, programAddress });
     return {
