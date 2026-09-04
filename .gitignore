@@ -14,3 +14,8 @@ test-ledger
 
 # surfpool simnet logs
 .surfpool
+
+# TypeScript
+node_modules
+dist
+*.tsbuildinfo

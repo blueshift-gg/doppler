@@ -1437,6 +1437,7 @@ dependencies = [
  "solana-account 4.3.2",
  "solana-instruction",
  "solana-pubkey 4.2.1",
+ "solana-rent",
  "solana-sdk-ids",
 ]
 

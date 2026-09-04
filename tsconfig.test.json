@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "composite": false, "declaration": false, "noEmit": true, "resolveJsonModule": true },
+  "include": ["packages/core/*.test.ts", "packages/*/test", "examples/*/*.ts"]
+}
