@@ -1,33 +1,29 @@
 [package]
 name = "doppler-program"
-description = "An ultra-optimized oracle program for Solana."
+description = "The Doppler program in Rust, the readable reference for what `doppler::generate` emits."
 repository = { workspace = true }
 readme = { workspace = true }
 license-file = { workspace = true }
 edition = { workspace = true }
 version = { workspace = true }
+publish = false
 
 [lib]
 crate-type = ["lib", "cdylib"]
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = [
-    'cfg(target_os, values("solana"))',
-] }
-
-[dependencies]
-doppler = { workspace = true }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
 
 [dev-dependencies]
-doppler-sdk = { workspace = true }
+doppler = { workspace = true }
 mollusk-svm = { workspace = true }
 mollusk-svm-bencher = { workspace = true }
 solana-account = { workspace = true }
-solana-clock = { workspace = true }
 solana-instruction = { workspace = true }
 solana-pubkey = { workspace = true }
+solana-rent = { workspace = true }
 solana-sdk-ids = { workspace = true }
-solana-system-interface = { workspace = true, features = ["bincode"] }
+solana-system-interface = { workspace = true }
 
 [[bench]]
 name = "compute_units"
