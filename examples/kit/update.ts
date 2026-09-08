@@ -1,4 +1,4 @@
-// Write SOL/USD to the feed from `target/doppler.json` and read it back.
+// Write ETH/USD to the feed from `target/doppler.json` and read it back.
 
 import { readFileSync } from 'node:fs';
 import { DopplerClient, type Manifest } from '@blueshift-gg/doppler-kit';
