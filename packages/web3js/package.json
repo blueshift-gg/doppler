@@ -9,7 +9,6 @@
   "exports": {
     ".": {
       "types": "./dist/web3js/src/index.d.ts",
-      "bun": "./src/index.ts",
       "default": "./dist/web3js/src/index.js"
     }
   },
