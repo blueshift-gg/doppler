@@ -1,6 +1,6 @@
 [package]
 name = "doppler-sdk"
-description = "An ultra-optimized oracle SDK."
+description = "Rust client for Doppler feeds: load a manifest, deploy once, update and read."
 repository = { workspace = true }
 readme = { workspace = true }
 license-file = { workspace = true }
@@ -8,13 +8,19 @@ edition = { workspace = true }
 version = { workspace = true }
 
 [dependencies]
+doppler = { workspace = true }
+solana-client = { workspace = true }
 solana-compute-budget-interface = { workspace = true }
-solana-hash = { workspace = true }
 solana-instruction = { workspace = true }
-solana-keypair = { workspace = true }
+solana-loader-v3-interface = { workspace = true }
+solana-message = { workspace = true }
 solana-pubkey = { workspace = true }
+solana-rent = { workspace = true }
+solana-sdk-ids = { workspace = true }
+solana-signature = { workspace = true }
 solana-signer = { workspace = true }
-solana-transaction = { workspace = true, features = ["bincode"] }
+solana-system-interface = { workspace = true }
+solana-transaction = { workspace = true }
 
 [dev-dependencies]
-doppler-program = { workspace = true }
+solana-keypair = { workspace = true }

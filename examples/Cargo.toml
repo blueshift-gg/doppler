@@ -1,24 +1,23 @@
 [package]
 name = "doppler-examples"
-description = "Examples on how to use Doppler."
+description = "Deploy a Doppler feed, then write and read it."
 repository = { workspace = true }
 readme = { workspace = true }
 license-file = { workspace = true }
 edition = { workspace = true }
 version = { workspace = true }
+publish = false
 
 [dependencies]
-doppler-program = { workspace = true }
 doppler-sdk = { workspace = true }
 solana-client = { workspace = true }
 solana-keypair = { workspace = true }
-solana-pubkey = { workspace = true }
 solana-signer = { workspace = true }
 
 [[bin]]
-name = "single-price-feed"
-path = "src/single_price_feed.rs"
+name = "deploy"
+path = "src/deploy.rs"
 
 [[bin]]
-name = "multiple-price-feed"
-path = "src/multiple_price_feed.rs"
+name = "update"
+path = "src/update.rs"

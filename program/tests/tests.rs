@@ -1,108 +1,58 @@
-use doppler::prelude::*;
-use doppler_program::PriceFeed;
-use doppler_sdk::{Oracle, UpdateInstruction};
-use mollusk_svm::result::Check;
-use mollusk_svm::{program::keyed_account_for_system_program, Mollusk};
-use solana_account::{Account, ReadableAccount};
-use solana_clock::Epoch;
-use solana_instruction::Instruction;
+//! Needs `cargo build-sbf --manifest-path program/Cargo.toml`.
+
+use doppler::{feed_address, read, update_data, FEED_SEED};
+use doppler_program::{ADMIN, ID};
+use mollusk_svm::{program::keyed_account_for_system_program, result::ProgramResult, Mollusk};
+use solana_account::Account;
+use solana_instruction::{AccountMeta, Instruction};
 use solana_pubkey::Pubkey;
-
-#[must_use] pub fn keyed_account_for_admin(key: Pubkey) -> (Pubkey, Account) {
-    (
-        key,
-        Account::new(10_000_000_000, 0, &solana_sdk_ids::system_program::ID),
-    )
-}
-
-pub fn keyed_account_for_oracle<T: Sized + Copy>(
-    mollusk: &mut Mollusk,
-    admin: Pubkey,
-    seed: &str,
-    payload: T,
-) -> (Pubkey, Account) {
-    let oracle_account = Oracle {
-        sequence: 0,
-        payload,
-    };
-
-    let key = Pubkey::create_with_seed(&admin, seed, &doppler_sdk::ID).unwrap();
-
-    let lamports = mollusk
-        .sysvars
-        .rent
-        .minimum_balance(core::mem::size_of::<Oracle<T>>());
-
-    let data = oracle_account.to_bytes();
-
-    let account = Account {
-        lamports,
-        data,
-        owner: doppler_sdk::ID,
-        executable: false,
-        rent_epoch: Epoch::default(),
-    };
-
-    (key, account)
-}
+use solana_rent::Rent;
+use solana_sdk_ids::system_program;
+use solana_system_interface::instruction::create_account_with_seed;
 
 #[test]
-fn test_oracle_update() {
-    // Create Mollusk instance
-    let mut mollusk = Mollusk::new(&doppler_sdk::ID, "../target/deploy/doppler_program");
-    // Accounts
-    let (admin, admin_account) = keyed_account_for_admin(ADMIN.into());
-    let (oracle, oracle_account) = keyed_account_for_oracle::<PriceFeed>(
-        &mut mollusk,
-        ADMIN.into(),
-        "SOL/USDC",
-        PriceFeed { price: 100_000 },
-    );
+fn create_then_update() {
+    let mollusk = Mollusk::new(&Pubkey::from(ID), "../target/deploy/doppler_program");
+    let admin = Pubkey::from(ADMIN);
+    let feed = Pubkey::from(feed_address(&ADMIN, &ID));
     let (system, system_account) = keyed_account_for_system_program();
-
-    // Create oracle account
-    let create_price_feed_instruction =
-        solana_system_interface::instruction::create_account_with_seed(
-            &admin,
-            &oracle,
-            &admin,
-            "SOL/USDC",
-            oracle_account.lamports,
-            oracle_account.data.len() as u64,
-            &doppler_sdk::ID,
-        );
-
-    // Update oracle with new values
-    let oracle_update = Oracle::<PriceFeed> {
-        sequence: 1, // Increment sequence from 0 to 1
-        payload: PriceFeed { price: 1_100_000 },
+    let create = create_account_with_seed(
+        &admin,
+        &feed,
+        &admin,
+        FEED_SEED,
+        Rent::default().minimum_balance(16),
+        16,
+        &Pubkey::from(ID),
+    );
+    let update = Instruction {
+        program_id: Pubkey::from(ID),
+        accounts: vec![
+            AccountMeta::new_readonly(admin, true),
+            AccountMeta::new(feed, false),
+        ],
+        data: update_data(1, &1_100_000u64.to_le_bytes()),
     };
 
-    let price_feed_update_instruction: Instruction = UpdateInstruction {
-        admin,
-        oracle_pubkey: oracle,
-        oracle: oracle_update,
-    }
-    .into();
-
-    // Execute instruction
-    let result = mollusk.process_and_validate_instruction_chain(
+    let result = mollusk.process_instruction_chain(
+        &[create, update],
         &[
-            (&create_price_feed_instruction, &[Check::success()]),
-            (&price_feed_update_instruction, &[Check::success()]),
-        ],
-        &vec![
-            (admin, admin_account),
-            (oracle, Account::default()),
+            (
+                admin,
+                Account::new(10_000_000_000, 0, &system_program::id()),
+            ),
+            (feed, Account::default()),
             (system, system_account),
         ],
     );
+    assert!(
+        matches!(result.program_result, ProgramResult::Success),
+        "{:?}",
+        result.program_result
+    );
 
-    // Get updated oracle account
-    let updated_oracle = result.get_account(&oracle).expect("Missing oracle account");
-
-    let oracle = Oracle::<PriceFeed>::from_bytes(updated_oracle.data());
-    // Verify the oracle was updated
-    assert_eq!(&oracle.sequence, &1u64, "Sequence should be updated");
-    assert_eq!(&oracle.payload.price, &1_100_000, "Price should be updated");
+    let account = result.get_account(&feed).unwrap();
+    let feed = read(&account.data, account.owner.as_array(), &ID, 8).unwrap();
+    assert!(feed.sequence > 0);
+    assert_eq!(feed.value::<u64>(), 1_100_000);
 }

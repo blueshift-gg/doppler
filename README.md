@@ -11,233 +11,184 @@ Doppler is an ultra-optimized oracle program for Solana, achieving unparalleled 
 ## Features
 
 - **21 CU Oracle Updates**: The most efficient oracle implementation on Solana
-- **Generic Payload Support**: Flexible data structure supporting any payload type
-- **Sequence-Based Updates**: Built-in replay protection and ordering guarantees
+- **Generic Payload Support**: Flexible data structure supporting any fixed-size payload type
+- **Sequenced Updates**: a strictly increasing sequence gives replay protection and ordering; the SDK uses unix milliseconds
 - **Zero Dependencies**: Pure no_std Rust implementation for minimal overhead
 - **Direct Memory Operations**: Optimized assembly-level exits for maximum efficiency
+- **No Toolchain**: `doppler::generate` emits your program as an sBPF v3 ELF, 328 bytes for a `u64` feed and at most 392, with your admin key in the bytecode
+- **No Keypairs**: a feed is its admin and a seed; the program and the feed account derive from them, and `deploy` is one transaction signed by the admin alone
 
 ## Installation
 
-Add Doppler SDK and required Solana crates to your `Cargo.toml`:
+Add the Doppler SDK and the Solana crates it hands you back to your `Cargo.toml`:
 
 ```toml
 [dependencies]
 doppler-sdk = "0.1.0"
-solana-instruction = "2.3.0"
-solana-pubkey = "2.3.0"
-solana-compute-budget-interface = "2.2.2"
-solana-transaction = "2.3.0"
-solana-keypair = "2.3.0"
-solana-signer = "2.2.1"
-# Add other Solana crates as needed
+solana-client = "4"
+solana-keypair = "3"
+solana-signer = "3"
 ```
 
-## Program ID
+A program that reads a feed needs only the core, without its generator:
 
+```toml
+[dependencies]
+doppler = { version = "0.1.0", default-features = false }
 ```
-fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
+
+## Manifest
+
+Every Doppler feed is one program with one admin and one payload, described by a `doppler.json`
+that the publisher, every SDK and every consumer share:
+
+```json
+{
+  "admin": "admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE",
+  "seed": "SOL/USD",
+  "fields": [
+    { "name": "price", "type": "i64" },
+    { "name": "conf", "type": "u64" },
+    { "name": "expo", "type": "i32" }
+  ]
+}
 ```
+
+A feed is its admin and its seed. The program is `create_with_seed(admin, seed, loader)` and the
+feed account `create_with_seed(admin, "feed", program)`, so there is no program keypair to make or
+keep, nothing else to look up, and one admin runs as many feeds as it has seeds.
 
 ## Architecture
 
 Doppler uses a simple yet powerful architecture:
 
-1. **Admin Account**: Controls oracle updates (hardcoded for security)
-2. **Oracle Account**: Stores the sequence number and payload data
+1. **Admin Account**: Controls oracle updates (hardcoded in the bytecode for security)
+2. **Feed Account**: Stores the sequence and payload data
 3. **Sequence Validation**: Ensures updates are monotonically increasing
 
 ### Data Structure
 
-```rust
-pub struct Oracle<T> {
-    pub sequence: u64,  // Timestamp, slot height, or auto-increment
-    pub payload: T,     // Your custom data structure
-}
-```
+| bytes    | field      |                                             |
+| -------- | ---------- | ------------------------------------------- |
+| `0..8`   | `sequence` | `u64`, little-endian, must grow every write |
+| `8..8+N` | payload    | your schema, packed, no padding             |
+
+An update instruction carries the same bytes. The program checks that the admin signed and that
+the sequence grew, then copies them in. Nothing else happens on-chain, which is where the 21
+compute units of a `u64` feed come from; `doppler::update_cu` gives the number for any payload,
+25 for `Price`.
 
 ## Usage Guide
 
-### 1. Setting Up Compute Budget
-
-To achieve the 21 CU performance, configure your transaction with appropriate compute budget:
+### 1. Load the Manifest
 
 ```rust
-use solana_compute_budget_interface::ComputeBudgetInstruction;
-use solana_instruction::Instruction;
-use solana_transaction::Transaction;
-
-// Request exactly the CUs needed (21 + overhead for other instructions)
-let compute_budget_ix = ComputeBudgetInstruction::set_compute_unit_limit(200_000);
-
-// Add to your transaction
-let mut instructions = vec![compute_budget_ix];
-```
-
-### 2. Setting Priority Fees
-
-For high-frequency oracle updates, use priority fees to ensure timely inclusion:
-
-```rust
-// Set priority fee (price per compute unit in micro-lamports)
-let priority_fee_ix = ComputeBudgetInstruction::set_compute_unit_price(1000);
-
-instructions.push(priority_fee_ix);
-```
-
-### 3. Optimizing Account Data Size
-
-Use `setLoadedAccountsDataSizeLimit` to optimize memory allocation:
-
-```rust
-// Set the maximum loaded account data size
-// Calculate based on your oracle data structure size
-let data_size_limit_ix = ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(
-    32_768  // 32KB is usually sufficient for oracle operations
-);
-
-instructions.push(data_size_limit_ix);
-```
-
-### 4. Creating an Oracle Update
-
-```rust
-use doppler_sdk::{Oracle, UpdateInstruction, ID as DOPPLER_ID};
-use solana_instruction::Instruction;
-use solana_pubkey::Pubkey;
-
-// Define your payload structure
-#[derive(Clone, Copy)]
-pub struct PriceFeed {
-    pub price: u64,
-}
-
-// Create oracle update
-let oracle_update = Oracle {
-    sequence: 1234567890,  // Must be > current sequence
-    payload: PriceFeed {
-        price: 42_000_000,  // $42.00 with 6 decimals
-    },
-};
-
-// Create update instruction
-let update_ix: Instruction = UpdateInstruction {
-    admin: admin_pubkey,
-    oracle_pubkey: oracle_pubkey,
-    oracle: oracle_update,
-}.into();
-
-// Add to instructions
-instructions.push(update_ix);
-```
-
-### 5. Complete Transaction Example
-
-```rust
-use doppler_sdk::{Oracle, UpdateInstruction};
+use doppler_sdk::{doppler::Price, now_ms, DopplerClient, Reading, SendOptions};
 use solana_client::rpc_client::RpcClient;
-use solana_compute_budget_interface::ComputeBudgetInstruction;
-use solana_instruction::Instruction;
-use solana_keypair::Keypair;
-use solana_signer::Signer;
-use solana_transaction::Transaction;
 
-async fn update_oracle(
-    client: &RpcClient,
-    admin: &Keypair,
-    oracle_pubkey: Pubkey,
-    new_price: u64,
-    sequence: u64,
-) -> Result<(), Box<dyn std::error::Error>> {
-    // Build all instructions
-    let mut instructions = vec![
-        // 1. Set compute budget
-        ComputeBudgetInstruction::set_compute_unit_limit(200_000),
-
-        // 2. Set priority fee (1000 micro-lamports per CU)
-        ComputeBudgetInstruction::set_compute_unit_price(1_000),
-
-        // 3. Set loaded accounts data size limit
-        ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(32_768),
-    ];
-
-    // 4. Add oracle update
-    let oracle_update = Oracle {
-        sequence,
-        payload: PriceFeed { price: new_price },
-    };
-
-    let update_ix: Instruction = UpdateInstruction {
-        admin: admin.pubkey(),
-        oracle_pubkey,
-        oracle: oracle_update,
-    }.into();
-
-    instructions.push(update_ix);
-
-    // Create and send transaction
-    let recent_blockhash = client.get_latest_blockhash()?;
-    let tx = Transaction::new_signed_with_payer(
-        &instructions,
-        Some(&admin.pubkey()),
-        &[admin],
-        recent_blockhash,
-    );
-
-    let signature = client.send_and_confirm_transaction(&tx)?;
-    println!("Oracle updated: {}", signature);
-
-    Ok(())
-}
+let rpc = RpcClient::new("https://api.mainnet-beta.solana.com");
+let manifest = std::fs::read_to_string("doppler.json")?.parse()?;
+let doppler = DopplerClient::<Price>::load(manifest, SendOptions { rpc: &rpc, unit_price: 1_000 })?;
 ```
+
+`load` checks that `Price` is the size the manifest's fields describe, so a mismatched payload
+type is an error here and not a corrupted account later. `unit_price` is the priority fee in
+micro-lamports per compute unit, used by every `send`; `doppler.options` is public, so a publisher
+can follow the fee market.
+
+### 2. Deploy
+
+```rust
+doppler.deploy().send(&[&admin])?;
+```
+
+One transaction writes the program, makes it immutable, and creates the feed account. The admin is
+the only signer and pays; `doppler.program()` is the address.
+
+### 3. Update
+
+```rust
+doppler.update(now_ms(), &Price { price: 17_234_000_000, conf: 5_000_000, expo: -8 })
+    .send(&[&admin])?;
+```
+
+`update` takes the sequence, unix milliseconds by convention, sets the exact compute budget for the
+transaction, signs with the admin, sends, and returns once confirmed. Signers are passed the way
+`Transaction::new_signed_with_payer` takes them, so a wallet or HSM works as well as a keypair.
+
+### 4. Read
+
+```rust
+let Reading { sequence, value: Price { price, .. } } = doppler.read()?;   // fields copied out: Price is packed
+println!("{price} at {sequence} ms");
+```
+
+On-chain, from any framework:
+
+```rust
+let feed = doppler::read(account.data(), account.owner(), &FEED_PROGRAM, doppler::Price::SIZE)?;
+let price = doppler::price_no_older_than(&feed, clock.unix_timestamp as u64 * 1000, 5_000)?;
+```
+
+The sequence is any strictly increasing `u64` the publisher chooses. The SDK writes unix
+milliseconds, which is what `price_no_older_than` assumes; a feed that counts instead carries its
+own time in the payload, or offers no freshness.
+
+### 5. Your Own Transaction
+
+Both operations hand you their raw instructions and a `Budget`:
+
+```rust
+let update = doppler.update(now_ms(), &price).instruction();
+update.instruction;                 // the admin signs
+update.budget;                      // Budget { compute_units: 25, loaded_bytes: 661, requested_compute_units: 475, requested_loaded_bytes: 811, lamports }
+
+let deploy = doppler.deploy().instructions();
+deploy.instructions;                // create and fill the buffer, create the program, deploy it immutable, create the feed
+deploy.budget;                      // Budget { compute_units: 10_080, loaded_bytes: 627, requested_compute_units: 10_530, requested_loaded_bytes: 777, lamports }
+```
+
+`compute_units` and `loaded_bytes` are the instructions' own: what they add to any transaction, per
+SIMD-0186 every account at 64 bytes plus its data. The `requested_` pair is what `send` sets for a
+transaction holding only them: three compute-budget builtins at 150 units, and two more accounts,
+the payer and the compute-budget program. `lamports` is that transaction's fee at `unit_price`:
+5,000 per signature plus `ceil(unit_price × requested_compute_units / 1e6)`.
 
 ## Performance Optimization Tips
 
 ### 1. Compute Budget Configuration
 
-- **Exact CU Request**: Request only what you need (21 CUs + overhead)
-- **Priority Fees**: Use dynamic priority fees based on network congestion
-- **Account Data Size**: Minimize loaded data to reduce memory overhead
+- **Exact CU Request**: `send` requests exactly what the transaction consumes
+- **Three budget instructions**: price and limit are the usual two; the loaded-accounts-data-size limit costs 150 units and cuts the transaction's scheduling cost for loaded data from 16,384 (the 64 MiB default, 2,048 pages at 8) to 8
+- **Priority Fees**: `doppler.options.unit_price` is the one knob; pick it from network congestion
+- **Account Data Size**: the loaded-accounts-data-size limit is computed from the program and the feed, per SIMD-0186
 
 ### 2. Batching Updates
 
-For multiple oracle updates, batch them efficiently:
-
-```rust
-// DON'T: Multiple transactions
-for oracle in oracles {
-    send_update(oracle)?;  // 21 CU each, but multiple transactions
-}
-
-// DO: Single transaction with multiple updates
-let mut instructions = vec![
-    ComputeBudgetInstruction::set_compute_unit_limit(200_000),
-    ComputeBudgetInstruction::set_compute_unit_price(1_000),
-    ComputeBudgetInstruction::set_loaded_accounts_data_size_limit(65_536),
-];
-
-for oracle in oracles {
-    instructions.push(create_update_instruction(oracle));
-}
-// Single transaction with all updates
-```
+Each program is one feed. To update several feeds in one transaction, collect their
+`.instruction()`s and set one budget: the sum of their `budget.compute_units` plus 150 per
+compute-budget instruction, and the sum of their `budget.loaded_bytes` plus 64 for the payer and
+86 for the compute-budget program.
 
 ### 3. Network Optimization
 
 ```rust
-// Use getRecentPrioritizationFees to determine optimal fee
-let recent_fees = client.get_recent_prioritization_fees(&[oracle_pubkey])?;
-let optimal_fee = calculate_optimal_fee(recent_fees);
+// Use getRecentPrioritizationFees to determine your fee
+let recent_fees = rpc.get_recent_prioritization_fees(&[doppler.address()])?;
+doppler.options.unit_price = choose_fee(recent_fees);
 
-let priority_ix = ComputeBudgetInstruction::set_compute_unit_price(optimal_fee);
+doppler.update(now_ms(), &price).send(&[&admin])?;
 ```
 
 ## Testing
 
 ### Build
+
 ```bash
 # Within root
 cargo build-sbf --manifest-path program/Cargo.toml
 ```
+
 ### Unit
 
 Run the test suite:
@@ -247,172 +198,98 @@ Run the test suite:
 cargo test
 ```
 
+`doppler/tests/sweep.rs` runs the generated program through Mollusk for every payload size from 1
+to 64: exact bytes copied, stale and unsigned updates rejected, and the metered compute units equal
+to `doppler::update_cu`. No Solana toolchain is needed for it.
+
 ### E2E
 
 ```bash
-chmod +X ./surfpool.sh
-./surfpool.sh
-
-cargo run --bin single-price-feed
-cargo run --bin multiple-price-feed
+surfpool start                         # surfpool 1.5.0 or newer
+RPC_URL=http://localhost:8899 cargo run --bin deploy
+RPC_URL=http://localhost:8899 cargo run --bin update
 ```
 
-example of single price feed update response
+The program is sBPF v3 under the gate mainnet activated, which Agave carries from 4.0 on; surfpool
+1.5.0 is the first release built on it, and anything older reports the program as not deployed.
+
+example of a deploy transaction:
 
 ```
-Transaction executed in slot 131:
-  Block Time: 2025-09-03T04:23:08+03:00
-  Version: legacy
-  Recent Blockhash: 89ZvpNezGugkfm9LnN99rhb6aTNaW1cLKkS2DDbr7NPA
-  Signature 0: m14zQFvt1jU9YYM2QAmVSnMZUa5P2eKdtP21Shu9w9kEhxKLAfJoUyqZwiTt43hGwewhsahQJi5eLJ71NptUWDu
-  Account 0: srw- admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (fee payer)
-  Account 1: -rw- QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW
-  Account 2: -r-x ComputeBudget111111111111111111111111111111
-  Account 3: -r-x fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
-  Instruction 0
-    Program:   ComputeBudget111111111111111111111111111111 (2)
-    Data: [3, 232, 3, 0, 0, 0, 0, 0, 0]
-  Instruction 1
-    Program:   ComputeBudget111111111111111111111111111111 (2)
-    Data: [2, 215, 1, 0, 0]
-  Instruction 2
-    Program:   ComputeBudget111111111111111111111111111111 (2)
-    Data: [4, 127, 0, 0, 0]
-  Instruction 3
-    Program:   fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm (3)
-    Account 0: admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (0)
-    Account 1: QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW (1)
-    Data: [159, 136, 1, 0, 0, 0, 0, 0, 64, 226, 1, 0, 0, 0, 0, 0, 160, 213, 119, 107, 1, 0, 0, 0]
+  Instruction 0   11111111111111111111111111111111             create buffer
+  Instruction 1   BPFLoaderUpgradeab1e11111111111111111111111  initialize buffer
+  Instruction 2   BPFLoaderUpgradeab1e11111111111111111111111  write 360 bytes
+  Instruction 3   11111111111111111111111111111111             create program
+  Instruction 4   BPFLoaderUpgradeab1e11111111111111111111111  deploy
+  Instruction 5   BPFLoaderUpgradeab1e11111111111111111111111  set upgrade authority: none
+  Instruction 6   11111111111111111111111111111111             create feed account
   Status: Ok
-    Fee: ◎0.000005001
-    Account 0 balance: ◎9.999969996 -> ◎9.999964995
-    Account 1 balance: ◎0.00100224
-    Account 2 balance: ◎0.000000001
-    Account 3 balance: ◎0.00114144
-  Compute Units Consumed: 471
-  Log Messages:
-    Program ComputeBudget111111111111111111111111111111 invoke [1]
-    Program ComputeBudget111111111111111111111111111111 success
-    Program ComputeBudget111111111111111111111111111111 invoke [1]
-    Program ComputeBudget111111111111111111111111111111 success
-    Program ComputeBudget111111111111111111111111111111 invoke [1]
-    Program ComputeBudget111111111111111111111111111111 success
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm invoke [1]
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm consumed 21 of 21 compute units
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm success
-
-Finalized
 ```
 
-> Fully fledged tx requires: `471 CU` + `111 bytes`
-
-example of multiple price feed update response
+example of an update transaction:
 
 ```
-Transaction executed in slot 218:
-  Block Time: 2025-09-06T13:06:05+03:00
-  Version: legacy
-  Recent Blockhash: AeCvWYJjrx6Yxjknh6ndTTaTYsHkPQgr9iMURRN8Ah4S
-  Signature 0: 3MLXk7YCsqEoMiYiGT4RYKa3Js2QJ6acM1BQstKGNbXsUJ6rNaySmUzzqNRDnFd7St1XTpPngAbcnf3ZxD2Lj9Jr
-  Account 0: srw- admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (fee payer)
-  Account 1: -rw- QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW
-  Account 2: -rw- 6uQ848roY5vumz43QeQguE7xCyBSmgZbwNdJMTrs2Xhy
-  Account 3: -rw- 9bA7GPqPpZ5aLbwb8E6cKvUPM8pcHXXTqLpf5zLAqHP5
-  Account 4: -r-x ComputeBudget111111111111111111111111111111
-  Account 5: -r-x fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm
-  Instruction 0
-    Program:   ComputeBudget111111111111111111111111111111 (4)
-    Data: [3, 232, 3, 0, 0, 0, 0, 0, 0]
-  Instruction 1
-    Program:   ComputeBudget111111111111111111111111111111 (4)
-    Data: [4, 175, 0, 0, 0]
-  Instruction 2
-    Program:   ComputeBudget111111111111111111111111111111 (4)
-    Data: [2, 1, 2, 0, 0]
-  Instruction 3
-    Program:   fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm (5)
-    Account 0: admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (0)
-    Account 1: QUVF91dzXWYvE5FmFEc41JZxRDmNgx8S8P6sNDWYZiW (1)
-    Data: [2, 0, 0, 0, 0, 0, 0, 0, 180, 134, 1, 0, 0, 0, 0, 0]
-  Instruction 4
-    Program:   fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm (5)
-    Account 0: admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (0)
-    Account 1: 9bA7GPqPpZ5aLbwb8E6cKvUPM8pcHXXTqLpf5zLAqHP5 (3)
-    Data: [1, 0, 0, 0, 0, 0, 0, 0, 170, 134, 1, 0, 0, 0, 0, 0]
-  Instruction 5
-    Program:   fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm (5)
-    Account 0: admnz5UvRa93HM5nTrxXmsJ1rw2tvXMBFGauvCgzQhE (0)
-    Account 1: 6uQ848roY5vumz43QeQguE7xCyBSmgZbwNdJMTrs2Xhy (2)
-    Data: [1, 0, 0, 0, 0, 0, 0, 0, 170, 134, 1, 0, 0, 0, 0, 0]
+  Instruction 0   ComputeBudget111111111111111111111111111111  set_compute_unit_price
+  Instruction 1   ComputeBudget111111111111111111111111111111  set_loaded_accounts_data_size_limit 811
+  Instruction 2   ComputeBudget111111111111111111111111111111  set_compute_unit_limit 475
+  Instruction 3   <your program>
   Status: Ok
-    Fee: ◎0.000005001
-    Account 0 balance: ◎0.999994999 -> ◎0.999989998
-    Account 1 balance: ◎0.00100224
-    Account 2 balance: ◎0.00100224
-    Account 3 balance: ◎0.00100224
-    Account 4 balance: ◎0.000000001
-    Account 5 balance: ◎0.00114144
-  Compute Units Consumed: 513
-  Log Messages:
-    Program ComputeBudget111111111111111111111111111111 invoke [1]
-    Program ComputeBudget111111111111111111111111111111 success
-    Program ComputeBudget111111111111111111111111111111 invoke [1]
-    Program ComputeBudget111111111111111111111111111111 success
-    Program ComputeBudget111111111111111111111111111111 invoke [1]
-    Program ComputeBudget111111111111111111111111111111 success
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm invoke [1]
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm consumed 21 of 63 compute units
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm success
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm invoke [1]
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm consumed 21 of 42 compute units
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm success
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm invoke [1]
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm consumed 21 of 21 compute units
-    Program fastRQJt3nLdY3QA7n8eZ8ETEVefy56ryfUGVkfZokm success
-
-Finalized
+  Compute Units Consumed: 475
+    Program <your program> consumed 25 of 25 compute units
 ```
+
+> A `u64` feed is `471 CU` + a `767` byte loaded-accounts-data-size limit; the `Price` feed above
+> is `475` and `811`. Both landed at exactly those numbers on surfpool 1.5.0 and on an Agave 4.2.2
+> validator.
 
 ### Expected Priority Score
 
-based on the [Anza's blog post](https://www.anza.xyz/blog/cu-optimization-with-setloadedaccountsdatasizelimit) and the code from [single price feed update example](https://github.com/blueshift-gg/doppler/blob/master/examples/src/single_price_feed.rs)
+based on the [Anza's blog post](https://www.anza.xyz/blog/cu-optimization-with-setloadedaccountsdatasizelimit)
 
-let's assume we are going to update a single oracle:
+let's assume we are going to update a single `u64` feed:
 
 - 1 signature
 - 0 write locks
-- Requested compute-budget-limit to 21 (with compute-budget instructions 321 and 471 respectively) CUs
+- Requested compute-budget-limit of 471 CUs (21 for the update, 150 per compute-budget instruction)
 - Paying priority fee: 1.00 lamports per CU
 
-| Metric                         | Without Instruction              | With 111 byte Limit               |
-| ------------------------------ | -------------------------------- | --------------------------------- |
-| Loaded Account Data Size Limit | 64M                              | 111 bytes                         |
-| Data Size Cost Calculation     | 64M x (8/32K)                    | 111 bytes x (8/32K)               |
-| Data Size Cost (CUs)           | 16,000                           | 0.02775                           |
-| Reward to Leader Calculation   | (1 x 5000 + 1 x 321)/2           | (1 x 5000 + 1 x 471)/2            |
-| Reward to Leader (lamports)    | 2,660.5                          | 2,735.5                           |
-| Transaction Cost Formula       | 1 x 720 + 0 x 300 + 321 + 16,000 | 1 x 720 + 0 x 300 + 471 + 0.02775 |
-| Transaction Cost (CUs)         | 17,041                           | 1,141.02775                       |
-| Priority Score                 | 0.156                            | 2.397                             |
+| Metric                         | Without Instruction              | With 767 byte Limit             |
+| ------------------------------ | -------------------------------- | ------------------------------- |
+| Loaded Account Data Size Limit | 64M                              | 767 bytes                       |
+| Data Size Cost Calculation     | 64M x (8/32K)                    | 767 bytes x (8/32K)             |
+| Data Size Cost (CUs)           | 16,000                           | 0.187                           |
+| Reward to Leader Calculation   | (1 x 5000 + 1 x 471)/2           | (1 x 5000 + 1 x 471)/2          |
+| Reward to Leader (lamports)    | 2,735.5                          | 2,735.5                         |
+| Transaction Cost Formula       | 1 x 720 + 0 x 300 + 471 + 16,000 | 1 x 720 + 0 x 300 + 471 + 0.187 |
+| Transaction Cost (CUs)         | 17,191                           | 1,191.187                       |
+| Priority Score                 | 0.159                            | 2.297                           |
 
 ## Building
 
-Build the on-chain program:
+Build the on-chain program from Rust:
 
 ```bash
 # Build for Solana BPF
-cargo build-sbf
+cargo build-sbf --manifest-path program/Cargo.toml
+```
 
-# Deploy
-solana program deploy target/deploy/doppler.so
+or generate it, which is what `deploy` does:
+
+```rust
+let elf = doppler::generate(admin.pubkey().as_array(), doppler::Price::SIZE);
 ```
 
 ## Security Considerations
 
 1. **Admin Key**: The admin key is hardcoded in the program for security
-2. **Sequence Validation**: Prevents replay attacks and ensures ordering
+2. **Timestamp Validation**: Prevents replay attacks and ensures ordering
 3. **No External Dependencies**: Reduces attack surface
 4. **Direct Memory Operations**: Eliminates unnecessary abstraction layers
+5. **Immutable Programs**: `deploy` removes the upgrade authority; a new admin or payload is a new program
+
+Doppler is a signed on-chain cache, not a decentralized oracle. One hot admin key writes every
+update, there is no quorum, and the sequence is set by the publisher. Consumers must check
+freshness, which `price_no_older_than` does.
 
 ## Benchmarks
 
@@ -423,21 +300,49 @@ solana program deploy target/deploy/doppler.so
 | Payload Write      | 10            |
 | Admin Verification | 6             |
 
+Larger payloads add one load/store pair per 8, 4, 2 or 1 bytes, and from six pairs the copy is
+one `sol_memcpy_` call:
+
+| payload     | bytes | CU  |
+| ----------- | ----- | --- |
+| `u64`       | 8     | 21  |
+| `Price`     | 20    | 25  |
+| `[u8; 32]`  | 32    | 27  |
+| 56 and up   | 56+   | 31  |
+
 ## Example Payloads
+
+Payloads are packed, with no padding, so every type derives `Pod` and is `#[repr(C, packed)]`.
 
 ### Simple Price Feed
 
 ```rust
-#[derive(Clone, Copy)]
+#[repr(C, packed)]
+#[derive(Clone, Copy, Pod, Zeroable)]
 pub struct PriceFeed {
     pub price: u64,
+}
+```
+
+### Standard Price Feed
+
+The fields of a Pyth price feed, minus publish time, which is the header:
+
+```rust
+#[repr(C, packed)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+pub struct Price {
+    pub price: i64,
+    pub conf: u64,
+    pub expo: i32,
 }
 ```
 
 ### AMM Oracle
 
 ```rust
-#[derive(Clone, Copy)]
+#[repr(C, packed)]
+#[derive(Clone, Copy, Pod, Zeroable)]
 pub struct PropAMM {
     pub bid: u64,
     pub ask: u64,
@@ -447,7 +352,8 @@ pub struct PropAMM {
 ### Complex Market Data
 
 ```rust
-#[derive(Clone, Copy)]
+#[repr(C, packed)]
+#[derive(Clone, Copy, Pod, Zeroable)]
 pub struct MarketData {
     pub price: u64,
     pub volume: u64,
@@ -458,16 +364,19 @@ pub struct MarketData {
 ## FAQ
 
 **Q: Why only 21 CUs?**
-A: Doppler uses direct memory operations, inline assembly optimizations, and zero-overhead abstractions to achieve minimal compute usage.
+A: Doppler uses direct memory operations, inline assembly optimizations, and zero-overhead abstractions to achieve minimal compute usage. 21 is a `u64` feed; every 8 bytes of payload adds 2, so `Price` is 25, and from six chunks the copy is one `sol_memcpy_` at 31. `doppler::update_cu` gives the number for any size.
 
 **Q: Can I use custom payload types?**
-A: Yes! Doppler is generic over any `Copy` type. Define your structure and use it with the SDK.
+A: Yes! Doppler is generic over any packed `Pod` type. Define your structure, list its fields in the manifest, and use it with the SDK.
 
-**Q: How do I handle oracle account creation?**
-A: However you like, but if you use Solana's `create_account_with_seed` instruction with the admin as the base key it's cheaper!
+**Q: How do I handle feed account creation?**
+A: `deploy` creates it in the same transaction as the program, with `create_account_with_seed` and the admin as the base key, which is the cheapest way.
 
 **Q: What's the maximum update frequency?**
-A: Limited only by Solana's throughput. With 21 CUs, you can update as fast as you land.
+A: Limited only by Solana's throughput. With 21 CUs, you can update as fast as you land. The sequence is any strictly increasing u64; the examples pass unix milliseconds, so many updates per second stay ordered, and a publisher that needs more picks microseconds or a counter.
+
+**Q: Which Solana version do I need?**
+A: The program is sBPF v3. Mainnet, devnet and testnet run it; locally you need Agave 4.0 or newer, which is surfpool 1.5.0 or newer.
 
 ## Support
 
