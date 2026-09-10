@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import vectors from '../../doppler/tests/vectors.json' with { type: 'json' };
-import { Feed, HEADER, updateCu } from './index.js';
+import { BUFFER_HEADER, Feed, HEADER, PROGRAM_LEN, rentExempt, updateCu } from './index.js';
 
 const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 const fromHex = (text: string) => Uint8Array.from(text.match(/../g) ?? [], (b) => parseInt(b, 16));
@@ -46,6 +46,14 @@ test('price round trips through the wire format with the exact budgets', async (
     requestedLoadedBytes: 10 * 64 + 21 + 37 + 17 + 40 + 22,
     lamports: 5_011n,
   });
+});
+
+test('the rent of a deploy matches the vectors', async () => {
+  const feed = await Feed.load({ admin, seed, fields: price });
+  const elf = feed.elf().length;
+  expect(rentExempt(PROGRAM_LEN)).toBe(BigInt(vectors.deploy.programLamports));
+  expect(rentExempt(BUFFER_HEADER + elf)).toBe(BigInt(vectors.deploy.bufferLamports));
+  expect(rentExempt(HEADER + feed.size)).toBe(BigInt(vectors.deploy.feedLamports));
 });
 
 test('every type and arrays round trip', async () => {
