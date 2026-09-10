@@ -32,6 +32,8 @@ const ACCOUNT_OVERHEAD = 64;
 const COMPUTE_BUDGET_PROGRAM_LEN = 'compute_budget_program'.length;
 /** `FeeStructure::default()`. */
 const LAMPORTS_PER_SIGNATURE = 5_000n;
+/** The header is a u64. */
+const MAX_SEQUENCE = (1n << 64n) - 1n;
 
 /** `Rent::default().minimum_balance`: `(ACCOUNT_STORAGE_OVERHEAD + bytes) * DEFAULT_LAMPORTS_PER_BYTE` (solana-rent). */
 export function rentExempt(bytes: number): bigint {
@@ -76,7 +78,7 @@ type Value<K extends FieldLike> = K extends { readonly len: infer L extends numb
 export type Payload<F extends readonly FieldLike[]> = { [K in F[number] as K['name']]: Value<K> };
 
 /** `sequence` is whatever the publisher writes; the clients write unix milliseconds. */
-export type Reading<T> = { sequence: number; value: T };
+export type Reading<T> = { sequence: bigint; value: T };
 
 /**
  * What an update needs. `computeUnits` and `loadedBytes` are the instruction's own: the program's units,
@@ -232,11 +234,12 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
   }
 
   /** Update instruction data, which is also the feed account layout. */
-  encode(sequence: number, value: Payload<F>): Uint8Array {
-    if (!Number.isInteger(sequence) || sequence < 0) throw new RangeError('sequence: expected a non-negative integer');
+  encode(sequence: number | bigint, value: Payload<F>): Uint8Array {
+    const u64 = typeof sequence === 'bigint' ? sequence : Number.isSafeInteger(sequence) ? BigInt(sequence) : -1n;
+    if (u64 < 0n || u64 > MAX_SEQUENCE) throw new RangeError('sequence: expected a non-negative u64, and a number must be a safe integer');
     const data = new Uint8Array(HEADER + this.size);
     const view = new DataView(data.buffer);
-    view.setBigUint64(0, BigInt(sequence), true);
+    view.setBigUint64(0, u64, true);
     const fields = value as Record<string, unknown>;
     for (const slot of this.slots) {
       const x = fields[slot.name];
@@ -261,6 +264,6 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
       const at = HEADER + offset;
       value[name] = len === 1 ? get(view, at, type) : Array.from({ length: len }, (_, i) => get(view, at + i * TYPES[type].size, type));
     }
-    return { sequence: Number(view.getBigUint64(0, true)), value: value as Payload<F> };
+    return { sequence: view.getBigUint64(0, true), value: value as Payload<F> };
   }
 }

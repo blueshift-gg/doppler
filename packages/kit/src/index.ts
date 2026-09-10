@@ -132,8 +132,8 @@ export class DopplerClient<F extends readonly FieldLike[] = readonly Field[]> {
     return new Deploy(this);
   }
 
-  /** `sequence` is any strictly increasing integer; unix milliseconds, `Date.now()`, is the convention. */
-  update(sequence: number, value: Payload<F>): Update<F> {
+  /** `sequence` is any strictly increasing u64; unix milliseconds, `Date.now()`, is the convention. */
+  update(sequence: number | bigint, value: Payload<F>): Update<F> {
     return new Update(this, sequence, value);
   }
 
@@ -165,7 +165,7 @@ export class DopplerClient<F extends readonly FieldLike[] = readonly Field[]> {
 export class Update<F extends readonly FieldLike[]> {
   constructor(
     private readonly doppler: DopplerClient<F>,
-    readonly sequence: number,
+    readonly sequence: number | bigint,
     readonly value: Payload<F>,
   ) {}
 

@@ -29,7 +29,7 @@ test('price round trips through the wire format with the exact budgets', async (
   const feed = await Feed.load({ admin, seed, fields: price });
   const data = feed.encode(vectors.price.sequence, value);
   expect(hex(data)).toBe(vectors.price.data);
-  expect(feed.decode(fromHex(vectors.price.data), program)).toEqual({ sequence: 5, value });
+  expect(feed.decode(fromHex(vectors.price.data), program)).toEqual({ sequence: 5n, value });
   expect(feed.updateBudget(1000)).toEqual({
     computeUnits: 25,
     loadedBytes: vectors.price.loadedBytes - 2 * 64 - 22,
@@ -66,6 +66,23 @@ test('every type and arrays round trip', async () => {
   expect(data.length).toBe(HEADER + 20);
   expect(data[HEADER]).toBe(0xff);
   expect(feed.decode(data, feed.program).value).toEqual(value);
+});
+
+test(' feed sequence: decodes to bigint and encodes either number integer or bigint', async () => {
+  const feed = await Feed.load({ admin, seed, fields: [{ name: 'x', type: 'u64' }] });
+  const MAX_SEQUENCE = (1n << 64n) - 1n;
+
+  expect(feed.decode(feed.encode(Date.now(), { x: 1n }), feed.program).sequence).toBeTypeOf('bigint');
+  expect(feed.decode(feed.encode(Number.MAX_SAFE_INTEGER, { x: 1n }), feed.program).sequence).toBe(BigInt(Number.MAX_SAFE_INTEGER));
+  expect(feed.decode(feed.encode(2n ** 53n + 1n, { x: 1n }), feed.program).sequence).toBe(2n ** 53n + 1n);
+  expect(feed.decode(feed.encode(MAX_SEQUENCE, { x: 1n }), feed.program).sequence).toBe(MAX_SEQUENCE);
+  expect(feed.decode(feed.encode(0n, { x: 1n }), feed.program).sequence).toBe(0n);
+
+  // above 2^53 a number cannot be trusted, but a bigint carries the whole header
+  expect(() => feed.encode(Number.MAX_SAFE_INTEGER + 1, { x: 1n })).toThrow('safe integer');
+  expect(() => feed.encode(1.5, { x: 1n })).toThrow('safe integer');
+  expect(() => feed.encode(-1, { x: 1n })).toThrow('non-negative u64');
+  expect(() => feed.encode(MAX_SEQUENCE + 1n, { x: 1n })).toThrow('non-negative u64');
 });
 
 test('load rejects bad manifests', async () => {
