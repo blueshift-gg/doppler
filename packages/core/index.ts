@@ -96,19 +96,20 @@ export type Budget = {
 
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const LOADER = 'BPFLoaderUpgradeab1e11111111111111111111111';
+/** A 32-byte key is worth less than 2^256, and so is 32 to 44 base58 digits. */
+const MAX_KEY = (1n << 256n) - 1n;
 
 function key(text: unknown, what: string): Uint8Array {
+  if (typeof text !== 'string') throw new TypeError(`${what}: a key is 32 bytes in base58`);
   let n = 0n;
-  let zeros = 0;
-  for (const c of typeof text === 'string' ? text : '') {
+  for (const c of text) {
     const digit = ALPHABET.indexOf(c);
     if (digit < 0) throw new TypeError(`${what}: a key is 32 bytes in base58`);
     n = n * 58n + BigInt(digit);
-    if (n === 0n) zeros++;
   }
+  if (n > MAX_KEY || text.length < 32 || text.length > 44) throw new TypeError(`${what}: a key is 32 bytes in base58`);
   const bytes = new Uint8Array(32);
-  for (let i = 31; i >= zeros && n > 0n; i--, n >>= 8n) bytes[i] = Number(n & 0xffn);
-  if (n > 0n || (typeof text === 'string' && text.length < 32)) throw new TypeError(`${what}: a key is 32 bytes in base58`);
+  for (let i = 31; n > 0n; i--, n >>= 8n) bytes[i] = Number(n & 0xffn);
   return bytes;
 }
 
