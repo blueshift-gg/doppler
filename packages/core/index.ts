@@ -96,32 +96,41 @@ export type Budget = {
 
 const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const LOADER = 'BPFLoaderUpgradeab1e11111111111111111111111';
-/** A 32-byte key is worth less than 2^256, and so is 32 to 44 base58 digits. */
-const MAX_KEY = (1n << 256n) - 1n;
 
 function key(text: unknown, what: string): Uint8Array {
   if (typeof text !== 'string') throw new TypeError(`${what}: a key is 32 bytes in base58`);
+  let zeros = 0;
+  while (zeros < text.length && text[zeros] === '1') zeros++;
+
   let n = 0n;
-  for (const c of text) {
+  for (const c of text.slice(zeros)) {
     const digit = ALPHABET.indexOf(c);
     if (digit < 0) throw new TypeError(`${what}: a key is 32 bytes in base58`);
     n = n * 58n + BigInt(digit);
   }
-  if (n > MAX_KEY || text.length < 32 || text.length > 44) throw new TypeError(`${what}: a key is 32 bytes in base58`);
   const bytes = new Uint8Array(32);
-  for (let i = 31; n > 0n; i--, n >>= 8n) bytes[i] = Number(n & 0xffn);
+  let valueBytes = 0;
+  for (let i = 31; n > 0n; i--, n >>= 8n) {
+    bytes[i] = Number(n & 0xffn);
+    valueBytes++;
+  }
+  if (zeros + valueBytes !== 32) throw new TypeError(`${what}: a key is 32 bytes in base58`);
   return bytes;
 }
 
 function base58(bytes: Uint8Array): string {
-  let n = bytes.reduce((acc, b) => (acc << 8n) | BigInt(b), 0n);
+  let zeros = 0;
+  while (zeros < bytes.length && bytes[zeros] === 0) zeros++;
+
+  let n = 0n;
+  for (let i = zeros; i < bytes.length; i++) n = (n << 8n) | BigInt(bytes[i]!);
+
   let out = '';
-  for (; n > 0n; n /= 58n) out = ALPHABET[Number(n % 58n)] + out;
-  for (const b of bytes) {
-    if (b !== 0) break;
-    out = '1' + out;
+  while (n > 0n) {
+    out = ALPHABET[Number(n % 58n)] + out;
+    n /= 58n;
   }
-  return out;
+  return '1'.repeat(zeros) + out;
 }
 
 type Slot = { name: string; type: Ty; len: number; offset: number };

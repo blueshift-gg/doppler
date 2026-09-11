@@ -97,7 +97,17 @@ test('the admin key is 32 bytes in base58, and nothing else', async () => {
   const at = (adminKey: unknown) => Feed.load({ admin: adminKey, seed, fields: price } as never);
   await expect(at(admin)).resolves.toBeInstanceOf(Feed);
   await expect(at('JAS6KrSQnzRPHm7KqWEfTubKi4YzvrUbQ8AicEwYm3h7')).resolves.toBeInstanceOf(Feed);
+  // 32 zero bytes is a key, and base58 spells it as 32 ones
+  await expect(at('1'.repeat(32))).resolves.toBeInstanceOf(Feed);
+  // 32 to 44 digits that decode to something other than 32 bytes, which would be left-padded
+  await expect(at('2'.repeat(32))).rejects.toThrow('admin: a key is 32 bytes in base58');
+  await expect(at('z'.repeat(32))).rejects.toThrow('admin: a key is 32 bytes in base58');
+  await expect(at('z'.repeat(44))).rejects.toThrow('admin: a key is 32 bytes in base58');
+  await expect(at('1'.repeat(36))).rejects.toThrow('admin: a key is 32 bytes in base58');
+  await expect(at('1'.repeat(44))).rejects.toThrow('admin: a key is 32 bytes in base58');
+  await expect(at('1'.repeat(32) + '2')).rejects.toThrow('admin: a key is 32 bytes in base58');
   await expect(at('a'.repeat(44))).rejects.toThrow('admin: a key is 32 bytes in base58');
+  await expect(at('a'.repeat(31))).rejects.toThrow('admin: a key is 32 bytes in base58');
   await expect(at(123)).rejects.toThrow('admin: a key is 32 bytes in base58');
 });
 
