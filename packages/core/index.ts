@@ -33,6 +33,8 @@ const ACCOUNT_OVERHEAD = 64;
 const COMPUTE_BUDGET_PROGRAM_LEN = 'compute_budget_program'.length;
 /** `FeeStructure::default()`. */
 const LAMPORTS_PER_SIGNATURE = 5_000n;
+/** The header is a u64. */
+const MAX_SEQUENCE = (1n << 64n) - 1n;
 
 /** `Rent::default().minimum_balance`: `(ACCOUNT_STORAGE_OVERHEAD + bytes) * DEFAULT_LAMPORTS_PER_BYTE` (solana-rent). */
 export function rentExempt(bytes: number): bigint {
@@ -77,7 +79,7 @@ type Value<K extends FieldLike> = K extends { readonly len: infer L extends numb
 export type Payload<F extends readonly FieldLike[]> = { [K in F[number] as K['name']]: Value<K> };
 
 /** `sequence` is whatever the publisher writes; the clients write unix milliseconds. */
-export type Reading<T> = { sequence: number; value: T };
+export type Reading<T> = { sequence: bigint; value: T };
 
 /**
  * What an update needs. `computeUnits` and `loadedBytes` are the instruction's own: the program's units,
@@ -97,29 +99,39 @@ const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const LOADER = 'BPFLoaderUpgradeab1e11111111111111111111111';
 
 function key(text: unknown, what: string): Uint8Array {
-  let n = 0n;
+  if (typeof text !== 'string') throw new TypeError(`${what}: a key is 32 bytes in base58`);
   let zeros = 0;
-  for (const c of typeof text === 'string' ? text : '') {
+  while (zeros < text.length && text[zeros] === '1') zeros++;
+
+  let n = 0n;
+  for (const c of text.slice(zeros)) {
     const digit = ALPHABET.indexOf(c);
     if (digit < 0) throw new TypeError(`${what}: a key is 32 bytes in base58`);
     n = n * 58n + BigInt(digit);
-    if (n === 0n) zeros++;
   }
   const bytes = new Uint8Array(32);
-  for (let i = 31; i >= zeros && n > 0n; i--, n >>= 8n) bytes[i] = Number(n & 0xffn);
-  if (n > 0n || (typeof text === 'string' && text.length < 32)) throw new TypeError(`${what}: a key is 32 bytes in base58`);
+  let valueBytes = 0;
+  for (let i = 31; n > 0n; i--, n >>= 8n) {
+    bytes[i] = Number(n & 0xffn);
+    valueBytes++;
+  }
+  if (zeros + valueBytes !== 32) throw new TypeError(`${what}: a key is 32 bytes in base58`);
   return bytes;
 }
 
 function base58(bytes: Uint8Array): string {
-  let n = bytes.reduce((acc, b) => (acc << 8n) | BigInt(b), 0n);
+  let zeros = 0;
+  while (zeros < bytes.length && bytes[zeros] === 0) zeros++;
+
+  let n = 0n;
+  for (let i = zeros; i < bytes.length; i++) n = (n << 8n) | BigInt(bytes[i]!);
+
   let out = '';
-  for (; n > 0n; n /= 58n) out = ALPHABET[Number(n % 58n)] + out;
-  for (const b of bytes) {
-    if (b !== 0) break;
-    out = '1' + out;
+  while (n > 0n) {
+    out = ALPHABET[Number(n % 58n)] + out;
+    n /= 58n;
   }
-  return out;
+  return '1'.repeat(zeros) + out;
 }
 
 type Slot = { name: string; type: Ty; len: number; offset: number };
@@ -233,11 +245,12 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
   }
 
   /** Update instruction data, which is also the feed account layout: the payload padded to 8 bytes. */
-  encode(sequence: number, value: Payload<F>): Uint8Array {
-    if (!Number.isInteger(sequence) || sequence < 0) throw new RangeError('sequence: expected a non-negative integer');
+  encode(sequence: number | bigint, value: Payload<F>): Uint8Array {
+    const u64 = typeof sequence === 'bigint' ? sequence : Number.isSafeInteger(sequence) ? BigInt(sequence) : -1n;
+    if (u64 < 0n || u64 > MAX_SEQUENCE) throw new RangeError('sequence: expected a non-negative u64, and a number must be a safe integer');
     const data = new Uint8Array(HEADER + padded(this.size));
     const view = new DataView(data.buffer);
-    view.setBigUint64(0, BigInt(sequence), true);
+    view.setBigUint64(0, u64, true);
     const fields = value as Record<string, unknown>;
     for (const slot of this.slots) {
       const x = fields[slot.name];
@@ -262,6 +275,6 @@ export class Feed<F extends readonly FieldLike[] = readonly Field[]> {
       const at = HEADER + offset;
       value[name] = len === 1 ? get(view, at, type) : Array.from({ length: len }, (_, i) => get(view, at + i * TYPES[type].size, type));
     }
-    return { sequence: Number(view.getBigUint64(0, true)), value: value as Payload<F> };
+    return { sequence: view.getBigUint64(0, true), value: value as Payload<F> };
   }
 }

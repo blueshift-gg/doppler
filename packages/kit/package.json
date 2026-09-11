@@ -9,7 +9,6 @@
   "exports": {
     ".": {
       "types": "./dist/kit/src/index.d.ts",
-      "bun": "./src/index.ts",
       "default": "./dist/kit/src/index.js"
     }
   },
