@@ -1,6 +1,6 @@
 // @solana/web3.js 3 client for Doppler feeds: `load` a manifest, `deploy` once, then `update`, `read`, `subscribe`.
 
-import { BUFFER_HEADER, BUFFER_SEED, FEED_SEED, Feed, HEADER, PROGRAM_LEN, rentExempt } from '../../core/index.js';
+import { BUFFER_HEADER, BUFFER_SEED, FEED_SEED, Feed, HEADER, PROGRAM_LEN, padded, rentExempt } from '../../core/index.js';
 import type { Budget, Field, FieldLike, Manifest, Payload, Reading } from '../../core/index.js';
 import {
   ComputeBudgetProgram,
@@ -169,7 +169,7 @@ export class Deploy<F extends readonly FieldLike[]> {
     const buffer = await PublicKey.createWithSeed(d.admin, BUFFER_SEED, loader);
     const [programdata] = await PublicKey.findProgramAddress([d.program.toBytes()], loader);
     const bufferLen = BUFFER_HEADER + elf.length;
-    const feedLen = HEADER + d.feed.size;
+    const feedLen = HEADER + padded(d.feed.size);
     const create = (newAccountPubkey: PublicKey, seed: string, space: number, programId: PublicKey) =>
       SystemProgram.createAccountWithSeed({ fromPubkey: d.admin, newAccountPubkey, basePubkey: d.admin, seed, lamports: rentExempt(space), space, programId });
     return {

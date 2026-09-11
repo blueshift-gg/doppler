@@ -81,7 +81,7 @@ Doppler uses a simple yet powerful architecture:
 | bytes    | field      |                                             |
 | -------- | ---------- | ------------------------------------------- |
 | `0..8`   | `sequence` | `u64`, little-endian, must grow every write |
-| `8..8+N` | payload    | your schema, packed, no padding             |
+| `8..8+N` | payload    | your schema, packed, zero-padded to 8 bytes |
 
 An update instruction carries the same bytes. The program checks that the admin signed and that
 the sequence grew, then copies them in. Nothing else happens on-chain, which is where the 21
@@ -151,7 +151,7 @@ Both operations hand you their raw instructions and a `Budget`:
 ```rust
 let update = doppler.update(now_ms(), &price).instruction();
 update.instruction;                 // the admin signs
-update.budget;                      // Budget { compute_units: 25, loaded_bytes: 661, requested_compute_units: 475, requested_loaded_bytes: 811, lamports }
+update.budget;                      // Budget { compute_units: 25, loaded_bytes: 665, requested_compute_units: 475, requested_loaded_bytes: 815, lamports }
 
 let deploy = doppler.deploy().instructions();
 deploy.instructions;                // create and fill the buffer, create the program, deploy it immutable, create the feed
@@ -291,7 +291,7 @@ example of an update transaction:
 
 ```
   Instruction 0   ComputeBudget111111111111111111111111111111  set_compute_unit_price
-  Instruction 1   ComputeBudget111111111111111111111111111111  set_loaded_accounts_data_size_limit 811
+  Instruction 1   ComputeBudget111111111111111111111111111111  set_loaded_accounts_data_size_limit 815
   Instruction 2   ComputeBudget111111111111111111111111111111  set_compute_unit_limit 475
   Instruction 3   <your program>
   Status: Ok
@@ -300,8 +300,8 @@ example of an update transaction:
 ```
 
 > A `u64` feed is `471 CU` + a `767` byte loaded-accounts-data-size limit; the `Price` feed above
-> is `475` and `811`. Both landed at exactly those numbers on surfpool 1.5.0 and on an Agave 4.2.2
-> validator.
+> is `475` and `815`. The live tests assert both on surfpool 1.5.0, and the `u64` numbers also landed
+> on an Agave 4.2.2 validator.
 
 ### Expected Priority Score
 
@@ -327,17 +327,28 @@ let's assume we are going to update a single `u64` feed:
 
 ## Building
 
-Build the on-chain program from Rust:
-
-```bash
-# Build for Solana BPF
-cargo build-sbf --manifest-path program/Cargo.toml
-```
-
-or generate it, which is what `deploy` does:
+The program is `doppler/doppler.s`, and `doppler/doppler-memcpy.s` for payloads of six chunks or
+more: 26 and 27 instructions of sBPF assembly. `doppler/tests/templates.rs` assembles them with
+[`sbpf`](https://crates.io/crates/sbpf) into `doppler/doppler.so` and `doppler/doppler-memcpy.so`,
+328 and 336 bytes, and `doppler::generate` patches in the admin key, one copy pair per 8 bytes of
+payload, and the sizes. That is what `deploy` does:
 
 ```rust
 let elf = doppler::generate(admin.pubkey().as_array(), doppler::Price::SIZE);
+```
+
+After editing a listing:
+
+```bash
+cargo install sbpf --version 0.3.0 --locked
+UPDATE_TEMPLATES=1 cargo test -p doppler --test templates
+UPDATE_VECTORS=1 cargo test -p doppler --test vectors
+```
+
+The reference program in `program/` is the same logic in Rust, for `cargo build-sbf`:
+
+```bash
+cargo build-sbf --manifest-path program/Cargo.toml
 ```
 
 ## Security Considerations
@@ -373,7 +384,8 @@ one `sol_memcpy_` call:
 
 ## Example Payloads
 
-Payloads are packed, with no padding, so every type derives `Pod` and is `#[repr(C, packed)]`.
+Payloads are packed, so every type derives `Pod` and is `#[repr(C, packed)]`; the account pads the
+value to a multiple of 8 bytes, so the copy is one load/store pair per 8.
 
 ### Simple Price Feed
 

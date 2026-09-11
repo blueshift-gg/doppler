@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import vectors from '../../doppler/tests/vectors.json' with { type: 'json' };
-import { BUFFER_HEADER, Feed, HEADER, PROGRAM_LEN, rentExempt, updateCu } from './index.js';
+import { BUFFER_HEADER, Feed, HEADER, padded, PROGRAM_LEN, rentExempt, updateCu } from './index.js';
 
 const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 const fromHex = (text: string) => Uint8Array.from(text.match(/../g) ?? [], (b) => parseInt(b, 16));
@@ -28,6 +28,7 @@ test('the program and the feed address are create_with_seed', async () => {
 test('price round trips through the wire format with the exact budgets', async () => {
   const feed = await Feed.load({ admin, seed, fields: price });
   const data = feed.encode(vectors.price.sequence, value);
+  expect(data.length).toBe(HEADER + padded(20));
   expect(hex(data)).toBe(vectors.price.data);
   expect(feed.decode(fromHex(vectors.price.data), program)).toEqual({ sequence: 5n, value });
   expect(feed.updateBudget(1000)).toEqual({
@@ -53,7 +54,7 @@ test('the rent of a deploy matches the vectors', async () => {
   const elf = feed.elf().length;
   expect(rentExempt(PROGRAM_LEN)).toBe(BigInt(vectors.deploy.programLamports));
   expect(rentExempt(BUFFER_HEADER + elf)).toBe(BigInt(vectors.deploy.bufferLamports));
-  expect(rentExempt(HEADER + feed.size)).toBe(BigInt(vectors.deploy.feedLamports));
+  expect(rentExempt(HEADER + padded(feed.size))).toBe(BigInt(vectors.deploy.feedLamports));
 });
 
 test('every type and arrays round trip', async () => {
@@ -71,7 +72,7 @@ test('every type and arrays round trip', async () => {
   });
   const value = { a: -1, b: [65535, 7], c: true, d: -32768, e: 4294967295, f: -1n };
   const data = feed.encode(1, value);
-  expect(data.length).toBe(HEADER + 20);
+  expect(data.length).toBe(HEADER + 24);
   expect(data[HEADER]).toBe(0xff);
   expect(feed.decode(data, feed.program).value).toEqual(value);
 });

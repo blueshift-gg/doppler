@@ -3,7 +3,7 @@ use std::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::{Error, FEED_SEED, HEADER};
+use crate::{padded, Error, FEED_SEED, HEADER};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -140,10 +140,12 @@ pub fn feed_address(admin: &[u8; 32], program: &[u8; 32]) -> [u8; 32] {
         .into()
 }
 
+/// The sequence, then the payload padded to 8 bytes.
 pub fn update_data(sequence: u64, payload: &[u8]) -> Vec<u8> {
-    let mut data = Vec::with_capacity(HEADER + payload.len());
+    let mut data = Vec::with_capacity(HEADER + padded(payload.len()));
     data.extend_from_slice(&sequence.to_le_bytes());
     data.extend_from_slice(payload);
+    data.resize(HEADER + padded(payload.len()), 0);
     data
 }
 

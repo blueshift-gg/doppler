@@ -21,7 +21,7 @@ import {
 import { getSetComputeUnitPriceInstruction } from '@solana-program/compute-budget';
 import { LOADER_V3_PROGRAM_ADDRESS } from '@solana-program/loader-v3';
 import vectors from '../../../doppler/tests/vectors.json' with { type: 'json' };
-import { HEADER, PROGRAMDATA_HEADER, PROGRAM_LEN, rentExempt } from '../../core/index.js';
+import { HEADER, PROGRAMDATA_HEADER, PROGRAM_LEN, padded, rentExempt } from '../../core/index.js';
 import { DopplerClient } from '../src/index.js';
 
 const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
@@ -101,7 +101,7 @@ test.skipIf(!url || !ws)('deploys, updates, reads and subscribes on a live clust
   const { budget } = await d.deploy().instructions([admin]);
   const deploy = await d.deploy().send([admin]);
   const deployed = await balance();
-  const rent = rentExempt(PROGRAM_LEN) + rentExempt(PROGRAMDATA_HEADER + d.feed.elf().length) + rentExempt(HEADER + d.feed.size);
+  const rent = rentExempt(PROGRAM_LEN) + rentExempt(PROGRAMDATA_HEADER + d.feed.elf().length) + rentExempt(HEADER + padded(d.feed.size));
   expect(funded - deployed).toBe(budget.lamports + rent);
   expect(await consumed(deploy)).toBe(BigInt(budget.requestedComputeUnits));
   const [programdata] = await getProgramDerivedAddress({ programAddress: LOADER_V3_PROGRAM_ADDRESS, seeds: [getAddressEncoder().encode(d.program)] });
