@@ -108,7 +108,8 @@ export class DopplerClient<F extends readonly FieldLike[] = readonly Field[]> {
       queue.push({ data, owner: owner.toString() });
       wake();
     });
-    signal?.addEventListener('abort', () => wake(), { once: true });
+    const onAbort = () => wake();
+    signal?.addEventListener('abort', onAbort, { once: true });
     try {
       while (!signal?.aborted) {
         const next = queue.shift();
@@ -116,6 +117,7 @@ export class DopplerClient<F extends readonly FieldLike[] = readonly Field[]> {
         else await new Promise<void>((resolve) => (wake = resolve));
       }
     } finally {
+      signal?.removeEventListener('abort', onAbort);
       await rpc.removeAccountChangeListener(id);
     }
   }
