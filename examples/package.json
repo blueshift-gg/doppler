@@ -1,0 +1,14 @@
+{
+  "name": "doppler-examples",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@blueshift-gg/doppler-kit": "workspace:*",
+    "@blueshift-gg/doppler-web3js": "workspace:*",
+    "@solana/kit": "^8.2.0",
+    "@solana-program/compute-budget": "^0.18.1",
+    "@solana-program/loader-v3": "^0.6.1",
+    "@solana-program/system": "^0.14.1",
+    "@solana/web3.js": "3.0.0-rc.3"
+  }
+}

@@ -19,6 +19,8 @@ serde_json = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
 
 [dev-dependencies]
+bs58 = { workspace = true }
+solana-rent = { workspace = true }
 mollusk-svm = { workspace = true }
 solana-account = { workspace = true }
 solana-instruction = { workspace = true }
