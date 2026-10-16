@@ -41,7 +41,7 @@ In TypeScript, one package per client library:
 
 ```bash
 bun add @blueshift-gg/doppler-kit @solana/kit @solana-program/loader-v3 @solana-program/system @solana-program/compute-budget
-bun add @blueshift-gg/doppler-web3js @solana/web3.js@3.0.0-rc.3
+bun add @blueshift-gg/doppler-web3js @solana/web3.js@^3.1.0
 ```
 
 Each compiles the core in, with no dependency of its own: the manifest, the payload codec, the

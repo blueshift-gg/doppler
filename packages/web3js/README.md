@@ -15,4 +15,4 @@ const { instruction, budget } = doppler.update(Date.now(), value).instruction();
 const { instructions } = await doppler.deploy().instructions();
 ```
 
-Peer dependency: `@solana/web3.js` 3.0.0-rc.3 or newer. The full guide is in the repository README.
+Peer dependency: `@solana/web3.js` 3.0.0 or newer. The full guide is in the repository README.

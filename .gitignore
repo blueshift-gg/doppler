@@ -7,6 +7,9 @@
 # Configuration files
 .DS_Store
 
+# IDE
+.idea
+
 # testing
 test-ledger
 
@@ -15,7 +18,11 @@ test-ledger
 # surfpool simnet logs
 .surfpool
 
+# caches
+.eslintcache
+.cache
+*.tsbuildinfo
+
 # TypeScript
 node_modules
 dist
-*.tsbuildinfo
