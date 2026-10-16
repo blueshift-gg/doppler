@@ -21,7 +21,7 @@
     "@solana-program/system": "^0.14.0"
   },
   "devDependencies": {
-    "@solana/kit": "^8.2.0",
+    "@solana/kit": "^8.5.0",
     "@solana-program/compute-budget": "^0.18.1",
     "@solana-program/loader-v3": "^0.6.1",
     "@solana-program/system": "^0.14.1"
