@@ -357,7 +357,6 @@ impl<T: Pod> Deploy<'_, T> {
                 &d.admin,
                 0,
                 elf.len(),
-                true,
             )
             .expect("loader instruction")
             .pop(),
