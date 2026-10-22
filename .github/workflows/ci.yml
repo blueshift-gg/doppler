@@ -14,8 +14,8 @@ jobs:
           toolchain: stable
           components: rustfmt, clippy
       - run: cargo fmt --all -- --check
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-      - run: cargo test -p doppler -p doppler-sdk
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - run: cargo test --locked -p doppler -p doppler-sdk
   typescript:
     runs-on: ubuntu-latest
     steps:
